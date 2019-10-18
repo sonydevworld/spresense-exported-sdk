@@ -21,9 +21,15 @@ Select:
 
 * `CONFIG_SYSTEMTICK_HOOK`
 
+Deselect:
+
+* `CONFIG_STACK_COLORATION`
+
 Set:
 
 * `CONFIG_USEC_PER_TICK`=1000
+
+* `CONFIG_USERMAIN_STACKSIZE`=1064960
 
 Configure sdk:
 
@@ -65,11 +71,11 @@ In file `sdk/bsp/board/spresense/src/spresense_main.c` add function
 ## Step 5 - Extract Spresense SDK and change the name of the folder
 
     $ unzip sdk-export.zip
-    $ mv sdk-export spresense-sdk
+    $ mv sdk-export spresense-exported-sdk
 
 ## Step 6 - Rename files to be compatible with the NuttX repository
 
-    $ cd spresense-sdk
+    $ cd spresense-exported-sdk
     $ mv nuttx/include/arch/chip/cxd56_adc.h nuttx/include/arch/chip/adc.h
     $ mv nuttx/include/arch/chip/cxd56_audio.h nuttx/include/arch/chip/audio.h
     $ mv nuttx/include/arch/chip/cxd56_scu.h nuttx/include/arch/chip/scu.h

@@ -50,10 +50,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/mtd/nand_raw.h>
+#include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -99,10 +99,10 @@ extern "C"
  * Description:
  *   Probe and initialize NAND.
  *
- * Input parameters:
+ * Input Parameters:
  *   raw      - Lower-half, raw NAND FLASH interface
  *
- * Returned value.
+ * Returned Value:
  *   A non-NULL MTD driver intstance is returned on success.  NULL is
  *   returned on any failaure.
  *

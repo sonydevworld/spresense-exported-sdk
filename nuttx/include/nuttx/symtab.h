@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/binfmt/symtab.h
+ * include/nuttx/symtab.h
  *
  *   Copyright (C) 2009, 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -138,22 +138,17 @@ symtab_findbyvalue(FAR const struct symtab_s *symtab,
                    FAR void *value, int nsyms);
 
 /****************************************************************************
- * Name: symtab_findorderedbyvalue
+ * Name: symtab_sortbyname
  *
  * Description:
- *   Find the symbol in the symbol table whose value closest (but not greater
- *   than), the provided value. This version assumes that table is ordered
- *   with respect to symbol name.
+ *   Sort the symbol table by name.
  *
  * Returned Value:
- *   A reference to the symbol table entry if an entry with the matching
- *   name is found; NULL is returned if the entry is not found.
+ *   None.
  *
  ****************************************************************************/
 
-FAR const struct symtab_s *
-symtab_findorderedbyvalue(FAR const struct symtab_s *symtab,
-                          FAR void *value, int nsyms);
+void symtab_sortbyname(FAR struct symtab_s *symtab, int nsyms);
 
 #undef EXTERN
 #if defined(__cplusplus)

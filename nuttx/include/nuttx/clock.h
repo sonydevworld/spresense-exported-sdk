@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/clock.h
  *
- *   Copyright (C) 2007-2009, 2011-2012, 2014, 2016-2017 Gregory Nutt.
+ *   Copyright (C) 2007-2009, 2011-2012, 2014, 2016-2018 Gregory Nutt.
              All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -43,8 +43,10 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <time.h>
+
 #include <nuttx/compiler.h>
 
 /****************************************************************************
@@ -120,10 +122,28 @@
 
 #define NSEC_PER_USEC               1000L /* Microseconds */
 
+#define SEC_PER_MIN                   60L
+#define NSEC_PER_MIN           (NSEC_PER_SEC * SEC_PER_MIN)
+#define USEC_PER_MIN           (USEC_PER_SEC * SEC_PER_MIN)
+#define MSEC_PER_MIN           (MSEC_PER_SEC * SEC_PER_MIN)
+#define DSEC_PER_MIN           (HSEC_PER_SEC * SEC_PER_MIN)
+#define HSEC_PER_MIN           (HSEC_PER_SEC * SEC_PER_MIN)
+
+#define MIN_PER_HOUR                  60L
+#define NSEC_PER_HOUR          (NSEC_PER_MIN * MIN_PER_HOUR)
+#define USEC_PER_HOUR          (USEC_PER_MIN * MIN_PER_HOUR)
+#define MSEC_PER_HOUR          (MSEC_PER_MIN * MIN_PER_HOUR)
+#define DSEC_PER_HOUR          (HSEC_PER_SEC * MIN_PER_HOUR)
+#define HSEC_PER_HOUR          (DSEC_PER_MIN * MIN_PER_HOUR)
+#define SEC_PER_HOUR           (SEC_PER_MIN  * MIN_PER_HOUR)
+
+#define HOURS_PER_DAY                 24L
+#define SEC_PER_DAY            (HOURS_PER_DAY * SEC_PER_HOUR)
+
 /* If CONFIG_SCHED_TICKLESS is not defined, then the interrupt interval of
  * the system timer is given by USEC_PER_TICK.  This is the expected number
  * of microseconds between calls from the processor-specific logic to
- * sched_process_timer().  The default value of USEC_PER_TICK is 10000
+ * nxsched_process_timer().  The default value of USEC_PER_TICK is 10000
  * microseconds (100KHz).  However, this default setting can be overridden
  * by defining the interval in microseconds as CONFIG_USEC_PER_TICK in the
  * NuttX configuration file.
@@ -145,10 +165,13 @@
  * preferred for that reason (at the risk of overflow)
  */
 
-#define TICK_PER_DSEC         (USEC_PER_DSEC / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_HSEC         (USEC_PER_HSEC / USEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_HOUR         (USEC_PER_HOUR / USEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_MIN          (USEC_PER_MIN  / USEC_PER_TICK)            /* Truncates! */
 #define TICK_PER_SEC          (USEC_PER_SEC  / USEC_PER_TICK)            /* Truncates! */
 #define TICK_PER_MSEC         (USEC_PER_MSEC / USEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_DSEC         (USEC_PER_DSEC / USEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_HSEC         (USEC_PER_HSEC / USEC_PER_TICK)            /* Truncates! */
+
 #define MSEC_PER_TICK         (USEC_PER_TICK / USEC_PER_MSEC)            /* Truncates! */
 #define NSEC_PER_TICK         (USEC_PER_TICK * NSEC_PER_USEC)            /* Exact */
 
@@ -178,9 +201,23 @@
 #define TICK2HSEC(tick)       (((tick)+(TICK_PER_HSEC/2))/TICK_PER_HSEC) /* Rounds */
 #define TICK2SEC(tick)        (((tick)+(TICK_PER_SEC/2))/TICK_PER_SEC)   /* Rounds */
 
+#if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_SYSTEM_TIME64) && \
+    defined(CONFIG_CLOCK_MONOTONIC) && !defined(CONFIG_SCHED_TICKLESS)
+/* Initial system timer ticks value close to maximum 32-bit value, to test
+ * 64-bit system-timer after going over 32-bit value. This is to make errors
+ * of casting 64-bit system-timer to 32-bit variables more visible.
+ */
+
+#  define INITIAL_SYSTEM_TIMER_TICKS \
+    ((uint64_t)(UINT32_MAX - (TICK_PER_SEC * 5)))
+#else
+#  define INITIAL_SYSTEM_TIMER_TICKS 0
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* This structure is used to report CPU usage for a particular thread */
 
 #ifdef CONFIG_SCHED_CPULOAD
@@ -191,20 +228,15 @@ struct cpuload_s
 };
 #endif
 
-/* This type is the natural with of the system timer */
+/* This non-standard type used to hold relative clock ticks that may take
+ * negative values.  Because of its non-portable nature the type sclock_t
+ * should be used only within the OS proper and not by portable applications.
+ */
 
 #ifdef CONFIG_SYSTEM_TIME64
-typedef uint64_t systime_t;
+typedef int64_t sclock_t;
 #else
-typedef uint32_t systime_t;
-#endif
-
-/* This type used to hold relative ticks that may have negative value */
-
-#ifdef CONFIG_SYSTEM_TIME64
-typedef int64_t ssystime_t;
-#else
-typedef int32_t ssystime_t;
+typedef int32_t sclock_t;
 #endif
 
 /****************************************************************************
@@ -227,7 +259,7 @@ extern "C"
  */
 
 #ifdef __HAVE_KERNEL_GLOBALS
-EXTERN volatile systime_t g_system_timer;
+EXTERN volatile clock_t g_system_timer;
 
 #ifndef CONFIG_SYSTEM_TIME64
 #  define clock_systimer() g_system_timer
@@ -237,6 +269,45 @@ EXTERN volatile systime_t g_system_timer;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name:  clock_timespec_add
+ *
+ * Description:
+ *   Add timespec ts1 to to2 and return the result in ts3
+ *
+ * Input Parameters:
+ *   ts1 and ts2: The two timespecs to be added
+ *   t23: The location to return the result (may be ts1 or ts2)
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void clock_timespec_add(FAR const struct timespec *ts1,
+                        FAR const struct timespec *ts2,
+                        FAR struct timespec *ts3);
+
+/****************************************************************************
+ * Name:  clock_timespec_subtract
+ *
+ * Description:
+ *   Subtract timespec ts2 from to1 and return the result in ts3.
+ *   Zero is returned if the time difference is negative.
+ *
+ * Input Parameters:
+ *   ts1 and ts2: The two timespecs to be subtracted (ts1 - ts2)
+ *   t23: The location to return the result (may be ts1 or ts2)
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void clock_timespec_subtract(FAR const struct timespec *ts1,
+                             FAR const struct timespec *ts2,
+                             FAR struct timespec *ts3);
 
 /****************************************************************************
  * Name:  clock_synchronize
@@ -256,10 +327,10 @@ EXTERN volatile systime_t g_system_timer;
  *   Time going backward could have bad consequences if there are ongoing
  *   timers and delays.  So use this interface with care.
  *
- * Parameters:
+ * Input Parameters:
  *   None
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -286,45 +357,47 @@ void clock_synchronize(void);
  *   time. If setting system time with RTC would result time going "backward"
  *   then resynchronization is not performed.
  *
- * Parameters:
+ * Input Parameters:
  *   diff:  amount of time system-time is adjusted forward with RTC
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions:
  *
  ****************************************************************************/
 
-#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS) && \
-    !defined(CONFIG_CLOCK_TIMEKEEPING)
+#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS)
 void clock_resynchronize(FAR struct timespec *rtc_diff);
 #endif
 
 /****************************************************************************
- * Name:  clock_systimer
+ * Name: clock_systimer
  *
  * Description:
  *   Return the current value of the 32/64-bit system timer counter.
+ *
  *   Indirect access to the system timer counter is required through this
  *   function if the execution environment does not have direct access to
  *   kernel global data.
  *
- *   Use of this function is also required to assue atomic access to the
+ *   Use of this function is also required to assure atomic access to the
  *   64-bit system timer.
  *
- * Parameters:
+ *   NOTE:  This is an internal OS interface and should not be called from
+ *   application code.  Rather, the functionally equivalent, standard
+ *   interface clock() should be used.
+ *
+ * Input Parameters:
  *   None
  *
- * Return Value:
+ * Returned Value:
  *   The current value of the system timer counter
- *
- * Assumptions:
  *
  ****************************************************************************/
 
 #if !defined(__HAVE_KERNEL_GLOBALS) || defined(CONFIG_SYSTEM_TIME64)
-systime_t clock_systimer(void);
+clock_t clock_systimer(void);
 #endif
 
 /****************************************************************************
@@ -334,11 +407,11 @@ systime_t clock_systimer(void);
  *   Return the current value of the system timer counter as a struct
  *   timespec.
  *
- * Parameters:
+ * Input Parameters:
  *   ts - Location to return the time
  *
- * Return Value:
- *   Current version always returns OK
+ * Returned Value:
+ *   OK (0) on success; a negated errno value on failure.
  *
  * Assumptions:
  *
@@ -352,11 +425,11 @@ int clock_systimespec(FAR struct timespec *ts);
  * Description:
  *   Return load measurement data for the select PID.
  *
- * Parameters:
+ * Input Parameters:
  *   pid - The task ID of the thread of interest.  pid == 0 is the IDLE thread.
  *   cpuload - The location to return the CPU load
  *
- * Return Value:
+ * Returned Value:
  *   OK (0) on success; a negated errno value on failure.  The only reason
  *   that this function can fail is if 'pid' no longer refers to a valid
  *   thread.
@@ -389,6 +462,28 @@ int clock_cpuload(int pid, FAR struct cpuload_s *cpuload);
 #ifdef CONFIG_CPULOAD_ONESHOT
 struct oneshot_lowerhalf_s;
 void sched_oneshot_extclk(FAR struct oneshot_lowerhalf_s *lower);
+#endif
+
+/****************************************************************************
+ * Name:  sched_period_extclk
+ *
+ * Description:
+ *   Configure to use a period timer as described in
+ *   include/nuttx/timers/timer.h to provide external clocking to assess
+ *   the CPU load.
+ *
+ * Input Parameters:
+ *   lower - An instance of the period timer interface as defined in
+ *           include/nuttx/timers/timer.h
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_CPULOAD_PERIOD
+struct timer_lowerhalf_s;
+void sched_period_extclk(FAR struct timer_lowerhalf_s *lower);
 #endif
 
 #undef EXTERN

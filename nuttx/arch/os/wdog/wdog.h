@@ -46,7 +46,29 @@
 #include <stdbool.h>
 
 #include <nuttx/compiler.h>
+#include <nuttx/clock.h>
 #include <nuttx/wdog.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: wd_elapse
+ *
+ * Description:
+ *   This function is used to get time-elapse from last time wd_timer() be
+ *   called. In case of CONFIG_SCHED_TICKLESS configured, wd_timer() may
+ *   take lots of ticks, during this time, wd_start()/wd_cancel() may
+ *   called, so we need wd_elapse() to correct the delay/lag.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_TICKLESS
+#  define wd_elapse() (clock_systimer() - g_wdtickbase)
+#else
+#  define wd_elapse() (0)
+#endif
 
 /****************************************************************************
  * Public Data
@@ -80,6 +102,14 @@ extern sq_queue_t g_wdactivelist;
 
 extern uint16_t g_wdnfree;
 
+/* This is wdog tickbase, for wd_gettime() may called many times
+ * between 2 times of wd_timer(), we use it to update wd_gettime().
+ */
+
+#ifdef CONFIG_SCHED_TICKLESS
+extern clock_t g_wdtickbase;
+#endif
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -90,10 +120,10 @@ extern uint16_t g_wdnfree;
  * Description:
  * This function initializes the watchdog data structures
  *
- * Parameters:
+ * Input Parameters:
  *   None
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -114,13 +144,13 @@ void weak_function wd_initialize(void);
  *   function will be executed in the context of the timer interrupt
  *   handler.
  *
- * Parameters:
+ * Input Parameters:
  *   ticks - If CONFIG_SCHED_TICKLESS is defined then the number of ticks
  *     in the interval that just expired is provided.  Otherwise,
  *     this function is called on each timer interrupt and a value of one
  *     is implicit.
  *
- * Return Value:
+ * Returned Value:
  *   If CONFIG_SCHED_TICKLESS is defined then the number of ticks for the
  *   next delay is provided (zero if no delay).  Otherwise, this function
  *   has no returned value.
@@ -140,14 +170,14 @@ void wd_timer(void);
  * Name: wd_recover
  *
  * Description:
- *   This function is called from task_recover() when a task is deleted via
+ *   This function is called from nxtask_recover() when a task is deleted via
  *   task_delete() or via pthread_cancel(). It checks if the deleted task
  *   is waiting for a timed event and if so cancels the timeout
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - The TCB of the terminated task or thread
  *
- * Return Value:
+ * Returned Value:
  *   None.
  *
  * Assumptions:

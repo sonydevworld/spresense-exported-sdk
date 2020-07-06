@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/wqueue.h
  *
- *   Copyright (C) 2009, 2011-2014, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2014, 2017-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +45,6 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
 #include <queue.h>
 
 #include <nuttx/clock.h>
@@ -52,7 +52,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* CONFIG_SCHED_WORKQUEUE.  Not selectable.  Set by the configuration system
  *   if either CONFIG_SCHED_HPWORK or CONFIG_SCHED_LPWORK are selected.
  * CONFIG_SCHED_HPWORK.  Create a dedicated "worker" thread to
@@ -65,13 +67,10 @@
  *   (which runs at the lowest of priority and may not be appropriate
  *   if memory reclamation is of high priority).  If CONFIG_SCHED_HPWORK
  *   is enabled, then the following options can also be used:
+ * CONFIG_SCHED_HPNTHREADS - The number of thread in the high-priority queue's
+ *   thread pool.  Default: 1
  * CONFIG_SCHED_HPWORKPRIORITY - The execution priority of the high-
  *   priority worker thread.  Default: 224
- * CONFIG_SCHED_HPWORKPERIOD - How often the worker thread checks for
- *   work in units of microseconds.  If the high priority worker thread is
- *   performing garbage collection, then the default is 50*1000 (50 MS).
- *   Otherwise, if the lower priority worker thread is performing garbage
- *   collection, the default is 100*1000.
  * CONFIG_SCHED_HPWORKSTACKSIZE - The stack size allocated for the worker
  *   thread.  Default: 2048.
  * CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
@@ -87,8 +86,6 @@
  *   priority worker thread.  Default: 50
  * CONFIG_SCHED_LPWORKPRIOMAX - The maximum execution priority of the lower
  *   priority worker thread.  Default: 176
- * CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
- *  checks for work in units of microseconds.  Default: 50*1000 (50 MS).
  * CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
  *   priority worker thread.  Default: 2048.
  *
@@ -100,8 +97,6 @@
  *   user-mode work queue will be created.
  * CONFIG_LIB_USRWORKPRIORITY - The minimum execution priority of the lower
  *   priority worker thread.  Default: 100
- * CONFIG_LIB_USRWORKPERIOD - How often the lower priority worker thread
- *  checks for work in units of microseconds.  Default: 100*1000 (100 MS).
  * CONFIG_LIB_USRWORKSTACKSIZE - The stack size allocated for the lower
  *   priority worker thread.  Default: 2048.
  */
@@ -140,22 +135,16 @@
 #  undef CONFIG_LIB_USRWORK
 #endif
 
-#if defined(CONFIG_SCHED_WORKQUEUE) || defined(CONFIG_LIB_USRWORK)
-
 /* High priority, kernel work queue configuration ***************************/
 
 #ifdef CONFIG_SCHED_HPWORK
 
-#  ifndef CONFIG_SCHED_HPWORKPRIORITY
-#    define CONFIG_SCHED_HPWORKPRIORITY 224
+#  ifndef CONFIG_SCHED_HPNTHREADS
+#    define CONFIG_SCHED_HPNTHREADS 1
 #  endif
 
-#  ifndef CONFIG_SCHED_HPWORKPERIOD
-#    ifdef CONFIG_SCHED_LPWORK
-#      define CONFIG_SCHED_HPWORKPERIOD (100*1000) /* 100 milliseconds */
-#    else
-#      define CONFIG_SCHED_HPWORKPERIOD (50*1000)  /* 50 milliseconds */
-#    endif
+#  ifndef CONFIG_SCHED_HPWORKPRIORITY
+#    define CONFIG_SCHED_HPWORKPRIORITY 224
 #  endif
 
 #  ifndef CONFIG_SCHED_HPWORKSTACKSIZE
@@ -197,10 +186,6 @@
 #    error CONFIG_SCHED_LPWORKPRIORITY > CONFIG_SCHED_LPWORKPRIOMAX
 #  endif
 
-#  ifndef CONFIG_SCHED_LPWORKPERIOD
-#    define CONFIG_SCHED_LPWORKPERIOD (50*1000) /* 50 milliseconds */
-#  endif
-
 #  ifndef CONFIG_SCHED_LPWORKSTACKSIZE
 #    define CONFIG_SCHED_LPWORKSTACKSIZE CONFIG_IDLETHREAD_STACKSIZE
 #  endif
@@ -223,10 +208,6 @@
 
 #  ifndef CONFIG_LIB_USRWORKPRIORITY
 #    define CONFIG_LIB_USRWORKPRIORITY 100
-#  endif
-
-#  ifndef CONFIG_LIB_USRWORKPERIOD
-#    define CONFIG_LIB_USRWORKPERIOD (100*1000) /* 100 milliseconds */
 #  endif
 
 #  ifndef CONFIG_LIB_USRWORKSTACKSIZE
@@ -263,7 +244,7 @@
 /* Kernel mode */
 
 #  define HPWORK   0          /* High priority, kernel-mode work queue */
-#  ifdef CONFIG_SCHED_LPWORK
+#  if defined(CONFIG_SCHED_LPWORK) && defined(CONFIG_SCHED_HPWORK)
 #    define LPWORK (HPWORK+1) /* Low priority, kernel-mode work queue */
 #  else
 #    define LPWORK HPWORK     /* Redirect low-priority references */
@@ -280,7 +261,7 @@
 
 /* Defines the work callback */
 
-typedef void (*worker_t)(FAR void *arg);
+typedef CODE void (*worker_t)(FAR void *arg);
 
 /* Defines one entry in the work queue.  The user only needs this structure
  * in order to declare instances of the work structure.  Handling of all
@@ -292,8 +273,68 @@ struct work_s
   struct dq_entry_s dq;  /* Implements a doubly linked list */
   worker_t  worker;      /* Work callback */
   FAR void *arg;         /* Callback argument */
-  systime_t qtime;       /* Time work queued */
-  systime_t delay;       /* Delay until work performed */
+  clock_t qtime;         /* Time work queued */
+  clock_t delay;         /* Delay until work performed */
+};
+
+/* This is an enumeration of the various events that may be
+ * notified via work_notifier_signal().
+ */
+
+enum work_evtype_e
+{
+  WORK_IOB_AVAIL  = 1,   /* Notify availability of an IOB */
+  WORK_NET_DOWN,         /* Notify that the network is down */
+  WORK_TCP_READAHEAD,    /* Notify that TCP read-ahead data is available */
+  WORK_TCP_WRITEBUFFER,  /* Notify that TCP write buffer is empty */
+  WORK_TCP_DISCONNECT,   /* Notify loss of TCP connection */
+  WORK_UDP_READAHEAD,    /* Notify that UDP read-ahead data is available */
+  WORK_UDP_WRITEBUFFER   /* Notify that UDP write buffer is empty */
+};
+
+/* This structure describes one notification and is provided as input to
+ * to work_notifier_setup().  This input is copied by work_notifier_setup()
+ * into an allocated instance of struct work_notifier_entry_s and need not
+ * persist on the caller's side.
+ */
+
+struct work_notifier_s
+{
+  uint8_t evtype;      /* See enum work_evtype_e */
+  uint8_t qid;         /* The work queue to use: HPWORK or LPWORK */
+  FAR void *qualifier; /* Event qualifier value */
+  FAR void *arg;       /* User-defined worker function argument */
+  worker_t worker;     /* The worker function to schedule */
+};
+
+/* This structure describes one notification list entry.  It is cast-
+ * compatible with struct work_notifier_s.  This structure is an allocated
+ * container for the user notification data.   It is allocated because it
+ * must persist until the work is executed and must be freed using
+ * kmm_free() by the work.
+ *
+ * With the work notification is scheduled, the work function will receive
+ * the allocated instance of struct work_notifier_entry_s as its input
+ * argument.  When it completes the notification operation, the work function
+ * is responsible for freeing that instance.
+ */
+
+struct work_notifier_entry_s
+{
+  /* This must appear at the beginning of the structure.  A reference to
+   * the struct work_notifier_entry_s instance must be cast-compatible with
+   * struct dq_entry_s.
+   */
+
+  struct work_s work;           /* Used for scheduling the work */
+
+  /* User notification information */
+
+  struct work_notifier_s info;  /* The notification info */
+
+  /* Additional payload needed to manage the notification */
+
+  int16_t key;                  /* Unique ID for the notification */
 };
 
 /****************************************************************************
@@ -318,7 +359,7 @@ extern "C"
  * Description:
  *   Start the user mode work queue.
  *
- * Input parameters:
+ * Input Parameters:
  *   None
  *
  * Returned Value:
@@ -345,7 +386,7 @@ int work_usrstart(void);
  *   previous work as been performed and removed from the queue, then any
  *   pending work will be canceled and lost.
  *
- * Input parameters:
+ * Input Parameters:
  *   qid    - The work queue ID
  *   work   - The work structure to queue
  *   worker - The worker callback to be invoked.  The callback will invoked
@@ -361,7 +402,7 @@ int work_usrstart(void);
  ****************************************************************************/
 
 int work_queue(int qid, FAR struct work_s *work, worker_t worker,
-               FAR void *arg, systime_t delay);
+               FAR void *arg, clock_t delay);
 
 /****************************************************************************
  * Name: work_cancel
@@ -371,7 +412,7 @@ int work_queue(int qid, FAR struct work_s *work, worker_t worker,
  *   After work has been cancelled, it may be re-queue by calling work_queue()
  *   again.
  *
- * Input parameters:
+ * Input Parameters:
  *   qid    - The work queue ID
  *   work   - The previously queue work structure to cancel
  *
@@ -393,7 +434,7 @@ int work_cancel(int qid, FAR struct work_s *work);
  *   is used internally by the work logic but could also be used by the
  *   user to force an immediate re-assessment of pending work.
  *
- * Input parameters:
+ * Input Parameters:
  *   qid    - The work queue ID
  *
  * Returned Value:
@@ -409,7 +450,7 @@ int work_signal(int qid);
  * Description:
  *   Check if the work structure is available.
  *
- * Input parameters:
+ * Input Parameters:
  *   work - The work queue structure to check.
  *   None
  *
@@ -428,10 +469,10 @@ int work_signal(int qid);
  *   priority worker thread is at least at the requested level, reqprio. This
  *   function would normally be called just before calling work_queue().
  *
- * Parameters:
+ * Input Parameters:
  *   reqprio - Requested minimum worker thread priority
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -449,11 +490,11 @@ void lpwork_boostpriority(uint8_t reqprio);
  *   the scheduled work completes.  It will check if we need to drop the
  *   priority of the worker thread.
  *
- * Parameters:
+ * Input Parameters:
  *   reqprio - Previously requested minimum worker thread priority to be
  *     "unboosted"
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -462,11 +503,82 @@ void lpwork_boostpriority(uint8_t reqprio);
 void lpwork_restorepriority(uint8_t reqprio);
 #endif
 
+/****************************************************************************
+ * Name: work_notifier_setup
+ *
+ * Description:
+ *   Set up to provide a notification when event occurs.
+ *
+ * Input Parameters:
+ *   info - Describes the work notification.
+ *
+ * Returned Value:
+ *   > 0   - The key which may be used later in a call to
+ *           work_notifier_teardown().
+ *   == 0  - Not used (reserved for wrapper functions).
+ *   < 0   - An unexpected error occurred and no notification will be sent.
+ *           The returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_WQUEUE_NOTIFIER
+int work_notifier_setup(FAR struct work_notifier_s *info);
+#endif
+
+/****************************************************************************
+ * Name: work_notifier_teardown
+ *
+ * Description:
+ *   Eliminate a notification previously setup by work_notifier_setup().
+ *   This function should only be called if the notification should be
+ *   aborted prior to the notification.  The notification will automatically
+ *   be torn down after the notification is executed.
+ *
+ * Input Parameters:
+ *   key - The key value returned from a previous call to
+ *         work_notifier_setup().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_WQUEUE_NOTIFIER
+int work_notifier_teardown(int key);
+#endif
+
+/****************************************************************************
+ * Name: work_notifier_signal
+ *
+ * Description:
+ *   An event has just occurred.  Notify all threads waiting for that event.
+ *
+ *   When an event of interest occurs, *all* of the workers waiting for this
+ *   event will be executed.  If there are multiple workers for a resource
+ *   then only the first to execute will get the resource.  Others will
+ *   need to call work_notifier_setup() once again.
+ *
+ * Input Parameters:
+ *   evtype   - The type of the event that just occurred.
+ *   qualifier - Event qualifier to distinguish different cases of the
+ *               generic event type.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_WQUEUE_NOTIFIER
+void work_notifier_signal(enum work_evtype_e evtype,
+                           FAR void *qualifier);
+#endif
+
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* CONFIG_SCHED_WORKQUEUE || CONFIG_LIB_USRWORK */
 #endif /* __INCLUDE_NUTTX_WQUEUE_H */

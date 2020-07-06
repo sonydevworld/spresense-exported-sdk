@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/compiler.h
  *
- *   Copyright (C) 2007-2009, 2012-2013, 2015-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012-2013, 2015-2017 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +56,9 @@
 #  define CONFIG_CPP_HAVE_VARARGS 1 /* Supports variable argument macros */
 #  define CONFIG_CPP_HAVE_WARNING 1 /* Supports #warning */
 
-/* Intriniscs */
+/* Intriniscs.  GCC supports __func__ but provides __FUNCTION__ for backward
+ * compatibility with older versions of GCC.
+ */
 
 #  define CONFIG_HAVE_FUNCTIONNAME 1 /* Has __FUNCTION__ */
 #  define CONFIG_HAVE_FILENAME     1 /* Has __FILE__ */
@@ -90,7 +93,7 @@
  * unnecessary "weak" functions can be excluded from the link.
  */
 
-# ifndef __CYGWIN__
+# if !defined(__CYGWIN__) && !defined(CONFIG_ARCH_GNU_NO_WEAKFUNCTIONS)
 #  define CONFIG_HAVE_WEAKFUNCTIONS 1
 #  define weak_alias(name, aliasname) \
    extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
@@ -103,7 +106,9 @@
 #  define weak_const_function
 # endif
 
-/* The noreturn attribute informs GCC that the function will not return. */
+/* The noreturn attribute informs GCC that the function will not return.
+ * C11 adds _Noreturn keyword (see stdnoreturn.h)
+ */
 
 #  define noreturn_function __attribute__ ((noreturn))
 
@@ -113,7 +118,11 @@
 
 #  define farcall_function __attribute__ ((long_call))
 
-/* The packed attribute informs GCC that the stucture elements are packed,
+/* Data alignment */
+
+#  define aligned_data(n) __attribute__ ((aligned(n)))
+
+/* The packed attribute informs GCC that the structure elements are packed,
  * ignoring other alignment rules.
  */
 
@@ -200,6 +209,7 @@
 #  define CONFIG_HAVE_FARPOINTER 1
 
 #elif defined(__mc68hc1x__)
+
 /* No I-space access qualifiers */
 
 #  define IOBJ
@@ -252,9 +262,36 @@
 #  undef  CONFIG_PTR_IS_NOT_INT
 #endif
 
-/* GCC supports inlined functions */
+/* GCC supports inlined functions for C++ and for C version C99 and above */
 
-#  define CONFIG_HAVE_INLINE 1
+#  if defined(__cplusplus) || !defined(__STDC_VERSION__) || __STDC_VERSION__ >= 199901L
+#    define CONFIG_HAVE_INLINE 1
+#  else
+#    undef CONFIG_HAVE_INLINE
+#    define inline
+#  endif
+
+/* ISO C11 supports anonymous (unnamed) structures and unions, added in
+ * GCC 4.6 (but might be suppressed with -std= option).  ISO C++11 also
+ * adds un-named unions, but NOT unnamed structures (although compilers
+ * may support them).
+ *
+ * CAREFUL: This can cause issues for shared data structures shared between
+ * C and C++ if the two versions do not support the same features.  Structures
+ * and unions can lose binary compatibility!
+ *
+ * NOTE: The NuttX coding standard forbids the use of unnamed structures and
+ * unions within the OS.
+ */
+
+#  undef CONFIG_HAVE_ANONYMOUS_STRUCT
+#  undef CONFIG_HAVE_ANONYMOUS_UNION
+
+#  if (defined(__cplusplus) && __cplusplus >= 201103L) || \
+      (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L)
+#    define CONFIG_HAVE_ANONYMOUS_STRUCT 1
+#    define CONFIG_HAVE_ANONYMOUS_UNION 1
+#  endif
 
 /* GCC supports both types double and long long */
 
@@ -269,9 +306,18 @@
 
 #  define CONFIG_CAN_PASS_STRUCTS 1
 
+/* Indicate that a local variable is not used */
+
+#  define UNUSED(a) ((void)(a))
+
 /* SDCC-specific definitions ************************************************/
 
-#elif defined(SDCC)
+#elif defined(SDCC) || defined(__SDCC)
+
+/* No I-space access qualifiers */
+
+#  define IOBJ
+#  define IPTR
 
 /* Pre-processor */
 
@@ -282,6 +328,7 @@
 
 #  define CONFIG_HAVE_FUNCTIONNAME 1 /* Has __FUNCTION__ */
 #  define CONFIG_HAVE_FILENAME     1 /* Has __FILE__ */
+#  define __FUNCTION__ __func__      /* SDCC supports on __func__ */
 
 /* Pragmas
  *
@@ -304,8 +351,12 @@
 #  define restrict /* REVISIT */
 
 /* SDCC does not support the noreturn or packed attributes */
+/* Current SDCC supports noreturn via C11 _Noreturn keyword (see
+ * stdnoreturn.h).
+ */
 
 #  define noreturn_function
+#  define aligned_data(n)
 #  define begin_packed_struct
 #  define end_packed_struct
 
@@ -325,9 +376,21 @@
 /* The reentrant attribute informs SDCC that the function
  * must be reentrant.  In this case, SDCC will store input
  * arguments on the stack to support reentrancy.
+ *
+ * SDCC functions are always reentrant (except for the mcs51,
+ * ds390, hc08 and s08 backends)
  */
 
 #  define reentrant_function __reentrant
+
+/* ISO C11 supports anonymous (unnamed) structures and unions.  Does SDCC? */
+
+#  undef CONFIG_HAVE_ANONYMOUS_STRUCT
+#  undef  CONFIG_HAVE_ANONYMOUS_UNION
+
+/* Indicate that a local variable is not used */
+
+#  define UNUSED(a) ((void)(a))
 
 /* It is assumed that the system is build using the small
  * data model with storage defaulting to internal RAM.
@@ -360,22 +423,24 @@
 
 #  define CONFIG_LONG_IS_NOT_INT 1
 
-/* The generic pointer and int are not the same size
- * (for some SDCC architectures)
+/* The generic pointer and int are not the same size (for some SDCC
+ * architectures).  REVISIT: SDCC now has more backends where pointers are
+ * the same size as int than just z80 and z180.
  */
 
 #if !defined(__z80) && !defined(__gbz80)
 #  define CONFIG_PTR_IS_NOT_INT 1
 #endif
 
-/* SDCC does not support inline functions */
+/* New versions of SDCC supports inline function */
 
-#  undef  CONFIG_HAVE_INLINE
-#  define inline
+#  define CONFIG_HAVE_INLINE 1
 
-/* SDCC does not support type long long or type double */
+/* SDCC does types long long and float, but not types double and long
+ * double.
+ */
 
-#  undef  CONFIG_HAVE_LONG_LONG
+#  define CONFIG_HAVE_LONG_LONG 1
 #  define CONFIG_HAVE_FLOAT 1
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
@@ -385,6 +450,10 @@
  */
 
 #  undef  CONFIG_CAN_PASS_STRUCTS
+
+/* Indicate that a local variable is not used */
+
+#  define UNUSED(a) ((void)(a))
 
 /* Zilog-specific definitions ***********************************************/
 
@@ -426,9 +495,12 @@
 #  define weak_const_function
 #  define restrict
 
-/* The Zilog compiler does not support the noreturn, packed, naked attributes */
+/* The Zilog compiler does not support the noreturn, packed, naked
+ * attributes.
+ */
 
 #  define noreturn_function
+#  define aligned_data(n)
 #  define begin_packed_struct
 #  define end_packed_struct
 #  define naked_function
@@ -490,6 +562,13 @@
 #  undef  CONFIG_HAVE_INLINE
 #  define inline
 
+/* ISO C11 supports anonymous (unnamed) structures and unions.  Zilog does
+ * not support C11
+ */
+
+#  undef CONFIG_HAVE_ANONYMOUS_STRUCT
+#  undef  CONFIG_HAVE_ANONYMOUS_UNION
+
 /* Older Zilog compilers support both types double and long long, but the size
  * is 32-bits (same as long and single precision) so it is safer to say that
  * they are not supported.  Later versions are more ANSII compliant and
@@ -504,6 +583,10 @@
 /* Structures and unions can be assigned and passed as values */
 
 #  define CONFIG_CAN_PASS_STRUCTS 1
+
+/* Indicate that a local variable is not used */
+
+#  define UNUSED(a) ((void)(a))
 
 /* ICCARM-specific definitions ***********************************************/
 
@@ -522,6 +605,7 @@
 #  define weak_const_function
 #  define noreturn_function
 #  define farcall_function
+#  define aligned_data(n)
 #  define begin_packed_struct  __packed
 #  define end_packed_struct
 #  define reentrant_function
@@ -533,6 +617,7 @@
 #  define NEAR
 #  define DSEG
 #  define CODE
+#  define IOBJ
 #  define IPTR
 
 #  define __asm__       asm
@@ -548,6 +633,11 @@
 /* C++ support */
 
 #  undef CONFIG_HAVE_CXX14
+
+/* ISO C11 supports anonymous (unnamed) structures and unions.  Does ICCARM? */
+
+#  undef CONFIG_HAVE_ANONYMOUS_STRUCT
+#  undef  CONFIG_HAVE_ANONYMOUS_UNION
 
 /* Unknown compiler *********************************************************/
 
@@ -565,6 +655,7 @@
 #  define restrict
 #  define noreturn_function
 #  define farcall_function
+#  define aligned_data(n)
 #  define begin_packed_struct
 #  define end_packed_struct
 #  define reentrant_function
@@ -581,12 +672,16 @@
 #  undef  CONFIG_LONG_IS_NOT_INT
 #  undef  CONFIG_PTR_IS_NOT_INT
 #  undef  CONFIG_HAVE_INLINE
-#  define inline 1
+#  define inline
 #  undef  CONFIG_HAVE_LONG_LONG
 #  define CONFIG_HAVE_FLOAT 1
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
 #  undef  CONFIG_CAN_PASS_STRUCTS
+#  undef  CONFIG_HAVE_ANONYMOUS_STRUCT
+#  undef  CONFIG_HAVE_ANONYMOUS_UNION
+
+#  define UNUSED(a) ((void)(a))
 
 #endif
 

@@ -1,7 +1,7 @@
 /********************************************************************************
  * include/signal.h
  *
- *   Copyright (C) 2007-2009, 2011, 2013-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2013-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,14 +53,13 @@
 /********************************************************************************
  * Pre-processor Definitions
  ********************************************************************************/
-
 /* Signal set management definitions and macros. */
 
 #define NULL_SIGNAL_SET ((sigset_t)0x00000000)
 #define ALL_SIGNAL_SET  ((sigset_t)0xffffffff)
 #define MIN_SIGNO       0
 #define MAX_SIGNO       31
-#define GOOD_SIGNO(s)   ((((unsigned)(s))<=MAX_SIGNO))
+#define GOOD_SIGNO(s)   ((((unsigned)(s)) <= MAX_SIGNO))
 #define SIGNO2SET(s)    ((sigset_t)1 << (s))
 
 /* All signals are "real time" signals */
@@ -68,9 +67,77 @@
 #define SIGRTMIN        MIN_SIGNO  /* First real time signal */
 #define SIGRTMAX        MAX_SIGNO  /* Last real time signal */
 
+/* NuttX does not support all standard signal actions.  NuttX supports what
+ * are referred to as "real time" signals.  The default action of all NuttX
+ * signals is to simply ignore the signal.  Certain signals can be
+ * configured to support there default actions as indicated by NOTEs to the
+ * following table.
+ *
+ * This is not POSIX compliant behavior!  Per OpenGroup.org:  The following
+ * signals and default signal actions must be supported on all
+ * implementations:
+ *
+ *   ---------- ------- ----------------------------------------------------
+ *   Signal     Default Description
+ *   Name       Action
+ *   ---------- ------- ----------------------------------------------------
+ *   SIGABRT    A       Process abort signal
+ *   SIGALRM    T (1)   Alarm clock
+ *   SIGBUS     A       Access to an undefined portion of a memory object
+ *   SIGCHLD    I       Child process terminated, stopped
+ *                      (or continued XSI extension)
+ *   SIGCONT    C (2)   Continue executing, if stopped
+ *   SIGFPE     A       Erroneous arithmetic operation
+ *   SIGHUP     T       Hangup
+ *   SIGILL     A       Illegal instruction
+ *   SIGINT     T (3)   Terminal interrupt signal
+ *   SIGKILL    T (3)   Kill (cannot be caught or ignored)
+ *   SIGPIPE    T (7)   Write on a pipe with no one to read it
+ *   SIGQUIT    A       Terminal quit signal
+ *   SIGSEGV    A       Invalid memory reference
+ *   SIGSTOP    S (2)   Stop executing (cannot be caught or ignored)
+ *   SIGTERM    T       Termination signal
+ *   SIGTSTP    S (2)   Terminal stop signal
+ *   SIGTTIN    S       Background process attempting read
+ *   SIGTTOU    S       Background process attempting write
+ *   SIGUSR1    T (4)   User-defined signal 1
+ *   SIGUSR2    T (5)   User-defined signal 2
+ *   SIGPOLL    T (6)   Poll-able event (XSI extension)
+ *   SIGPROF    T       Profiling timer expired (XSI extension)
+ *   SIGSYS     A       Bad system call (XSI extension)
+ *   SIGTRAP    A       Trace/breakpoint trap (XSI extension)
+ *   SIGURG     I       High bandwidth data is available at a socket
+ *   SIGVTALRM  T       Virtual timer expired (XSI extension)
+ *   SIGXCPU    A       CPU time limit exceeded (XSI extension)
+ *   SIGXFSZ    A       File size limit exceeded (XSI extension)
+ *   ---------- ------- ----------------------------------------------------
+ *
+ * Where default action codes are:
+ *
+ * T  Abnormal termination of the process.  The process is terminated with
+ *    all the consequences of _exit() except that the status made available
+ *    to wait() and waitpid() indicates abnormal termination by the
+ *    specified signal.
+ * A  Abnormal termination of the process.  Additionally with the XSI
+ *    extension, implementation-defined abnormal termination actions, such
+ *    as creation of a core file, may occur.
+ * I  Ignore the signal.
+ * S  Stop the process.
+ * C  Continue the process, if it is stopped; otherwise, ignore the signal.
+ *
+ * NOTES:
+ * (1)  The default action can be enabled with CONFIG_SIG_SIGALRM_ACTION
+ * (2)  The default action can be enabled with CONFIG_SIG_SIGSTOP_ACTION
+ * (3)  The default action can be enabled with CONFIG_SIG_SIGKILL_ACTION
+ * (4)  The default action can be enabled with CONFIG_SIG_SIGUSR1_ACTION
+ * (5)  The default action can be enabled with CONFIG_SIG_SIGUSR2_ACTION
+ * (6)  The default action can be enabled with CONFIG_SIG_SIGPOLL_ACTION
+ * (7)  The default action can be enabled with CONFIG_SIG_SIGPIPE_ACTION
+ */
+
 /* A few of the real time signals are used within the OS.  They have
  * default values that can be overridden from the configuration file. The
- * rest are all user signals.
+ * rest are all standard or user real-time signals.
  *
  * The signal number zero is wasted for the most part.  It is a valid
  * signal number, but has special meaning at many interfaces (e.g., Kill()).
@@ -90,11 +157,11 @@
 #  define SIGUSR2       CONFIG_SIG_SIGUSR2
 #endif
 
-#ifndef CONFIG_SIG_SIGALARM
+#ifndef CONFIG_SIG_SIGALRM
 #  define SIGALRM       3  /* Default signal used with POSIX timers (used only */
                            /* no other signal is provided) */
 #else
-#  define SIGALRM       CONFIG_SIG_SIGALARM
+#  define SIGALRM       CONFIG_SIG_SIGALRM
 #endif
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
@@ -111,6 +178,23 @@
 #  else
 #    define SIGPOLL     CONFIG_SIG_POLL
 #  endif
+#endif
+
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+#  define SIGSTOP     CONFIG_SIG_STOP
+#  define SIGSTP      CONFIG_SIG_STP
+#  define SIGCONT     CONFIG_SIG_CONT
+#endif
+
+#ifdef CONFIG_SIG_SIGKILL_ACTION
+#  define SIGKILL     CONFIG_SIG_KILL
+#  define SIGINT      CONFIG_SIG_INT
+#endif
+
+#ifndef CONFIG_SIG_SIGPIPE
+#  define SIGPIPE       11
+#else
+#  define SIGPIPE       CONFIG_SIG_SIGPIPE
 #endif
 
 /* The following are non-standard signal definitions */
@@ -178,9 +262,15 @@
  */
 
 #define SIG_ERR         ((_sa_handler_t)-1)  /* And error occurred */
-#define SIG_DFL         ((_sa_handler_t)0)   /* Default is SIG_IGN for all signals */
 #define SIG_IGN         ((_sa_handler_t)0)   /* Ignore the signal */
-#define SIG_HOLD        ((_sa_handler_t)1)   /* Used only with sigset() */
+
+#ifdef CONFIG_SIG_DEFAULT
+#  define SIG_DFL       ((_sa_handler_t)1)   /* Default signal action */
+#  define SIG_HOLD      ((_sa_handler_t)2)   /* Used only with sigset() */
+#else
+#  define SIG_DFL       ((_sa_handler_t)0)   /* Default is SIG_IGN for all signals */
+#  define SIG_HOLD      ((_sa_handler_t)1)   /* Used only with sigset() */
+#endif
 
 /********************************************************************************
  * Public Type Definitions
@@ -191,8 +281,10 @@
  * special meaning in some circumstances (e.g., kill()).
  */
 
+#ifndef __SIGSET_T_DEFINED
 typedef uint32_t sigset_t;   /* Bit set of 32 signals */
 #define __SIGSET_T_DEFINED 1
+#endif
 
 /* Possibly volatile-qualified integer type of an object that can be accessed
  * as an atomic entity, even in the presence of asynchronous interrupts.
@@ -243,10 +335,15 @@ struct siginfo
   pid_t        si_pid;       /* Sending task ID */
   int          si_status;    /* Exit value or signal (SIGCHLD only). */
 #endif
+#if 0                        /* Not implemented */
+  FAR void    *si_addr;      /* Report address with SIGFPE, SIGSEGV, or SIGBUS */
+#endif
 };
 
+#ifndef __SIGINFO_T_DEFINED
 typedef struct siginfo siginfo_t;
 #define __SIGINFO_T_DEFINED 1
+#endif
 
 /* Non-standard convenience definition of signal handling function types.
  * These should be used only internally within the NuttX signal logic.
@@ -286,32 +383,35 @@ extern "C"
 #define EXTERN extern
 #endif
 
-int kill(pid_t pid, int signo);
-int raise(int signo);
-int sigaction(int signo, FAR const struct sigaction *act,
-              FAR struct sigaction *oact);
-int sigaddset(FAR sigset_t *set, int signo);
-int sigdelset(FAR sigset_t *set, int signo);
-int sigemptyset(FAR sigset_t *set);
-int sigfillset(FAR sigset_t *set);
-int sighold(int signo);
-int sigismember(FAR const sigset_t *set, int signo);
-int sigignore(int signo);
-CODE void (*signal(int signo, CODE void (*func)(int signo)))(int signo);
-int sigpause(int signo);
-int sigpending(FAR sigset_t *set);
-int sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
+int  kill(pid_t pid, int signo);
+void psignal(int signum, FAR const char *message);
+void psiginfo(FAR const siginfo_t *pinfo, FAR const char *message);
+int  raise(int signo);
+int  sigaction(int signo, FAR const struct sigaction *act,
+               FAR struct sigaction *oact);
+int  sigaddset(FAR sigset_t *set, int signo);
+int  sigdelset(FAR sigset_t *set, int signo);
+int  sigemptyset(FAR sigset_t *set);
+int  sigfillset(FAR sigset_t *set);
+int  sighold(int signo);
+int  sigismember(FAR const sigset_t *set, int signo);
+int  sigignore(int signo);
+_sa_handler_t signal(int signo, _sa_handler_t func);
+int  sigpause(int signo);
+int  sigpending(FAR sigset_t *set);
+int  sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
 #ifdef CONFIG_CAN_PASS_STRUCTS
-int sigqueue(int pid, int signo, union sigval value);
+int  sigqueue(int pid, int signo, union sigval value);
 #else
-int sigqueue(int pid, int signo, FAR void *sival_ptr);
+int  sigqueue(int pid, int signo, FAR void *sival_ptr);
 #endif
-int sigrelse(int signo);
-CODE void (*sigset(int signo, CODE void (*func)(int signo)))(int signo);
-int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *value,
-                 FAR const struct timespec *timeout);
-int sigsuspend(FAR const sigset_t *sigmask);
-int sigwaitinfo(FAR const sigset_t *set, FAR struct siginfo *value);
+int  sigrelse(int signo);
+_sa_handler_t sigset(int signo, _sa_handler_t func);
+int  sigwait(FAR const sigset_t *set, FAR int *sig);
+int  sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *value,
+                  FAR const struct timespec *timeout);
+int  sigsuspend(FAR const sigset_t *sigmask);
+int  sigwaitinfo(FAR const sigset_t *set, FAR struct siginfo *value);
 
 #undef EXTERN
 #ifdef __cplusplus

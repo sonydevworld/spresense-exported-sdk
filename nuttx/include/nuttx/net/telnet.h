@@ -82,10 +82,10 @@ struct telnet_session_s
  * Description:
  *   Create the Telnet factory at /dev/telnet.
  *
- * Parameters:
+ * Input Parameters:
  *   None
  *
- * Return:
+ * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/

@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/streams.h
  *
- *   Copyright (C) 2009, 2011-2012, 2014-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012, 2014-2016, 2019 Gregory Nutt.  All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,21 +45,17 @@
 #include <stdio.h>
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
  * Public Types
  ****************************************************************************/
 
 /* These are the generic representations of a streams used by the NuttX */
 
 struct lib_instream_s;
-typedef int  (*lib_getc_t)(FAR struct lib_instream_s *this);
+typedef CODE int  (*lib_getc_t)(FAR struct lib_instream_s *this);
 
 struct lib_outstream_s;
-typedef void (*lib_putc_t)(FAR struct lib_outstream_s *this, int ch);
-typedef int  (*lib_flush_t)(FAR struct lib_outstream_s *this);
+typedef CODE void (*lib_putc_t)(FAR struct lib_outstream_s *this, int ch);
+typedef CODE int  (*lib_flush_t)(FAR struct lib_outstream_s *this);
 
 struct lib_instream_s
 {
@@ -78,15 +75,15 @@ struct lib_outstream_s
 /* Seek-able streams */
 
 struct lib_sistream_s;
-typedef int   (*lib_sigetc_t)(FAR struct lib_sistream_s *this);
-typedef off_t (*lib_siseek_t)(FAR struct lib_sistream_s *this, off_t offset,
-                              int whence);
+typedef CODE int   (*lib_sigetc_t)(FAR struct lib_sistream_s *this);
+typedef CODE off_t (*lib_siseek_t)(FAR struct lib_sistream_s *this,
+                                   off_t offset, int whence);
 
 struct lib_sostream_s;
-typedef void  (*lib_soputc_t)(FAR struct lib_sostream_s *this, int ch);
-typedef int   (*lib_soflush_t)(FAR struct lib_sostream_s *this);
-typedef off_t (*lib_soseek_t)(FAR struct lib_sostream_s *this, off_t offset,
-                              int whence);
+typedef CODE void  (*lib_soputc_t)(FAR struct lib_sostream_s *this, int ch);
+typedef CODE int   (*lib_soflush_t)(FAR struct lib_sostream_s *this);
+typedef CODE off_t (*lib_soseek_t)(FAR struct lib_sostream_s *this,
+                                   off_t offset, int whence);
 
 struct lib_sistream_s
 {
@@ -230,7 +227,7 @@ extern "C"
  *   Seekable versions are defined in lib/stdio/lib_memsistream.c and
  *   lib/stdio/lib_memsostream.c.
  *
- * Input parameters:
+ * Input Parameters:
  *   memstream    - User allocated, uninitialized instance of struct
  *                  lib_meminstream_s to be initialized.
  *   memstream    - User allocated, uninitialized instance of struct
@@ -259,7 +256,7 @@ void lib_memsostream(FAR struct lib_memsostream_s *outstream,
  *   Initializes a stream for use with a FILE instance.
  *   Defined in lib/stdio/lib_stdinstream.c and lib/stdio/lib_stdoutstream.c
  *
- * Input parameters:
+ * Input Parameters:
  *   instream  - User allocated, uninitialized instance of struct
  *               lib_stdinstream_s to be initialized.
  *   outstream - User allocated, uninitialized instance of struct
@@ -291,7 +288,7 @@ void lib_stdsostream(FAR struct lib_stdsostream_s *outstream,
  *   Seekable versions are defined in lib/stdio/lib_rawsistream.c and
  *   lib/stdio/lib_rawsostream.c
  *
- * Input parameters:
+ * Input Parameters:
  *   instream  - User allocated, uninitialized instance of struct
  *               lib_rawinstream_s to be initialized.
  *   outstream - User allocated, uninitialized instance of struct
@@ -316,9 +313,9 @@ void lib_rawsostream(FAR struct lib_rawsostream_s *outstream, int fd);
  *   Initializes a stream for use with low-level, architecture-specific output.
  *   Defined in ib/stdio/lib_lowoutstream.c
  *
- * Input parameters:
+ * Input Parameters:
  *   lowoutstream - User allocated, uninitialized instance of struct
- *                  lib_lowoutstream_s to be initialized.
+ *                  lib_outstream_s to be initialized.
  *
  * Returned Value:
  *   None (User allocated instance initialized).
@@ -342,7 +339,7 @@ void lib_lowoutstream(FAR struct lib_outstream_s *lowoutstream);
  *   o The stream created by lib_nulloutstream will write all data to the
  *     bit-bucket. Defined in lib/stdio/lib_nulloutstream.c
  *
- * Input parameters:
+ * Input Parameters:
  *   zeroinstream  - User allocated, uninitialized instance of struct
  *                   lib_instream_s to be initialized.
  *   nullinstream  - User allocated, uninitialized instance of struct
@@ -366,9 +363,9 @@ void lib_nulloutstream(FAR struct lib_outstream_s *nulloutstream);
  *   Initializes a stream for use with the configured syslog interface.
  *   Only accessible from with the OS SYSLOG logic.
  *
- * Input parameters:
+ * Input Parameters:
  *   stream - User allocated, uninitialized instance of struct
- *            lib_lowoutstream_s to be initialized.
+ *            lib_syslogstream_s to be initialized.
  *
  * Returned Value:
  *   None (User allocated instance initialized).
@@ -383,9 +380,9 @@ void syslogstream_create(FAR struct lib_syslogstream_s *stream);
  * Description:
  *   Free resources held by the syslog stream.
  *
- * Input parameters:
+ * Input Parameters:
  *   stream - User allocated, uninitialized instance of struct
- *            lib_lowoutstream_s to be initialized.
+ *            lib_syslogstream_s to be initialized.
  *
  * Returned Value:
  *   None (Resources freed).
@@ -405,9 +402,9 @@ void syslogstream_destroy(FAR struct lib_syslogstream_s *stream);
  *   Initializes a stream for use with the configured emergency syslog
  *   interface.  Only accessible from with the OS SYSLOG logic.
  *
- * Input parameters:
+ * Input Parameters:
  *   stream - User allocated, uninitialized instance of struct
- *            lib_lowoutstream_s to be initialized.
+ *            lib_outstream_s to be initialized.
  *
  * Returned Value:
  *   None (User allocated instance initialized).
@@ -423,7 +420,7 @@ void emergstream(FAR struct lib_outstream_s *stream);
  *  lib_noflush() provides a common, dummy flush method for output streams
  *  that are not flushable.
  *
- * Return:
+ * Returned Value:
  *  Always returns OK
  *
  ****************************************************************************/
@@ -438,7 +435,7 @@ int lib_noflush(FAR struct lib_outstream_s *stream);
  *  streams that are not flushable.
  *  is selected.
  *
- * Return:
+ * Returned Value:
  *  Always returns OK
  *
  ****************************************************************************/
@@ -446,17 +443,39 @@ int lib_noflush(FAR struct lib_outstream_s *stream);
 int lib_snoflush(FAR struct lib_sostream_s *this);
 
 /****************************************************************************
- * Name: lib_sprintf and lib_vsprintf
+ * Name: lib_sprintf
  *
  * Description:
- *  Stream-oriented versions of sprintf and vsprintf.
+ *  Stream-oriented implementation of sprintf.  Used only by the SYSLOG.
  *
  ****************************************************************************/
 
 int lib_sprintf(FAR struct lib_outstream_s *obj,
                 FAR const IPTR char *fmt, ...);
+
+/****************************************************************************
+ * Name: lib_vsprintf
+ *
+ * Description:
+ *  Stream-oriented implementation that underlies printf family:  printf,
+ *  fprint, sprint, etc.
+ *
+ ****************************************************************************/
+
 int lib_vsprintf(FAR struct lib_outstream_s *obj,
                  FAR const IPTR char *src, va_list ap);
+
+/****************************************************************************
+ * Name: lib_vscanf
+ *
+ * Description:
+ *  Stream-oriented implementation that underlies scanf family:  scanf,
+ *  fscanf, vfscanf, sscanf, and vsscanf
+ *
+ ****************************************************************************/
+
+int lib_vscanf(FAR struct lib_instream_s *obj, FAR int *lastc,
+               FAR const IPTR char *src, va_list ap);
 
 #undef EXTERN
 #if defined(__cplusplus)

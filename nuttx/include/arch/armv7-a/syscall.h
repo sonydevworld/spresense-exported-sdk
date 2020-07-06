@@ -56,6 +56,12 @@
 
 #define SYS_syscall 0x900001
 
+#if defined(__thumb__) || defined(__thumb2__)
+#  define SYS_smhcall 0xab
+#else
+#  define SYS_smhcall 0x123456
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -212,6 +218,24 @@ static inline uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1,
     : "=r"(reg0)
     : "i"(SYS_syscall), "r"(reg0), "r"(reg1), "r"(reg2),
       "r"(reg3), "r"(reg4), "r"(reg5), "r"(reg6)
+    : "memory", "r14"
+  );
+
+  return reg0;
+}
+
+/* semihosting(SMH) call with call number and one parameter */
+
+static inline long smh_call(unsigned int nbr, void *parm)
+{
+  register long reg0 __asm__("r0") = (long)(nbr);
+  register long reg1 __asm__("r1") = (long)(parm);
+
+  __asm__ __volatile__
+  (
+  "svc %1"
+    : "=r"(reg0)
+    : "i"(SYS_smhcall), "r"(reg0), "r"(reg1)
     : "memory", "r14"
   );
 

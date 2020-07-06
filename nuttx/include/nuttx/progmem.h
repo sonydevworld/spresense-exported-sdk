@@ -45,6 +45,8 @@
 
 #include <stdbool.h>
 
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -63,20 +65,20 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_progmem_npages
+ * Name: up_progmem_neraseblocks
  *
  * Description:
- *   Return number of pages
+ *   Return number of erase blocks
  *
  ****************************************************************************/
 
-size_t up_progmem_npages(void);
+size_t up_progmem_neraseblocks(void);
 
 /****************************************************************************
  * Name: up_progmem_isuniform
  *
  * Description:
- *   Is program memory uniform or page size differs?
+ *   Is program memory uniform or erase page and read/write page size differs?
  *
  ****************************************************************************/
 
@@ -86,17 +88,27 @@ bool up_progmem_isuniform(void);
  * Name: up_progmem_pagesize
  *
  * Description:
- *   Return page size
+ *   Return read/write page size
  *
  ****************************************************************************/
 
 size_t up_progmem_pagesize(size_t page);
 
 /****************************************************************************
+ * Name: up_progmem_erasesize
+ *
+ * Description:
+ *   Return erase block size. Must be a multiple of the read/write page size.
+ *
+ ****************************************************************************/
+
+size_t up_progmem_erasesize(size_t block);
+
+/****************************************************************************
  * Name: up_progmem_getpage
  *
  * Description:
- *   Address to page conversion
+ *   Address to read/write page conversion
  *
  * Input Parameters:
  *   addr - Address with or without flash offset (absolute or aligned to page0)
@@ -115,7 +127,7 @@ ssize_t up_progmem_getpage(size_t addr);
  * Name: up_progmem_getaddress
  *
  * Description:
- *   Page to address conversion
+ *   Read/write page to address conversion
  *
  * Input Parameters:
  *   page - page index
@@ -128,16 +140,16 @@ ssize_t up_progmem_getpage(size_t addr);
 size_t up_progmem_getaddress(size_t page);
 
 /****************************************************************************
- * Name: up_progmem_erasepage
+ * Name: up_progmem_eraseblock
  *
  * Description:
- *   Erase selected page.
+ *   Erase selected erase block.
  *
  * Input Parameters:
- *   page - The page index to be erased.
+ *   block - The erase block index to be erased.
  *
  * Returned Value:
- *   Page size or negative value on error.  The following errors are reported
+ *   block size or negative value on error.  The following errors are reported
  *   (errno is not set!):
  *
  *     -EFAULT: On invalid page
@@ -149,13 +161,13 @@ size_t up_progmem_getaddress(size_t page);
  *
  ****************************************************************************/
 
-ssize_t up_progmem_erasepage(size_t page);
+ssize_t up_progmem_eraseblock(size_t block);
 
 /****************************************************************************
  * Name: up_progmem_ispageerased
  *
  * Description:
- *   Checks whether page is erased
+ *   Checks whether erase page is erased
  *
  * Input Parameters:
  *   page - The page index to be checked.
@@ -207,4 +219,5 @@ ssize_t up_progmem_write(size_t addr, FAR const void *buf, size_t count);
 }
 #endif
 
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
 #endif /* __INCLUDE_NUTTX_PROGMEM_H */

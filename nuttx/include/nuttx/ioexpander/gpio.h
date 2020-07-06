@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * include/nuttx/ioexpander/gpio.h
  *
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
@@ -31,7 +31,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_IOEXPANDER_GPIO_H
 #define __INCLUDE_NUTTX_IOEXPANDER_GPIO_H
@@ -46,7 +46,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <nuttx/signal.h>
 #include <nuttx/fs/ioctl.h>
+
+#ifdef CONFIG_DEV_GPIO
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -75,6 +78,11 @@
  * Command:     GPIOC_UNREGISTER
  * Description: Stop receiving signals for pin interrupts.
  * Argument:    None.
+ *
+ * Command:     GPIOC_SETPINTYPE
+ * Description: Set the GPIO pin type.
+ * Argument:    The enum gpio_pintype_e type.
+ *
  */
 
 #define GPIOC_WRITE      _GPIOC(1)
@@ -82,6 +90,7 @@
 #define GPIOC_PINTYPE    _GPIOC(3)
 #define GPIOC_REGISTER   _GPIOC(4)
 #define GPIOC_UNREGISTER _GPIOC(5)
+#define GPIOC_SETPINTYPE _GPIOC(6)
 
 /****************************************************************************
  * Public Types
@@ -94,13 +103,18 @@ enum gpio_pintype_e
   GPIO_INPUT_PIN = 0,
   GPIO_OUTPUT_PIN,
   GPIO_INTERRUPT_PIN,
+  GPIO_INTERRUPT_HIGH_PIN,
+  GPIO_INTERRUPT_LOW_PIN,
+  GPIO_INTERRUPT_RISING_PIN,
+  GPIO_INTERRUPT_FALLING_PIN,
+  GPIO_INTERRUPT_BOTH_PIN,
   GPIO_NPINTYPES
 };
 
 /* Interrupt callback */
 
 struct gpio_dev_s;
-typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev);
+typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev, uint8_t pin);
 
 /* Pin interface vtable definition.  Instances of this vtable are read-only
  * and may reside in FLASH.
@@ -110,6 +124,7 @@ typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev);
  *     for other pin types may be NULL.
  *   - go_attach and gp_eanble.  Required only the GPIO_INTERRUPT_PIN pin
  *     type.  Unused for other pin types may be NULL.
+ *   - go_setpinytype.  Required for all all pin types.
  */
 
 struct gpio_dev_s;
@@ -122,6 +137,17 @@ struct gpio_operations_s
   CODE int (*go_attach)(FAR struct gpio_dev_s *dev,
                         pin_interrupt_t callback);
   CODE int (*go_enable)(FAR struct gpio_dev_s *dev, bool enable);
+  CODE int (*go_setpintype)(FAR struct gpio_dev_s *dev,
+                            enum gpio_pintype_e pintype);
+};
+
+ /* Signal information */
+
+struct gpio_signal_s
+{
+  struct sigevent gp_event;
+  struct sigwork_s gp_work;
+  pid_t gp_pid;        /* The task to be signaled */
 };
 
 /* Pin interface definition.  Must lie in writable memory. */
@@ -136,8 +162,7 @@ struct gpio_dev_s
 
   /* Writable storage used by the upper half driver */
 
-  uint8_t gp_signo;    /* signo to use when signaling a GPIO interrupt */
-  pid_t gp_pid;        /* The task to be signalled */
+  struct gpio_signal_s gp_signals[CONFIG_DEV_GPIO_NSIGNALS];
 
   /* Read-only pointer to GPIO device operations (also provided by the
    * lower half driver).
@@ -178,6 +203,23 @@ extern "C"
 int gpio_pin_register(FAR struct gpio_dev_s *dev, int minor);
 
 /****************************************************************************
+ * Name: gpio_pin_unregister
+ *
+ * Description:
+ *   Unregister GPIO pin device driver.
+ *
+ *   - Input pin types will be registered at /dev/gpinN
+ *   - Output pin types will be registered at /dev/gpoutN
+ *   - Interrupt pin types will be registered at /dev/gpintN
+ *
+ *   Where N is the provided minor number in the range of 0-99.
+ *
+ *
+ ****************************************************************************/
+
+void gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor);
+
+/****************************************************************************
  * Name: gpio_lower_half
  *
  * Description:
@@ -206,4 +248,5 @@ int gpio_lower_half(FAR struct ioexpander_dev_s *ioe, unsigned int pin,
 }
 #endif
 
+#endif /* CONFIG_DEV_GPIO */
 #endif /* __INCLUDE_NUTTX_IOEXPANDER_GPIO_H */

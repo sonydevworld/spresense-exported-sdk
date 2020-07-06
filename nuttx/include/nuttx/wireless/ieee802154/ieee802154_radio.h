@@ -46,7 +46,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 
 #include <nuttx/wireless/ieee802154/ieee802154_mac.h>
 
@@ -84,6 +83,7 @@ struct ieee802154_txdesc_s
 
   enum ieee802154_frametype_e frametype;
 
+  bool ackreq;          /* Are we requesting an ACK? */
   bool framepending;    /* Did the ACK have the frame pending bit set */
   uint32_t purgetime;   /* Time to purge transaction */
   uint8_t  retrycount;  /* Number of remaining retries. Set to macMaxFrameRetries
@@ -117,6 +117,8 @@ struct ieee802154_radiocb_s
              FAR struct ieee802154_data_ind_s *ind);
   CODE void (*sfevent) (FAR const struct ieee802154_radiocb_s *radiocb,
              enum ieee802154_sfevent_e sfevent);
+  CODE void (*edresult) (FAR const struct ieee802154_radiocb_s *radiocb,
+             uint8_t edval);
 };
 
 struct ieee802154_radio_s
@@ -135,6 +137,8 @@ struct ieee802154_radio_s
              FAR struct ieee802154_txdesc_s *txdesc,
              uint32_t symboldelay);
   CODE int (*rxenable) (FAR struct ieee802154_radio_s *radio, bool enable);
+  CODE int (*energydetect) (FAR struct ieee802154_radio_s *radio,
+                            uint32_t symboldelay);
   CODE int (*beaconstart)(FAR struct ieee802154_radio_s *radio,
              FAR const struct ieee802154_superframespec_s *sfspec,
              FAR struct ieee802154_beaconframe_s *beacon);

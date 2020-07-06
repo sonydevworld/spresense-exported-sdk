@@ -88,7 +88,7 @@ extern "C"
  *   are reported to the VNC framebuffer driver from the remote VNC client.
  *
  *   In the standard graphics architecture, the keyboard/mouse inputs are
- *   received by some appliation/board specific logic at the highest level
+ *   received by some application/board specific logic at the highest level
  *   in the architecture via input drivers.  The received keyboard/mouse
  *   input data must then be "injected" into NX where it can they can be
  *   assigned to the window that has focus.  They will eventually be
@@ -101,16 +101,16 @@ extern "C"
  *   nor can it call upward into NX.  So, some other logic.
  *
  *   vnc_fbinitialize() provides an optional, alternative initialization
- *   function.  It is optional becuase it need not be called.  If it is not
+ *   function.  It is optional because it need not be called.  If it is not
  *   called, however, keyboard/mouse inputs from the remote VNC client will
  *   be lost.  By calling vnc_fbinitialize(), you can provide callout
- *   functions that can be received by logic higher in the architure.  This
- *   higher level level callouts can then call nx_kbdin() or nx_mousein() on
+ *   functions that can be received by logic higher in the architecture.
+ *   These higher level callouts can then call nx_kbdin() or nx_mousein() on
  *   behalf of the VNC server.
  *
  *   See also vnc_default_fbinitialize() below.
  *
- * Parameters:
+ * Input Parameters:
  *   display - In the case of hardware with multiple displays, this
  *     specifies the display.  Normally this is zero.
  *   kbdout - If non-NULL, then the pointed-to function will be called to
@@ -142,7 +142,7 @@ int vnc_fbinitialize(int display, vnc_kbdout_t kbdout,
  *
  *   See also vnc_default_fbinitialize() below.
  *
- * Parameters:
+ * Input Parameters:
  *   See vnc_mouseout_t and vnc_kbdout_t typde definitions above.  These
  *   callouts have arguments that match the inputs to nx_kbdin() and
  *   nx_mousein() (if arg is really of type NXHANDLE).
@@ -168,7 +168,7 @@ void vnc_mouseout(FAR void *arg, nxgl_coord_t x, nxgl_coord_t y,
  *   This is just a wrapper around vnc_fbinitialize() that will establish
  *   the default mouse and keyboard callout functions.
  *
- * Parameters:
+ * Input Parameters:
  *   display - In the case of hardware with multiple displays, this
  *     specifies the display.  Normally this is zero.
  *   handle - And instance of NXHANDLE returned from initialization of the

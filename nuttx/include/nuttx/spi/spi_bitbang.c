@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/nuttx/spi/spi_bitbang.c
+ * include/nuttx/spi/spi_bitbang.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -593,7 +593,7 @@ static uint16_t spi_exchange(FAR struct spi_bitbang_s *priv, uint16_t dataout)
    * rate.
    */
 
-  shift =  priv->nbits - 1
+  shift =  priv->nbits - 1;
   for (bit = 1 << shift; bit != 0; bit >>= 1)
     {
       /* Shift to make space for the next, less significant bit.

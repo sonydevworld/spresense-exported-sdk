@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/include/spinlock.h
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,15 +48,11 @@
  * save structure and up_irq_save()/up_irq_restore() functions)
  */
 
-#if defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || \
-    defined(CONFIG_ARCH_CORTEXA9)
+#if defined(CONFIG_ARCH_ARMV7A)
 #  include <arch/armv7-a/spinlock.h>
-#elif defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR4F) || \
-      defined(CONFIG_ARCH_CORTEXR5) || defined(CONFIG_ARCH_CORTEXR5F) || \
-      defined(CONFIG_ARCH_CORTEXR7) || defined(CONFIG_ARCH_CORTEXR7F)
+#elif defined(CONFIG_ARCH_ARMV7R)
 #  include <arch/armv7-r/spinlock.h>
-#elif defined(CONFIG_ARCH_CORTEXM3) || defined(CONFIG_ARCH_CORTEXM4) || \
-      defined(CONFIG_ARCH_CORTEXM7)
+#elif defined(CONFIG_ARCH_ARMV7M)
 #  include <arch/armv7-m/spinlock.h>
 #elif defined(CONFIG_ARCH_CORTEXM0)
 #  include <arch/armv6-m/spinlock.h>
@@ -109,8 +105,8 @@
  * locations in the form of the Load-Exclusive (LDREX) and Store-Exclusive
  * (STREX) instructions in ARM and Thumb instruction sets.  ARMv6K extended
  * this to included byte, halfword, and doubleword variants of LDREX and
- * STREX.  ARMv7-M supports byte and halfwor, but not the doudleword varient
- * (ARMv6-M does not support exlusive access)
+ * STREX.  ARMv7-M supports byte and halfword, but not the doubleword varient
+ * (ARMv6-M does not support exclusive access)
  *
  * ARM architectures prior to ARMv6 supported SWP and SWPB instructions that
  * atomically swap a 32-bit word for byte value between a register and a
@@ -130,7 +126,7 @@ typedef uint8_t spinlock_t;
  * Description:
  *   Perform an atomic test and set operation on the provided spinlock.
  *
- *   This function must be provided via the architecture-specific logoic.
+ *   This function must be provided via the architecture-specific logic.
  *
  * Input Parameters:
  *   lock - The address of spinlock object.

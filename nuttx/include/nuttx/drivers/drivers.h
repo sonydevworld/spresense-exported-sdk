@@ -223,16 +223,16 @@ ssize_t bchlib_write(FAR void *handle, FAR const char *buffer, size_t offset,
  *   and  places them in the array pointed to by 'fd'. fd[0] is for reading,
  *   fd[1] is for writing.
  *
- *   NOTE: mkfifo2 is a special, non-standard, NuttX-only interface.  Since
+ *   NOTE: pipe2 is a special, non-standard, NuttX-only interface.  Since
  *   the NuttX FIFOs are based in in-memory, circular buffers, the ability
  *   to control the size of those buffers is critical for system tuning.
  *
- * Inputs:
+ * Input Parameters:
  *   fd[2] - The user provided array in which to catch the pipe file
  *   descriptors
  *   bufsize - The size of the in-memory, circular buffer in bytes.
  *
- * Return:
+ * Returned Value:
  *   0 is returned on success; otherwise, -1 is returned with errno set
  *   appropriately.
  *
@@ -264,13 +264,13 @@ int pipe2(int fd[2], size_t bufsize);
  *   the NuttX FIFOs are based in in-memory, circular buffers, the ability
  *   to control the size of those buffers is critical for system tuning.
  *
- * Inputs:
+ * Input Parameters:
  *   pathname - The full path to the FIFO instance to attach to or to create
  *     (if not already created).
  *   mode - Ignored for now
  *   bufsize - The size of the in-memory, circular buffer in bytes.
  *
- * Return:
+ * Returned Value:
  *   0 is returned on success; otherwise, -1 is returned with errno set
  *   appropriately.
  *

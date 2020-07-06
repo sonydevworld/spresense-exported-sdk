@@ -70,10 +70,10 @@
  *   packet socket logic.  All frames that are received should be provided to
  *   pkt_input() prior to other routing.
  *
- * Parameters:
+ * Input Parameters:
  *   dev - The device driver structure containing the received packet
  *
- * Return:
+ * Returned Value:
  *   OK    The packet has been processed  and can be deleted
  *   ERROR There is a matching connection, but could not dispatch the packet
  *         yet.  Useful when a packet arrives before a recv call is in

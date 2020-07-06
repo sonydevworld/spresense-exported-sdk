@@ -182,17 +182,25 @@
 #define SIXLOWPAN_IPHC_CID                0x80  /* Bit 8: Context identifier extension */
 #define SIXLOWPAN_IPHC_SAC                0x40  /* Bit 9: Source address compression */
 #define SIXLOWPAN_IPHC_SAM_MASK           0x30  /* Bits 10-11: Source address mode */
-#  define SIXLOWPAN_IPHC_SAM_128          0x00  /*   128-bits */
-#  define SIXLOWPAN_IPHC_SAM_64           0x10  /*   64-bits */
-#  define SIXLOWPAN_IPHC_SAM_16           0x20  /*   16-bits */
-#  define SIXLOWPAN_IPHC_SAM_0            0x30  /*   0-bits */
+#  define SIXLOWPAN_IPHC_SAM_128          0x00  /*   128-bits   */
+#  define SIXLOWPAN_IPHC_SAM_64           0x10  /*   64-bits    */
+#  define SIXLOWPAN_IPHC_SAM_16           0x20  /*   16-bits    */
+#  define SIXLOWPAN_IPHC_SAM_0            0x30  /*   0-bits     */
 #define SIXLOWPAN_IPHC_M                  0x08  /* Bit 12: Multicast compression */
 #define SIXLOWPAN_IPHC_DAC                0x04  /* Bit 13: Destination address compression */
 #define SIXLOWPAN_IPHC_DAM_MASK           0x03  /* Bits 14-15: Destination address mode */
-#  define SIXLOWPAN_IPHC_DAM_128          0x00  /*   128-bits */
-#  define SIXLOWPAN_IPHC_DAM_64           0x01  /*   64-bits */
-#  define SIXLOWPAN_IPHC_DAM_16           0x02  /*   16-bits */
-#  define SIXLOWPAN_IPHC_DAM_0            0x03  /*   0-bits */
+                                                /* M=0 DAC=0/1: */
+#  define SIXLOWPAN_IPHC_DAM_128          0x00  /*   128-bits   */
+#  define SIXLOWPAN_IPHC_DAM_64           0x01  /*   64-bits    */
+#  define SIXLOWPAN_IPHC_DAM_16           0x02  /*   16-bits    */
+#  define SIXLOWPAN_IPHC_DAM_0            0x03  /*   0-bits     */
+                                                /* M=1 DAC=0:   */
+#  define SIXLOWPAN_IPHC_MDAM_128         0x00  /*   128-bits   */
+#  define SIXLOWPAN_IPHC_MDAM_48          0x01  /*   48-bits: ffxx::00xx:xxxx:xxxx  */
+#  define SIXLOWPAN_IPHC_MDAM_32          0x02  /*   16-bits: ffxx::00xx:xxxx  */
+#  define SIXLOWPAN_IPHC_MDAM_8           0x03  /*   8-bits:  ff02::00xx */
+                                                /* M=1 DAC=1:   */
+#  define SIXLOWPAN_IPHC_MDDAM_48         0x00  /*   48-bits: ffxx:xxll:pppp:pppp:pppp:pppp:xxxx:xxxx */
 
 #define SIXLOWPAN_IPHC_SAM_BIT            4
 #define SIXLOWPAN_IPHC_DAM_BIT            0
@@ -254,7 +262,9 @@
 
 #define SIXLOWPAN_MAC_STDFRAME 127
 
-/* Space for a two byte FCS must be reserved at the end of the frame */
+/* Space for a two byte FCS must be reserved at the end of the frame.
+ * REVISIT:  True for IEEE 802.15.4, but not for some other packet radios.
+ */
 
 #define SIXLOWPAN_MAC_FCSSIZE  2
 
@@ -358,7 +368,7 @@ struct sixlowpan_reassbuf_s
    * provides the full reassembly packet to the network.
    */
 
-  uint8_t rb_buf[CONFIG_NET_6LOWPAN_MTU + CONFIG_NET_GUARDSIZE];
+  uint8_t rb_buf[CONFIG_NET_6LOWPAN_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
   /* Memory pool used to allocate this reassembly buffer */
 
@@ -374,7 +384,6 @@ struct sixlowpan_reassbuf_s
 
   FAR struct sixlowpan_reassbuf_s *rb_flink;
 
-#if CONFIG_NET_6LOWPAN_FRAG
   /* Fragmentation is handled frame by frame and requires that certain
    * state information be retained from frame to frame.  That additional
    * information follows the externally visible packet buffer.
@@ -430,8 +439,7 @@ struct sixlowpan_reassbuf_s
    * be cancelled.
    */
 
-  systime_t rb_time;
-#endif /* CONFIG_NET_6LOWPAN_FRAG */
+  clock_t rb_time;
 };
 
 /****************************************************************************
@@ -459,7 +467,7 @@ struct sixlowpan_reassbuf_s
  *   - The io_flink field points to the next frame in the list (if enable)
  *   - The last frame in the list will have io_flink == NULL.
  *
- *   An non-NULL d_buf of size CONFIG_NET_6LOWPAN_MTU + CONFIG_NET_GUARDSIZE
+ *   An non-NULL d_buf of size CONFIG_NET_6LOWPAN_PKTSIZE + CONFIG_NET_GUARDSIZE
  *   must also be provided.  The frame will be decompressed and placed in
  *   the d_buf. Fragmented packets will also be reassembled in the d_buf as
  *   they are received (meaning for the driver, that two packet buffers are

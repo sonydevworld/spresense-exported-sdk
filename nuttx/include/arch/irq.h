@@ -1,7 +1,8 @@
 /****************************************************************************
  * arch/arm/include/irq.h
  *
- *   Copyright (C) 2007-2009, 2011, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2015, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,55 +57,16 @@
  * save structure and up_irq_save()/up_irq_restore() functions)
  */
 
-#if defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || \
-    defined(CONFIG_ARCH_CORTEXA9)
+#if defined(CONFIG_ARCH_ARMV7A)
 #  include <arch/armv7-a/irq.h>
-#elif defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR4F) || \
-      defined(CONFIG_ARCH_CORTEXR5) || defined(CONFIG_ARCH_CORTEXR5F) || \
-      defined(CONFIG_ARCH_CORTEXR7) || defined(CONFIG_ARCH_CORTEXR7F)
+#elif defined(CONFIG_ARCH_ARMV7R)
 #  include <arch/armv7-r/irq.h>
-#elif defined(CONFIG_ARCH_CORTEXM3) || defined(CONFIG_ARCH_CORTEXM4) || \
-      defined(CONFIG_ARCH_CORTEXM7)
+#elif defined(CONFIG_ARCH_ARMV7M)
 #  include <arch/armv7-m/irq.h>
 #elif defined(CONFIG_ARCH_CORTEXM0)
 #  include <arch/armv6-m/irq.h>
 #else
 #  include <arch/arm/irq.h>
-#endif
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Inline functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
 #endif
 
 #endif /* __ARCH_ARM_INCLUDE_IRQ_H */

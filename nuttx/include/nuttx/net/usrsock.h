@@ -90,7 +90,11 @@ enum usrsock_request_types_e
   USRSOCK_REQUEST_SETSOCKOPT,
   USRSOCK_REQUEST_GETSOCKOPT,
   USRSOCK_REQUEST_GETSOCKNAME,
+  USRSOCK_REQUEST_GETPEERNAME,
   USRSOCK_REQUEST_BIND,
+  USRSOCK_REQUEST_LISTEN,
+  USRSOCK_REQUEST_ACCEPT,
+  USRSOCK_REQUEST_IOCTL,
   USRSOCK_REQUEST__MAX
 };
 
@@ -143,11 +147,28 @@ begin_packed_struct struct usrsock_request_connect_s
   uint16_t addrlen;
 } end_packed_struct;
 
+begin_packed_struct struct usrsock_request_listen_s
+{
+  struct usrsock_request_common_s head;
+
+  int16_t usockid;
+  uint16_t backlog;
+} end_packed_struct;
+
+begin_packed_struct struct usrsock_request_accept_s
+{
+  struct usrsock_request_common_s head;
+
+  int16_t usockid;
+  uint16_t max_addrlen;
+} end_packed_struct;
+
 begin_packed_struct struct usrsock_request_sendto_s
 {
   struct usrsock_request_common_s head;
 
   int16_t usockid;
+  int32_t flags;
   uint16_t addrlen;
   uint16_t buflen;
 } end_packed_struct;
@@ -157,6 +178,7 @@ begin_packed_struct struct usrsock_request_recvfrom_s
   struct usrsock_request_common_s head;
 
   int16_t usockid;
+  int32_t flags;
   uint16_t max_buflen;
   uint16_t max_addrlen;
 } end_packed_struct;
@@ -187,6 +209,23 @@ begin_packed_struct struct usrsock_request_getsockname_s
 
   int16_t usockid;
   uint16_t max_addrlen;
+} end_packed_struct;
+
+begin_packed_struct struct usrsock_request_getpeername_s
+{
+  struct usrsock_request_common_s head;
+
+  int16_t usockid;
+  uint16_t max_addrlen;
+} end_packed_struct;
+
+begin_packed_struct struct usrsock_request_ioctl_s
+{
+  struct usrsock_request_common_s head;
+
+  int16_t usockid;
+  int32_t cmd;
+  uint16_t arglen;
 } end_packed_struct;
 
 /* Response/event message structures (kernel <= /dev/usrsock <= daemon) */

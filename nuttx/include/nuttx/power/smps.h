@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_DRIVERS_POWER_H
-#define __INCLUDE_NUTTX_DRIVERS_POWER_H
+#ifndef __INCLUDE_NUTTX_DRIVERS_POWER_SMPS_H
+#define __INCLUDE_NUTTX_DRIVERS_POWER_SMPS_H
 
 /*
  * The SMPS (switched-mode power supply) driver is split into two parts:
@@ -61,6 +61,7 @@
 #include <nuttx/compiler.h>
 
 #include <nuttx/power/power_ioctl.h>
+#include <nuttx/semaphore.h>
 
 #ifdef CONFIG_DRIVERS_SMPS
 
@@ -121,14 +122,14 @@ struct smps_feedback_s
 #ifdef CONFIG_SMPS_HAVE_OUTPUT_VOLTAGE
   float v_out;                       /* Output Voltage */
 #endif
-#ifdef CONFIG_SMPS_HAVE_INPUT_CURRENT
-  float i_in;                        /* Input Current */
-#endif
 #ifdef CONFIG_SMPS_HAVE_INPUT_VOLTAGE
   float v_in;                        /* Input Voltage */
 #endif
 #ifdef CONFIG_SMPS_HAVE_OUTPUT_CURRENT
   float i_out;                       /* Output Current */
+#endif
+#ifdef CONFIG_SMPS_HAVE_INPUT_CURRENT
+  float i_in;                        /* Input Current */
 #endif
 #ifdef CONFIG_SMPS_HAVE_INPUT_POWER
   float p_in;                        /* Input Power */
@@ -304,4 +305,4 @@ int smps_register(FAR const char *path, FAR struct smps_dev_s *dev,
 #endif
 
 #endif /* CONFIG_DRIVERS_SMPS */
-#endif /* __INCLUDE_NUTTX_DRIVERS_POWER_H */
+#endif /* __INCLUDE_NUTTX_DRIVERS_POWER_SMPS_H */

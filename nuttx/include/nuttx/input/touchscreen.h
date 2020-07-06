@@ -81,11 +81,11 @@
  *
  * IOCTL commands for TSC driver A would then be defined in a TSC A header file like:
  *
- *   TSCIOC_A_CMD1               _TSIOC(TSC_A_FIRST+0)
- *   TSCIOC_A_CMD2               _TSIOC(TSC_A_FIRST+1)
- *   TSCIOC_A_CMD3               _TSIOC(TSC_A_FIRST+2)
+ *   TSCIOC_A_CMD1               _TSIOC(TSC_A_FIRST + 0)
+ *   TSCIOC_A_CMD2               _TSIOC(TSC_A_FIRST + 1)
+ *   TSCIOC_A_CMD3               _TSIOC(TSC_A_FIRST + 2)
  *   ...
- *   TSCIOC_A_CMD42              _TSIOC(TSC_A_FIRST+41)
+ *   TSCIOC_A_CMD42              _TSIOC(TSC_A_FIRST + 41)
  *
  * The next reservation would look like:
  *
@@ -100,7 +100,7 @@
 #define TOUCH_DOWN           (1 << 0) /* A new touch contact is established */
 #define TOUCH_MOVE           (1 << 1) /* Movement occurred with previously reported contact */
 #define TOUCH_UP             (1 << 2) /* The touch contact was lost */
-#define TOUCH_ID_VALID       (1 << 3) /* Touch ID is uncertain */
+#define TOUCH_ID_VALID       (1 << 3) /* Touch ID is certain */
 #define TOUCH_POS_VALID      (1 << 4) /* Hardware provided a valid X/Y position */
 #define TOUCH_PRESSURE_VALID (1 << 5) /* Hardware provided a valid pressure */
 #define TOUCH_SIZE_VALID     (1 << 6) /* Hardware provided a valid H/W contact size */
@@ -143,7 +143,9 @@ struct touch_sample_s
   int npoints;                   /* The number of touch points in point[] */
   struct touch_point_s point[1]; /* Actual dimension is npoints */
 };
-#define SIZEOF_TOUCH_SAMPLE_S(n) (sizeof(struct touch_sample_s) + ((n)-1)*sizeof(struct touch_point_s))
+
+#define SIZEOF_TOUCH_SAMPLE_S(n) \
+  (sizeof(struct touch_sample_s) + ((n) - 1) * sizeof(struct touch_point_s))
 
 /************************************************************************************
  * Public Function Prototypes

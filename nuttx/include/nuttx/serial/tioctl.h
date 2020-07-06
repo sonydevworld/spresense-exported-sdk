@@ -184,11 +184,31 @@
 #define TIOCSSINGLEWIRE _TIOC(0x0030)  /* Set single-wire mode */
 #define TIOCGSINGLEWIRE _TIOC(0x0031)  /* Get single-wire mode */
 
-#  define SER_SINGLEWIRE_ENABLED   (1 << 0) /* Enable/disable single-wire support */
+#  define SER_SINGLEWIRE_ENABLED      (1 << 0) /* Enable/disable single-wire support */
+#  define SER_SINGLEWIRE_PULL_SHIFT   (1)      /* RX/TX Line Pullup/down control */
+#  define SER_SINGLEWIRE_PULL_MASK    (3 << SER_SINGLEWIRE_PULL_SHIFT)
+#  define SER_SINGLEWIRE_PULL_DISABLE (0 << SER_SINGLEWIRE_PULL_SHIFT) /* Float RX/TX Line */
+#  define SER_SINGLEWIRE_PULLUP       (1 << SER_SINGLEWIRE_PULL_SHIFT) /* Enable Pull up the RX/TX Line */
+#  define SER_SINGLEWIRE_PULLDOWN     (2 << SER_SINGLEWIRE_PULL_SHIFT) /* Enable Pull down the RX/TX Line */
 
 /* Debugging */
 
 #define TIOCSERGSTRUCT  _TIOC(0x0032) /* Get device TTY structure */
+
+/* Inversion Support */
+
+#define TIOCSINVERT     _TIOC(0x0033)  /* Set Singal Inversion */
+#define TIOCGINVERT     _TIOC(0x0034)  /* Get Singal Inversion */
+
+#define SER_INVERT_ENABLED_RX   (1 << 0) /* Enable/disable signal inversion for RX */
+#define SER_INVERT_ENABLED_TX   (1 << 1) /* Enable/disable signal inversion for TX */
+
+/* RX/TX Swap Support */
+
+#define TIOCSSWAP       _TIOC(0x0035)  /* Set RX/TX Swap */
+#define TIOCGSWAP       _TIOC(0x0036)  /* Get RX/TX Swap */
+
+#define SER_SWAP_ENABLED   (1 << 0) /* Enable/disable RX/TX swap */
 
 /********************************************************************************************
  * Public Type Definitions

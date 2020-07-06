@@ -61,7 +61,7 @@
 
 #if defined(CONFIG_USBHOST_TRACE) || defined(CONFIG_DEBUG_USB)
 #  define HAVE_USBHOST_TRACE 1
-#  if defined(CONFIG_USBHOST_TRACE_VERBOSE) || defined(CONFIG_DEBUG_INFO)
+#  if defined(CONFIG_USBHOST_TRACE_VERBOSE) || defined(CONFIG_DEBUG_USB_INFO)
 #    define HAVE_USBHOST_TRACE_VERBOSE 1
 #  endif
 #endif
@@ -85,7 +85,7 @@
 
 /* Enumeration callback function signature */
 
-typedef int (*usbhost_trcallback_t)(FAR uint32_t trace, FAR void *arg);
+typedef CODE int (*usbhost_trcallback_t)(FAR uint32_t trace, FAR void *arg);
 
 /****************************************************************************
  * Public Data

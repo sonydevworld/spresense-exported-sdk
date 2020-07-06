@@ -67,10 +67,6 @@
 #  define CONFIG_PAGING_STACKSIZE  CONFIG_IDLETHREAD_STACKSIZE
 #endif
 
-#ifdef CONFIG_DISABLE_SIGNALS
-#  warning "Page fill support requires signals"
-#endif
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -78,7 +74,7 @@
 #ifndef __ASSEMBLY
 
 /* This is the task IDof the page fill worker thread.  This value was set in
- * os_start when the page fill worker thread was started.
+ * nx_start when the page fill worker thread was started.
  */
 
 extern pid_t g_pgworker;
@@ -107,7 +103,7 @@ extern FAR struct tcb_s *g_pftcb;
  *   This is the entry point of the worker thread that performs the actual
  *   page file.
  *
- * Input parameters:
+ * Input Parameters:
  *   argc, argv (not used)
  *
  * Returned Value:

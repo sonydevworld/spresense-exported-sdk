@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/usb/usb.h
  *
- *   Copyright (C) 2008, 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008, 2009-2010, 2012, 2008 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* A packet identifier (PID) immediately follows the SYNC field of every USB packet.
  * A PID consists of a four-bit packet type field followed by a four-bit check field
  * USB Tokens (See Table 8-1 in the USB specification)
@@ -78,9 +79,10 @@
 #define MSBYTE(u16)                             ((u16) >> 8)     /* Get MS byte from uint16_t */
 #define LSBYTE(u16)                             ((u16) & 0xff)   /* Get LS byte from uint16_t */
 
-#define GETUINT16(p)                            (((uint16_t)p[1]<<8)|(uint16_t)p[0])
-#define GETUINT32(p)                            (((uint32_t)p[3]<<24)|((uint32_t)p[2]<<16)|\
-                                                 ((uint32_t)p[1]<<8)|(uint32_t)p[0])
+#define GETUINT16(p)                            (((uint16_t)p[1] << 8) | (uint16_t)p[0])
+#define GETUINT32(p)                            (((uint32_t)p[3] << 24) | \
+                                                 ((uint32_t)p[2] << 16) | \
+                                                 ((uint32_t)p[1] << 8) | (uint32_t)p[0])
 
 /* USB directions (in endpoint addresses) */
 
@@ -259,6 +261,12 @@
 
 #define USB_MAX_DEVICES                         (127)
 
+/* Microsoft OS Descriptor specific values */
+
+#define USB_REQ_GETMSFTOSDESCRIPTOR             (0xEE)
+#define MSFTOSDESC_INDEX_FUNCTION               4
+#define MSFTOSDESC_INDEX_EXTPROP                5
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
@@ -273,6 +281,7 @@ struct usb_ctrlreq_s
   uint8_t index[2];
   uint8_t len[2];
 };
+
 #define USB_SIZEOF_CTRLREQ 8
 
 /* Generic descriptor */
@@ -302,6 +311,7 @@ struct usb_devdesc_s
   uint8_t serno;             /* Serial number */
   uint8_t nconfigs;          /* Number of configurations */
 };
+
 #define USB_SIZEOF_DEVDESC 18
 
 /* Configuration descriptor */
@@ -317,6 +327,7 @@ struct usb_cfgdesc_s
   uint8_t attr;              /* Attributes */
   uint8_t mxpower;           /* Max power (mA/2) */
 };
+
 #define USB_SIZEOF_CFGDESC 9
 
 struct usb_otherspeedconfigdesc_s
@@ -330,6 +341,7 @@ struct usb_otherspeedconfigdesc_s
   uint8_t  attr;              /* Attributes */
   uint8_t  mxpower;           /* Max power (mA/2) */
 };
+
 #define USB_SIZEOF_OTHERSPEEDCONFIGDESC 9
 
 /* String descriptor */
@@ -355,6 +367,7 @@ struct usb_ifdesc_s
   uint8_t protocol;          /* Interface protocol */
   uint8_t iif;               /* iInterface */
 };
+
 #define USB_SIZEOF_IFDESC 9
 
 /* Endpoint descriptor */
@@ -368,6 +381,7 @@ struct usb_epdesc_s
   uint8_t  mxpacketsize[2];   /* Maximum packet size */
   uint8_t  interval;          /* Interval */
 };
+
 #define USB_SIZEOF_EPDESC 7
 
 struct usb_audioepdesc_s
@@ -376,6 +390,7 @@ struct usb_audioepdesc_s
   uint8_t  refresh;
   uint8_t  synchaddr;
 };
+
 #define USB_SIZEOF_AUDIOEPDESC 9
 
 /* Device qualifier descriptor */
@@ -392,6 +407,7 @@ struct usb_qualdesc_s
   uint8_t  nconfigs;          /* Number of configurations */
   uint8_t  reserved;
 };
+
 #define USB_SIZEOF_QUALDESC 10
 
 /* Interface association descriptor
@@ -415,7 +431,64 @@ struct usb_iaddesc_s
   uint8_t  protocol;          /* Protocol code */
   uint8_t  ifunction;         /* Index to string identifying the function */
 };
+
 #define USB_SIZEOF_IADDESC 8
+
+/* Microsoft OS function descriptor.
+ * This can be used to request a specific driver (such as WINUSB) to be loaded
+ * on Windows. Unlike other descriptors, it is requested by a special request
+ * USB_REQ_GETMSFTOSDESCRIPTOR.
+ * More details: https://msdn.microsoft.com/en-us/windows/hardware/gg463179
+ * And excellent explanation: https://github.com/pbatard/libwdi/wiki/WCID-Devices
+ * 
+ * The device will have exactly one "Extended Compat ID Feature Descriptor",
+ * which may contain multiple "Function Descriptors" associated with different
+ * interfaces.
+ */
+
+struct usb_msft_os_function_desc_s
+{
+  uint8_t firstif;           /* Index of first associated interface */
+  uint8_t nifs;              /* Number of associated interfaces */
+  uint8_t compatible_id[8];  /* COMPATIBLE_ID of the driver to load */
+  uint8_t sub_id[8];         /* SUB_COMPATIBLE_ID of the driver */
+  uint8_t reserved[6];
+};
+
+struct usb_msft_os_feature_desc_s
+{
+  uint8_t len[4];            /* Descriptor length */
+  uint8_t version[2];        /* Descriptor syntax version, 0x0100 */
+  uint8_t index[2];          /* Set to 4 for "extended compat ID descriptors" */
+  uint8_t count;             /* Number of function sections */
+  uint8_t reserved[7];
+  struct usb_msft_os_function_desc_s function[1];
+};
+
+/* Microsoft OS extended property descriptor.
+ * This can be used to set specific registry values, such as interface GUID for
+ * a device. It is requested per-interface by special request USB_REQ_GETMSFTOSDESCRIPTOR.
+ * 
+ * The interface will have one extended properties descriptor, which may contain
+ * multiple properties inside it.
+ */
+
+struct usb_msft_os_extprop_hdr_s
+{
+  uint8_t len[4];            /* Descriptor length */
+  uint8_t version[2];        /* Descriptor syntax version, 0x0100 */
+  uint8_t index[2];          /* Set to 5 for "extended property descriptors" */
+  uint8_t count[2];          /* Number of property sections */
+  
+  /* The properties are appended after the header and follow this format:
+   * uint8_t prop_len[4];
+   * uint8_t data_type[4];
+   * uint8_t name_len[2];
+   * uint8_t name[name_len];
+   * uint8_t data_len[4];
+   * uint8_t data[data_len];
+   */
+};
 
 /************************************************************************************
  * Public Data

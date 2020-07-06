@@ -86,20 +86,21 @@
  * command numbers from overlapping.
  */
 
-/* See include/nuttx/wireless/cc3000.h */
-
-#define CC3000_FIRST        (WL_FIRST + WL_NCMDS)
-#define CC3000_NCMDS        7
 
 /* See include/nuttx/wireless/nrf24l01.h */
 
-#define NRF24L01_FIRST      (CC3000_FIRST + CC3000_NCMDS)
-#define NRF24L01_NCMDS      14
+#define NRF24L01_FIRST      (WL_FIRST + WL_NCMDS)
+#define NRF24L01_NCMDS      16
 
-/* See include/nuttx/wireless/ieee802154/ieee802154_ioctl.h */
+/* See include/nuttx/wireless/lpwan/sx127x.h */
 
-#define IEEE802154_FIRST    (NRF24L01_FIRST + NRF24L01_NCMDS)
-#define IEEE802154_NCMDS    2
+#define SX127X_FIRST        (NRF24L01_FIRST + NRF24L01_NCMDS)
+#define SX127X_NCMDS        11
+
+/* See include/nuttx/wireless/gs2200m.h */
+
+#define GS2200M_FIRST       (SX127X_FIRST + SX127X_NCMDS)
+#define GS2200M_NCMDS       9
 
 /************************************************************************************
  * Public Types

@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/kmalloc.h
  *
- *   Copyright (C) 2007-2008, 2011, 2013, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2011, 2013, 2016, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,11 +62,11 @@
 
 #undef KMALLOC_EXTERN
 #if defined(__cplusplus)
-# define KMALLOC_EXTERN extern "C"
+#  define KMALLOC_EXTERN extern "C"
 extern "C"
 {
 #else
-# define KMALLOC_EXTERN extern
+#  define KMALLOC_EXTERN extern
 #endif
 
 /****************************************************************************
@@ -89,11 +90,17 @@ extern "C"
 #define kumm_trysemaphore()      umm_trysemaphore()
 #define kumm_givesemaphore()     umm_givesemaphore()
 
+#define kumm_calloc(n,s)         calloc(n,s);
 #define kumm_malloc(s)           malloc(s)
 #define kumm_zalloc(s)           zalloc(s)
 #define kumm_realloc(p,s)        realloc(p,s)
 #define kumm_memalign(a,s)       memalign(a,s)
 #define kumm_free(p)             free(p)
+#ifdef CONFIG_CAN_PASS_STRUCTS
+#  define kumm_mallinfo()        mallinfo()
+#else
+#  define kumm_mallinfo(i)       mallinfo(i)
+#endif
 
 /* This family of allocators is used to manage kernel protected memory */
 
@@ -102,16 +109,22 @@ extern "C"
  * as were used for the user-mode function.
  */
 
-# define kmm_initialize(h,s)    /* Initialization done by kumm_initialize */
-# define kmm_addregion(h,s)     umm_addregion(h,s)
-# define kmm_trysemaphore()     umm_trysemaphore()
-# define kmm_givesemaphore()    umm_givesemaphore()
+#  define kmm_initialize(h,s)    /* Initialization done by kumm_initialize */
+#  define kmm_addregion(h,s)     umm_addregion(h,s)
+#  define kmm_trysemaphore()     umm_trysemaphore()
+#  define kmm_givesemaphore()    umm_givesemaphore()
 
-# define kmm_malloc(s)          malloc(s)
-# define kmm_zalloc(s)          zalloc(s)
-# define kmm_realloc(p,s)       realloc(p,s)
-# define kmm_memalign(a,s)      memalign(a,s)
-# define kmm_free(p)            free(p)
+#  define kmm_calloc(n,s)        calloc(n,s);
+#  define kmm_malloc(s)          malloc(s)
+#  define kmm_zalloc(s)          zalloc(s)
+#  define kmm_realloc(p,s)       realloc(p,s)
+#  define kmm_memalign(a,s)      memalign(a,s)
+#  define kmm_free(p)            free(p)
+#ifdef CONFIG_CAN_PASS_STRUCTS
+#  define kmm_mallinfo()         mallinfo()
+#else
+#  define kmm_mallinfo(i)        mallinfo(i)
+#endif
 
 #elif !defined(CONFIG_MM_KERNEL_HEAP)
 /* If this the kernel phase of a kernel build, and there are only user-space
@@ -119,16 +132,22 @@ extern "C"
  * call into user-space via a header at the beginning of the user-space blob.
  */
 
-# define kmm_initialize(h,s)    /* Initialization done by kumm_initialize */
-# define kmm_addregion(h,s)     umm_addregion(h,s)
-# define kmm_trysemaphore()     umm_trysemaphore()
-# define kmm_givesemaphore()    umm_givesemaphore()
+#  define kmm_initialize(h,s)    /* Initialization done by kumm_initialize */
+#  define kmm_addregion(h,s)     umm_addregion(h,s)
+#  define kmm_trysemaphore()     umm_trysemaphore()
+#  define kmm_givesemaphore()    umm_givesemaphore()
 
-# define kmm_malloc(s)          umm_malloc(s)
-# define kmm_zalloc(s)          umm_zalloc(s)
-# define kmm_realloc(p,s)       umm_realloc(p,s)
-# define kmm_memalign(a,s)      umm_memalign(a,s)
-# define kmm_free(p)            umm_free(p)
+#  define kmm_calloc(n,s)        calloc(n,s);
+#  define kmm_malloc(s)          malloc(s)
+#  define kmm_zalloc(s)          zalloc(s)
+#  define kmm_realloc(p,s)       realloc(p,s)
+#  define kmm_memalign(a,s)      memalign(a,s)
+#  define kmm_free(p)            free(p)
+#ifdef CONFIG_CAN_PASS_STRUCTS
+#  define kmm_mallinfo()         mallinfo()
+#else
+#  define kmm_mallinfo(i)        mallinfo(i)
+#endif
 
 #else
 /* Otherwise, the kernel-space allocators are declared in include/nuttx/mm/mm.h
@@ -187,6 +206,10 @@ void sched_kfree(FAR void *address);
 #else
 #  define sched_kfree(a) sched_ufree(a)
 #endif
+
+/* Signal the worker thread that is has some clean up to do */
+
+void sched_signal_free(void);
 
 /* Functions defined in sched/sched_garbage *********************************/
 

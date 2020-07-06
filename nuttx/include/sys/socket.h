@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/sys/socket.h
  *
- *   Copyright (C) 2007, 2009, 2011, 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2015-2016, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@
  ****************************************************************************/
 
 #include <sys/types.h>
+#include <sys/uio.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -52,14 +54,17 @@
 
 /* Supported Protocol Families */
 
-#define PF_UNSPEC      0 /* Protocol family unspecified */
-#define PF_UNIX        1 /* Local communication */
-#define PF_LOCAL       1 /* Local communication */
-#define PF_INET        2 /* IPv4 Internet protocols */
-#define PF_INET6       3 /* IPv6 Internet protocols */
-#define PF_PACKET      4 /* Low level packet interface */
-#define PF_IEEE802154  5 /* Low level IEEE 802.15.4 radio frame interface */
-#define PF_PKTRADIO    6 /* Low level packet radio interface */
+#define PF_UNSPEC      0         /* Protocol family unspecified */
+#define PF_UNIX        1         /* Local communication */
+#define PF_LOCAL       1         /* Local communication */
+#define PF_INET        2         /* IPv4 Internet protocols */
+#define PF_INET6      10         /* IPv6 Internet protocols */
+#define PF_NETLINK    16         /* Netlink IPC socket */
+#define PF_ROUTE      PF_NETLINK /* 4.4BSD Compatibility*/
+#define PF_PACKET     17         /* Low level packet interface */
+#define PF_BLUETOOTH  31         /* Bluetooth sockets */
+#define PF_IEEE802154 36         /* Low level IEEE 802.15.4 radio frame interface */
+#define PF_PKTRADIO   64         /* Low level packet radio interface */
 
 /* Supported Address Families. Opengroup.org requires only AF_UNSPEC,
  * AF_UNIX, AF_INET and AF_INET6.
@@ -70,7 +75,10 @@
 #define AF_LOCAL       PF_LOCAL
 #define AF_INET        PF_INET
 #define AF_INET6       PF_INET6
+#define AF_NETLINK     PF_NETLINK
+#define AF_ROUTE       PF_ROUTE
 #define AF_PACKET      PF_PACKET
+#define AF_BLUETOOTH   PF_BLUETOOTH
 #define AF_IEEE802154  PF_IEEE802154
 #define AF_PKTRADIO    PF_PKTRADIO
 
@@ -78,16 +86,25 @@
  * the communication semantics.
  */
 
-#define SOCK_STREAM    0 /* Provides sequenced, reliable, two-way, connection-based byte streams.
-                          * An  out-of-band data transmission mechanism may be supported. */
-#define SOCK_DGRAM     1 /* Supports  datagrams (connectionless, unreliable messages of a fixed
-                          * maximum length). */
-#define SOCK_SEQPACKET 2 /* Provides a sequenced, reliable, two-way connection-based data
-                          * transmission path for datagrams of fixed maximum length; a consumer
-                          * is required to read an entire packet with each read system call. */
+#define SOCK_UNSPEC    0 /* Unspecified socket type */
+#define SOCK_STREAM    1 /* Provides sequenced, reliable, two-way,
+                          * connection-based byte streams. An out-of-band data
+                          * transmission mechanism may be supported.
+                          */
+#define SOCK_DGRAM     2 /* Supports  datagrams (connectionless, unreliable
+                          * messages of a fixed maximum length).
+                          */
 #define SOCK_RAW       3 /* Provides raw network protocol access. */
-#define SOCK_RDM       4 /* Provides a reliable datagram layer that does not guarantee ordering. */
-#define SOCK_PACKET    5 /* Obsolete and should not be used in new programs */
+#define SOCK_RDM       4 /* Provides a reliable datagram layer that does not
+                          * guarantee ordering.
+                          */
+#define SOCK_SEQPACKET 5 /* Provides a sequenced, reliable, two-way
+                          * connection-based data transmission path for
+                          * datagrams of fixed maximum length; a consumer is
+                          * required to read an entire packet with each read
+                          * system call.
+                          */
+#define SOCK_PACKET    10 /* Obsolete and should not be used in new programs */
 
 /* Bits in the FLAGS argument to `send', `recv', et al. These are the bits
  * recognized by Linus, not all are supported by NuttX.
@@ -110,50 +127,128 @@
 #define MSG_NOSIGNAL   0x4000 /* Do not generate SIGPIPE.  */
 #define MSG_MORE       0x8000 /* Sender will send more.  */
 
-/* Socket options */
-
-#define SO_DEBUG        0 /* Enables recording of debugging information (get/set).
-                           * arg: pointer to integer containing a boolean value */
-#define SO_ACCEPTCONN   1 /* Reports whether socket listening is enabled (get only).
-                           * arg: pointer to integer containing a boolean value */
-#define SO_BROADCAST    2 /* Permits sending of broadcast messages (get/set).
-                           * arg: pointer to integer containing a boolean value */
-#define SO_REUSEADDR    3 /* Allow reuse of local addresses (get/set)
-                           * arg: pointer to integer containing a boolean value */
-#define SO_KEEPALIVE    4 /* Keeps connections active by enabling the periodic transmission
-                           * of messages (get/set).
-                           * arg: pointer to integer containing a boolean value */
-#define SO_LINGER       5 /* Lingers on a close() if data is present (get/set)
-                           * arg: struct linger */
-#define SO_OOBINLINE    6 /* Leaves received out-of-band data (data marked urgent) inline
-                           * (get/set) arg: pointer to integer containing a boolean value */
-#define SO_SNDBUF       7 /* Sets send buffer size. arg: integer value (get/set). */
-#define SO_RCVBUF       8 /* Sets receive buffer size. arg: integer value (get/set). */
-#define SO_ERROR        9 /* Reports and clears error status (get only).  arg: returns
-                           * an integer value */
-#define SO_TYPE        10 /* Reports the socket type (get only). return: int */
-#define SO_DONTROUTE   11 /* Requests that outgoing messages bypass standard routing (get/set)
-                           * arg: pointer to integer containing a boolean value */
-#define SO_RCVLOWAT    12 /* Sets the minimum number of bytes to process for socket input
-                           * (get/set). arg: integer value */
-#define SO_RCVTIMEO    13 /* Sets the timeout value that specifies the maximum amount of time
-                           * an input function waits until it completes (get/set).
-                           * arg: struct timeval */
-#define SO_SNDLOWAT    14 /* Sets the minimum number of bytes to process for socket output
-                           * (get/set). arg: integer value */
-#define SO_SNDTIMEO    15 /* Sets the timeout value specifying the amount of time that an
-                           * output function blocks because flow control prevents data from
-                           * being sent(get/set). arg: struct timeval */
-
 /* Protocol levels supported by get/setsockopt(): */
 
-#define SOL_SOCKET     0  /* Only socket-level options supported */
+#define SOL_SOCKET      0 /* Only socket-level options supported */
+
+/* Socket-level options */
+
+#define SO_ACCEPTCONN    0 /* Reports whether socket listening is enabled
+                            * (get only).
+                            * arg: pointer to integer containing a boolean
+                            * value
+                            */
+#define SO_BROADCAST     1 /* Permits sending of broadcast messages (get/set).
+                            * arg: pointer to integer containing a boolean
+                            * value
+                            */
+#define SO_DEBUG         2 /* Enables recording of debugging information
+                            * (get/set).
+                            * arg: pointer to integer containing a boolean
+                            * value
+                            */
+#define SO_DONTROUTE     3 /* Requests that outgoing messages bypass standard
+                            * routing (get/set)
+                            * arg: pointer to integer containing a boolean
+                            * value
+                            */
+#define SO_ERROR         4 /* Reports and clears error status (get only).
+                            * arg: returns an integer value
+                            */
+#define SO_KEEPALIVE     5 /* Keeps connections active by enabling the periodic
+                            * transmission of messages (get/set).
+                            * arg:  pointer to integer containing a boolean int
+                            * value
+                            */
+#define SO_LINGER        6 /* Lingers on a close() if data is present (get/set)
+                            * arg: struct linger
+                            */
+#define SO_OOBINLINE     7 /* Leaves received out-of-band data (data marked
+                            * urgent) inline
+                            * (get/set) arg: pointer to integer containing a
+                            * boolean value
+                            */
+#define SO_RCVBUF        8 /* Sets receive buffer size.
+                            * arg: integer value (get/set).
+                            */
+#define SO_RCVLOWAT      9 /* Sets the minimum number of bytes to process for
+                            * socket input (get/set).
+                            * arg: integer value
+                            */
+#define SO_RCVTIMEO     10 /* Sets the timeout value that specifies the maximum
+                            * amount of time an input function waits until it
+                            * completes (get/set).
+                            * arg: struct timeval
+                            */
+#define SO_REUSEADDR    11 /* Allow reuse of local addresses (get/set)
+                            * arg: pointer to integer containing a boolean
+                            * value
+                            */
+#define SO_SNDBUF       12 /* Sets send buffer size (get/set).
+                            * arg: integer value
+                            */
+#define SO_SNDLOWAT     13 /* Sets the minimum number of bytes to process for
+                            * socket output (get/set).
+                            * arg: integer value
+                            */
+#define SO_SNDTIMEO     14 /* Sets the timeout value specifying the amount of
+                            * time that an output function blocks because flow
+                            * control prevents data from being sent(get/set).
+                            * arg: struct timeval
+                            */
+#define SO_TYPE         15 /* Reports the socket type (get only).
+                            * return: int
+                            */
+
+/* Protocol-level socket operations. */
+
+#define SOL_IP          1 /* See options in include/netinet/ip.h */
+#define SOL_IPV6        2 /* See options in include/netinet/ip6.h */
+#define SOL_TCP         3 /* See options in include/netinet/tcp.h */
+#define SOL_UDP         4 /* See options in include/netinit/udp.h */
+#define SOL_HCI         5 /* See options in include/netpacket/bluetooth.h */
+#define SOL_L2CAP       6 /* See options in include/netpacket/bluetooth.h */
+#define SOL_SCO         7 /* See options in include/netpacket/bluetooth.h */
+#define SOL_RFCOMM      8 /* See options in include/netpacket/bluetooth.h */
+
+/* Protocol-level socket options may begin with this value */
+
+#define __SO_PROTOCOL  16
 
 /* Values for the 'how' argument of shutdown() */
 
-#define SHUT_RD        1  /* Bit 0: Disables further receive operations */
-#define SHUT_WR        2  /* Bit 1: Disables further send operations */
-#define SHUT_RDWR      3  /* Bits 0+1: Disables further send and receive operations */
+#define SHUT_RD         1 /* Bit 0: Disables further receive operations */
+#define SHUT_WR         2 /* Bit 1: Disables further send operations */
+#define SHUT_RDWR       3 /* Bits 0+1: Disables further send and receive
+                           * operations
+                           */
+
+/* The maximum backlog queue length */
+
+#ifdef CONFIG_NET_TCPBACKLOG_CONNS
+#  define SOMAXCONN CONFIG_NET_TCPBACKLOG_CONNS
+#else
+#  define SOMAXCONN 0
+#endif
+
+/* Definitions associated with sendmsg/recvmsg */
+
+#define CMSG_NXTHDR(mhdr, cmsg) cmsg_nxthdr((mhdr), (cmsg))
+
+#define CMSG_ALIGN(len) \
+  (((len)+sizeof(long)-1) & ~(sizeof(long)-1))
+#define CMSG_DATA(cmsg) \
+  ((void *)((char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
+#define CMSG_SPACE(len) \
+  (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#define CMSG_LEN(len)   \
+  (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+
+#define __CMSG_FIRSTHDR(ctl, len) \
+  ((len) >= sizeof(struct cmsghdr) ? (FAR struct cmsghdr *)(ctl) : \
+   (FAR struct cmsghdr *)NULL)
+#define CMSG_FIRSTHDR(msg) \
+  __CMSG_FIRSTHDR((msg)->msg_control, (msg)->msg_controllen)
 
 /****************************************************************************
  * Type Definitions
@@ -163,14 +258,16 @@
   * accommodate all supported protocol-specific address structures, and (2)
   * aligned at an appropriate boundary so that pointers to it can be cast
   * as pointers to protocol-specific address structures and used to access
-  * the fields of those structures without alignment problems
+  * the fields of those structures without alignment problems.
+  *
+  * REVISIT: sizeof(struct sockaddr_storge) should be 128 bytes.
   */
 
 #ifdef CONFIG_NET_IPv6
 struct sockaddr_storage
 {
   sa_family_t ss_family;       /* Address family */
-  char        ss_data[18];     /* 18-bytes of address data */
+  char        ss_data[26];     /* 26-bytes of address data */
 };
 #else
 struct sockaddr_storage
@@ -188,7 +285,7 @@ struct sockaddr_storage
 struct sockaddr
 {
   sa_family_t sa_family;       /* Address family: See AF_* definitions */
-  char        sa_data[14];     /* 14-bytes of address data */
+  char        sa_data[14];     /* 14-bytes data (actually variable length) */
 };
 
 /* Used with the SO_LINGER socket option */
@@ -198,6 +295,49 @@ struct linger
   int  l_onoff;   /* Indicates whether linger option is enabled. */
   int  l_linger;  /* Linger time, in seconds. */
 };
+
+struct msghdr
+{
+  void *msg_name;               /* Socket name */
+  int msg_namelen;              /* Length of name */
+  struct iovec *msg_iov;        /* Data blocks */
+  unsigned long msg_iovlen;     /* Number of blocks */
+  void *msg_control;            /* Per protocol magic (eg BSD file descriptor passing) */
+  unsigned long msg_controllen; /* Length of cmsg list */
+  unsigned int msg_flags;
+};
+
+struct cmsghdr
+{
+  unsigned long cmsg_len;       /* Data byte count, including hdr */
+  int cmsg_level;               /* Originating protocol */
+  int cmsg_type;                /* Protocol-specific type */
+};
+
+/****************************************************************************
+ * Inline Functions
+ ****************************************************************************/
+
+static inline struct cmsghdr *__cmsg_nxthdr(FAR void *__ctl,
+                                            unsigned int __size,
+                                            FAR struct cmsghdr *__cmsg)
+{
+  FAR struct cmsghdr *__ptr;
+
+  __ptr = (struct cmsghdr *)(((unsigned char *)__cmsg) + CMSG_ALIGN(__cmsg->cmsg_len));
+  if ((unsigned long)((char *)(__ptr + 1) - (char *)__ctl) > __size)
+    {
+      return (struct cmsghdr *)0;
+    }
+
+  return __ptr;
+}
+
+static inline struct cmsghdr *cmsg_nxthdr(FAR struct msghdr *__msg,
+                                          FAR struct cmsghdr *__cmsg)
+{
+  return __cmsg_nxthdr(__msg->msg_control, __msg->msg_controllen, __cmsg);
+}
 
 /****************************************************************************
  * Public Function Prototypes
@@ -236,6 +376,11 @@ int getsockopt(int sockfd, int level, int option,
 
 int getsockname(int sockfd, FAR struct sockaddr *addr,
                 FAR socklen_t *addrlen);
+int getpeername(int sockfd, FAR struct sockaddr *addr,
+                FAR socklen_t *addrlen);
+
+ssize_t recvmsg(int sockfd, FAR struct msghdr *msg, int flags);
+ssize_t sendmsg(int sockfd, FAR struct msghdr *msg, int flags);
 
 #undef EXTERN
 #if defined(__cplusplus)

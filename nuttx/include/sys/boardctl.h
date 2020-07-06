@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/sys/boardctl.h
  *
- *   Copyright (C) 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,11 +45,24 @@
 
 #include <nuttx/fs/ioctl.h>
 
+#ifdef CONFIG_PM
+#  include <nuttx/power/pm.h>
+#endif
+
+#ifdef CONFIG_VNCSERVER
+#  include <nuttx/nx/nx.h>
+#endif
+
+#ifdef CONFIG_NXTERM
+#  include <nuttx/nx/nxterm.h>
+#endif
+
 #ifdef CONFIG_LIB_BOARDCTL
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Common commands
  *
  * CMD:           BOARDIOC_INIT
@@ -58,7 +71,7 @@
  *                board_app_initialize() implementation without modification.
  *                The argument has no meaning to NuttX; the meaning of the
  *                argument is a contract between the board-specific
- *                initalization logic and the matching application logic.
+ *                initialization logic and the matching application logic.
  *                The value cold be such things as a mode enumeration value,
  *                a set of DIP switch switch settings, a pointer to
  *                configuration data read from a file or serial FLASH, or
@@ -80,12 +93,30 @@
  * CONFIGURATION: CONFIG_BOARDCTL_RESET
  * DEPENDENCIES:  Board logic must provide the board_reset() interface.
  *
+ * CMD:           BOARDIOC_PM_CONTROL
+ * DESCRIPTION:   Manage power state transition and query
+ * ARG:           A pointer to an instance of struct boardioc_pm_ctrl_s
+ * CONFIGURATION: CONFIG_PM
+ * DEPENDENCIES:  None
+ *
  * CMD:           BOARDIOC_UNIQUEID
  * DESCRIPTION:   Return a unique ID associated with the board (such as a
  *                serial number or a MAC address).
  * ARG:           A writable array of size CONFIG_BOARDCTL_UNIQUEID_SIZE in
  *                which to receive the board unique ID.
  * DEPENDENCIES:  Board logic must provide the board_uniqueid() interface.
+ *
+ * CMD:           BOARDIOC_MKRD
+ * DESCRIPTION:   Create a RAM disk
+ * ARG:           Pointer to read-only instance of struct boardioc_mkrd_s.
+ * CONFIGURATION: CONFIG_BOARDCTL_MKRD
+ * DEPENDENCIES:  None
+ *
+ * CMD:           BOARDIOC_ROMDISK
+ * DESCRIPTION:   Reigster
+ * ARG:           Pointer to read-only instance of struct boardioc_romdisk_s.
+ * CONFIGURATION: CONFIG_BOARDCTL_ROMDISK
+ * DEPENDENCIES:  None
  *
  * CMD:           BOARDIOC_APP_SYMTAB
  * DESCRIPTION:   Select the application symbol table.  This symbol table
@@ -103,6 +134,25 @@
  * CONFIGURATION: CONFIG_BOARDCTL_OS_SYMTAB
  * DEPENDENCIES:  None
  *
+ * CMD:           BOARDIOC_BUILTINS
+ * DESCRIPTION:   Provide the user-space list of built-in applications for
+ *                use by BINFS in protected mode.  Normally this is small
+ *                set of globals provided by user-space logic.  It provides
+ *                name-value pairs for associating built-in application
+ *                names with user-space entry point addresses.  These
+ *                globals are only needed for use by BINFS which executes
+ *                built-in applications from kernel-space in PROTECTED mode.
+ *                In the FLAT build, the user space globals are readily
+ *                available.  (BINFS is not supportable in KERNEL mode since
+ *                user-space address have no general meaning that
+ *                configuration).
+ * ARG:           A pointer to an instance of struct boardioc_builtin_s
+ * CONFIGURATION: This BOARDIOC command is always available when
+ *                CONFIG_BUILTIN is enabled, but does nothing unless
+ *                CONFIG_BUILD_PROTECTED and CONFIG_FS_BINFS are also
+ *                selected.
+ * DEPENDENCIES:  None
+ *
  * CMD:           BOARDIOC_USBDEV_CONTROL
  * DESCRIPTION:   Manage USB device classes
  * ARG:           A pointer to an instance of struct boardioc_usbdev_ctrl_s
@@ -110,87 +160,151 @@
  * DEPENDENCIES:  Board logic must provide board_<usbdev>_initialize()
  *
  * CMD:           BOARDIOC_NX_START
- * DESCRIPTION:   Start the NX servier
- * ARG:           None
- * CONFIGURATION: CONFIG_NX_MULTIUSER
- * DEPENDENCIES:  Base graphics logic provides nx_start()
+ * DESCRIPTION:   Start the NX server
+ * ARG:           Integer display number to be served by this NXMU instance.
+ * CONFIGURATION: CONFIG_NX
+ * DEPENDENCIES:  Base graphics logic provides nxmu_start()
  *
- * CMD:           BOARDIOC_TSCTEST_SETUP
- * DESCRIPTION:   Touchscreen controller test configuration
- * ARG:           Touch controller device minor number
- * CONFIGURATION: CONFIG_LIB_BOARDCTL && CONFIG_BOARDCTL_TSCTEST
- * DEPENDENCIES:  Board logic must provide board_tsc_setup()
+ * CMD:           BOARDIOC_VNC_START
+ * DESCRIPTION:   Start the NX server and framebuffer driver.
+ * ARG:           A reference readable instance of struct
+ *                boardioc_vncstart_s
+ * CONFIGURATION: CONFIG_VNCSERVER
+ * DEPENDENCIES:  VNC server provides vnc_default_fbinitialize()
  *
- * CMD:           BOARDIOC_TSCTEST_TEARDOWN
- * DESCRIPTION:   Touchscreen controller test configuration
- * ARG:           None
- * CONFIGURATION: CONFIG_LIB_BOARDCTL && CONFIG_BOARDCTL_TSCTEST
- * DEPENDENCIES:  Board logic must provide board_tsc_teardown()
+ * CMD:           BOARDIOC_NXTERM
+ * DESCRIPTION:   Create an NX terminal device
+ * ARG:           A reference readable/writable instance of struct
+ *                boardioc_nxterm_create_s
+ * CONFIGURATION: CONFIG_NXTERM
+ * DEPENDENCIES:  Base NX terminal logic provides nx_register() and
+ *                nxtk_register()
  *
- * CMD:           BOARDIOC_GRAPHICS_SETUP
- * DESCRIPTION:   Configure graphics that require special initialization
- *                procedures
- * ARG:           A pointer to an instance of struct boardioc_graphics_s
- * CONFIGURATION: CONFIG_LIB_BOARDCTL && CONFIG_BOARDCTL_GRAPHICS
- * DEPENDENCIES:  Board logic must provide board_graphics_setup()
+ * CMD:           BOARDIOC_NXTERM_IOCTL
+ * DESCRIPTION:   Create an NX terminal IOCTL command.  Normal IOCTLs
+ *                cannot be be performed in most graphics contexts since
+ *                the depend on the task holding an open file descriptor
+ * ARG:           A reference readable/writable instance of struct
+ *                boardioc_nxterm_ioctl_s
+ * CONFIGURATION: CONFIG_NXTERM
+ * DEPENDENCIES:  Base NX terminal logic provides nxterm_ioctl_tap()
+ *
+ * CMD:           BOARDIOC_TESTSET
+ * DESCRIPTION:   Access architecture-specific up_testset() operation
+ * ARG:           A pointer to a write-able spinlock object.  On success
+ *                the  preceding spinlock state is returned:  0=unlocked,
+ *                1=locked.
+ * CONFIGURATION: CONFIG_BOARDCTL_TESTSET
+ * DEPENDENCIES:  Architecture-specific logic provides up_testset()
  */
 
 #define BOARDIOC_INIT              _BOARDIOC(0x0001)
-#define BOARDIOC_POWEROFF          _BOARDIOC(0x0002)
-#define BOARDIOC_RESET             _BOARDIOC(0x0003)
-#define BOARDIOC_UNIQUEID          _BOARDIOC(0x0004)
-#define BOARDIOC_APP_SYMTAB        _BOARDIOC(0x0005)
-#define BOARDIOC_OS_SYMTAB         _BOARDIOC(0x0006)
-#define BOARDIOC_USBDEV_CONTROL    _BOARDIOC(0x0007)
-#define BOARDIOC_NX_START          _BOARDIOC(0x0008)
-#define BOARDIOC_TSCTEST_SETUP     _BOARDIOC(0x0009)
-#define BOARDIOC_TSCTEST_TEARDOWN  _BOARDIOC(0x000a)
-#define BOARDIOC_GRAPHICS_SETUP    _BOARDIOC(0x000b)
+#define BOARDIOC_FINALINIT         _BOARDIOC(0x0002)
+#define BOARDIOC_POWEROFF          _BOARDIOC(0x0003)
+#define BOARDIOC_RESET             _BOARDIOC(0x0004)
+#define BOARDIOC_PM_CONTROL        _BOARDIOC(0x0005)
+#define BOARDIOC_UNIQUEID          _BOARDIOC(0x0006)
+#define BOARDIOC_MKRD              _BOARDIOC(0x0007)
+#define BOARDIOC_ROMDISK           _BOARDIOC(0x0008)
+#define BOARDIOC_APP_SYMTAB        _BOARDIOC(0x0009)
+#define BOARDIOC_OS_SYMTAB         _BOARDIOC(0x000a)
+#define BOARDIOC_BUILTINS          _BOARDIOC(0x000b)
+#define BOARDIOC_USBDEV_CONTROL    _BOARDIOC(0x000c)
+#define BOARDIOC_NX_START          _BOARDIOC(0x000d)
+#define BOARDIOC_VNC_START         _BOARDIOC(0x000e)
+#define BOARDIOC_NXTERM            _BOARDIOC(0x000f)
+#define BOARDIOC_NXTERM_IOCTL      _BOARDIOC(0x0010)
+#define BOARDIOC_TESTSET           _BOARDIOC(0x0011)
 
-/* If CONFIG_BOARDCTL_IOCTL=y, then boad-specific commands will be support.
+/* If CONFIG_BOARDCTL_IOCTL=y, then board-specific commands will be support.
  * In this case, all commands not recognized by boardctl() will be forwarded
  * to the board-provided board_ioctl() function.
  *
  * User defined board commands may begin with this value:
  */
 
-#define BOARDIOC_USER              _BOARDIOC(0x000d)
+#define BOARDIOC_USER              _BOARDIOC(0x0012)
 
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
 
-/* Structure used to pass arguments and get returned values from the
- * BOARDIOC_GRAPHICS_SETUP command.
+/* Structures used with IOCTL commands */
+
+#ifdef CONFIG_PM
+/* Arguments passed with the BOARDIOC_PM_CONTROL command */
+
+enum boardioc_action_e
+{
+  BOARDIOC_PM_ACTIVITY = 0,
+  BOARDIOC_PM_STAY,
+  BOARDIOC_PM_RELAX,
+  BOARDIOC_PM_STAYCOUNT,
+  BOARDIOC_PM_QUERYSTATE
+};
+
+struct boardioc_pm_ctrl_s
+{
+  uint32_t action;
+  uint32_t domain;
+  uint32_t state;
+  uint32_t count;
+  uint32_t priority;
+};
+#endif
+
+#ifdef CONFIG_BOARDCTL_MKRD
+/* Describes the RAM disk to be created */
+
+struct boardioc_mkrd_s
+{
+  uint8_t minor;      /* Minor device number of the RAM disk. */
+  uint32_t nsectors;  /* The number of sectors in the RAM disk */
+  uint16_t sectsize;  /* The size of one sector in bytes */
+  uint8_t rdflags;    /* See RD_FLAGS_* definitions in include/nuttx/ramdisk.h */
+};
+#endif
+
+#ifdef CONFIG_BOARDCTL_ROMDISK
+/* Describes the ROM disk image to be registered.
+ *
+ * The image points to a image of the file system in some read-only memory.
+ * This image must conform to certain requirements:  (1) it must be
+ * accessible to the kernel code with no special address mapping, and (2)
+ * it must be virtually contiguous.
  */
 
-#ifdef CONFIG_NX_LCDDRIVER
-struct lcd_dev_s;                /* Forward reference */
-#else
-struct fb_vtable_s;              /* Forward reference */
-#endif
-
-struct boardioc_graphics_s
+struct boardioc_romdisk_s
 {
-  int devno;                     /* IN: Graphics device number */
-#ifdef CONFIG_NX_LCDDRIVER
-  FAR struct lcd_dev_s *dev;     /* OUT: LCD driver instance */
-#else
-  FAR struct fb_vtable_s *dev;   /* OUT: Framebuffer driver instance */
-#endif
+  uint8_t minor;      /* Minor device number of the RAM disk. */
+  uint32_t nsectors;  /* The number of sectors in the RAM disk */
+  uint16_t sectsize;  /* The size of one sector in bytes */
+  FAR const uint8_t *image;
 };
+#endif
 
 /* In order to full describe a symbol table, a vector containing the address
  * of the symbol table and the number of elements in the symbol table is
  * required.
  */
 
-struct symtab_s; /* Forward reference */
+struct symtab_s;  /* Forward reference */
 struct boardioc_symtab_s
 {
   FAR struct symtab_s *symtab;
   int nsymbols;
 };
+
+#ifdef CONFIG_BUILTIN
+/* Arguments passed with the BOARDIOC_BUILTIN command */
+
+struct builtin_s;  /* Forward reference */
+struct boardioc_builtin_s
+{
+  FAR const struct builtin_s *builtins;
+  int count;
+};
+#endif
 
 #ifdef CONFIG_BOARDCTL_USBDEVCTRL
 /* This structure provides the argument BOARDIOC_USBDEV_CONTROL and
@@ -199,9 +313,9 @@ struct boardioc_symtab_s
  *
  * enum boardioc_usbdev_identifier_e: Identifies the USB device class.
  *   In the case of multiple instances of the USB device class, the
- *   specific instance is identifed by the 'inst' field of the structure.
+ *   specific instance is identified by the 'inst' field of the structure.
  *
- * enum boardioc_usbdev_action_e: Identifies the action to peform on
+ * enum boardioc_usbdev_action_e: Identifies the action to perform on
  *   the USB device class instance.
  *
  * struct boardioc_usbdev_ctrl_s:
@@ -252,6 +366,43 @@ struct boardioc_usbdev_ctrl_s
 };
 #endif /* CONFIG_BOARDCTL_USBDEVCTRL */
 
+#ifdef CONFIG_VNCSERVER
+/* Argument passed with the BOARDIOC_VNC_START command */
+
+struct boardioc_vncstart_s
+{
+  int display;                    /* Display number */
+  NXHANDLE handle;                /* Handle returned by nx_connect */
+};
+#endif
+
+#ifdef CONFIG_NXTERM
+/* Arguments passed with the BOARDIOC_NXTERM command */
+
+enum boardioc_termtype_e
+{
+  BOARDIOC_XTERM_RAW = 0,         /* Raw NX terminal window */
+  BOARDIOC_XTERM_FRAMED,          /* Framed NxTK terminal window */
+  BOARDIOC_XTERM_TOOLBAR          /* Toolbar of framed NxTK terminal window */
+};
+
+struct boardioc_nxterm_create_s
+{
+  NXTERM nxterm;                  /* Returned NXTERM handle */
+  FAR void *hwnd;                 /* Window handle (NXWINDOW or NXTKWINDOW). */
+  struct nxterm_window_s wndo;    /* Describes the initial window: color, size, font */
+  enum boardioc_termtype_e type;  /* Terminal window type  */
+  uint8_t minor;                  /* Terminal device minor number, N, in
+                                   * /dev/nxtermN.  0 <= N <= 255 */
+};
+
+struct boardioc_nxterm_ioctl_s
+{
+  int cmd;                         /* IOCTL command */
+  uintptr_t arg;                   /* IOCTL argument */
+};
+#endif /* CONFIG_NXTERM */
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -293,7 +444,7 @@ extern "C"
  *
  * Returned Value:
  *   On success zero (OK) is returned; -1 (ERROR) is returned on failure
- *   with the errno variable to to indicate the nature of the failure.
+ *   with the errno variable set to indicate the nature of the failure.
  *
  ****************************************************************************/
 

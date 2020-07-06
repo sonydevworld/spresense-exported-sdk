@@ -77,6 +77,12 @@ extern "C"
 #endif
 
 /****************************************************************************
+ * Forward declarations
+ ****************************************************************************/
+
+struct composite_devdesc_s;
+  
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -88,7 +94,7 @@ extern "C"
  *   board-specific implementations in order to obtain the class objects for
  *   each of the members of the composite.
  *
- * Input Parameter:
+ * Input Parameters:
  *   None
  *
  * Returned Value:

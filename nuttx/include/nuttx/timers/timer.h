@@ -45,6 +45,7 @@
 #include <nuttx/compiler.h>
 #include <nuttx/irq.h>
 #include <nuttx/fs/ioctl.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <sys/types.h>
 
@@ -74,6 +75,8 @@
  *                      the timer expires.
  *                      Argument: A read-only pointer to an instance of
  *                      stuct timer_notify_s.
+ * TCIOC_MAXTIMEOUT   - Get the maximum supported timeout value
+ *                      Argument: A 32-bit timeout value in microseconds.
  *
  * WARNING: May change TCIOC_SETTIMEOUT to pass pointer to 64bit nanoseconds
  * or timespec structure.
@@ -93,6 +96,7 @@
 #define TCIOC_GETSTATUS    _TCIOC(0x0003)
 #define TCIOC_SETTIMEOUT   _TCIOC(0x0004)
 #define TCIOC_NOTIFICATION _TCIOC(0x0005)
+#define TCIOC_MAXTIMEOUT   _TCIOC(0x0006)
 
 /* Bit Settings *************************************************************/
 /* Bit settings for the struct timer_status_s flags field */
@@ -127,9 +131,8 @@ struct timer_status_s
 
 struct timer_notify_s
 {
-  FAR void *arg;            /* An argument to pass with the signal */
-  pid_t     pid;            /* The ID of the task/thread to receive the signal */
-  uint8_t   signo;          /* The signal number to use in the notification */
+  struct sigevent event;    /* Describe the way a task is to be notified */
+  pid_t           pid;      /* The ID of the task/thread to receive the signal */
 };
 
 /* This structure provides the "lower-half" driver operations available to
@@ -172,6 +175,11 @@ struct timer_ops_s
 
   CODE int (*ioctl)(FAR struct timer_lowerhalf_s *lower, int cmd,
                     unsigned long arg);
+
+  /* Get the maximum supported timeout value */
+
+  CODE int (*maxtimeout)(FAR struct timer_lowerhalf_s *lower,
+                         FAR uint32_t *maxtimeout);
 };
 
 /* This structure provides the publicly visible representation of the
@@ -225,7 +233,7 @@ extern "C"
  *   Rather it is called indirectly through the architecture-specific
  *   initialization.
  *
- * Input parameters:
+ * Input Parameters:
  *   dev path - The full path to the driver to be registers in the NuttX
  *     pseudo-filesystem.  The recommended convention is to name all timer
  *     drivers as "/dev/timer0", "/dev/timer1", etc.  where the driver
@@ -250,7 +258,7 @@ FAR void *timer_register(FAR const char *path,
  *   This function can be called to disable and unregister the timer
  *   device driver.
  *
- * Input parameters:
+ * Input Parameters:
  *   handle - This is the handle that was returned by timer_register()
  *
  * Returned Value:
@@ -272,7 +280,7 @@ void timer_unregister(FAR void *handle);
  *   to handle timer expirations.  This is a strictly OS internal interface
  *   and may NOT be used by appliction code.
  *
- * Input parameters:
+ * Input Parameters:
  *   handle   - This is the handle that was returned by timer_register()
  *   callback - The new timer interrupt callback
  *   arg      - Argument provided when the callback is called.

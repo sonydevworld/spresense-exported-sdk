@@ -233,22 +233,25 @@ struct xcptcontext
    * to be processed.
    */
 
-#ifndef CONFIG_DISABLE_SIGNALS
   void *sigdeliver; /* Actual type is sig_deliver_t */
 
-  /* These are saved copies of LR and CPSR used during signal processing. */
+  /* These are saved copies of LR and CPSR used during signal processing.
+   *
+   * REVISIT:  Because there is only one copy of these save areas,
+   * only a single signal handler can be active.  This precludes
+   * queuing of signal actions.  As a result, signals received while
+   * another signal handler is executing will be ignored!
+   */
 
   uint32_t saved_pc;
   uint32_t saved_cpsr;
 
-# ifdef CONFIG_BUILD_KERNEL
+#ifdef CONFIG_BUILD_KERNEL
   /* This is the saved address to use when returning from a user-space
    * signal handler.
    */
 
   uint32_t sigreturn;
-
-# endif
 #endif
 
   /* Register save area */
@@ -296,9 +299,7 @@ struct xcptcontext
 
   FAR uint32_t *ustkptr;  /* Saved user stack pointer */
   FAR uint32_t *kstack;   /* Allocate base of the (aligned) kernel stack */
-#ifndef CONFIG_DISABLE_SIGNALS
   FAR uint32_t *kstkptr;  /* Saved kernel stack pointer */
-#endif
 #endif
 #endif
 };

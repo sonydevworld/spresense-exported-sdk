@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/nx/nxglib.h
  *
- *   Copyright (C) 2008-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2011, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,8 @@
 #  include <nuttx/video/fb.h>
 #endif
 
+#include <nuttx/nx/nxtypes.h>
+
 /****************************************************************************
  * Pre-processor definitions
  ****************************************************************************/
@@ -98,83 +100,10 @@
  * Public Types
  ****************************************************************************/
 
-/* Pixels *******************************************************************/
-
-/* The size of graphics solutions can be reduced by disabling support for
- * specific resolutions.  One thing we can do, for example, is to select
- * the smallest common pixel representation:
+/* NXGLIB types are defined in nxtype.h.  This is done in order to avoid
+ * circular include files dependencies by files included by this header
+ * file that also require NXGLIB types.
  */
-
-#if !defined(CONFIG_NX_DISABLE_32BPP) || !defined(CONFIG_NX_DISABLE_24BPP)
-typedef uint32_t nxgl_mxpixel_t;
-#elif !defined(CONFIG_NX_DISABLE_16BPP)
-typedef uint16_t nxgl_mxpixel_t;
-#else
-typedef uint8_t  nxgl_mxpixel_t;
-#endif
-
-/* Graphics structures ******************************************************/
-
-/* A given coordinate is limited to the screen height an width.  If either
- * of those values exceed 32,767 pixels, then the following will have to need
- * to change:
- */
-
-typedef int16_t nxgl_coord_t;
-
-/* Describes a point on the display */
-
-struct nxgl_point_s
-{
-  nxgl_coord_t x;         /* X position, range: 0 to screen width - 1 */
-  nxgl_coord_t y;         /* Y position, range: 0 to screen height - 1 */
-};
-
-/* Describes the size of a rectangular region */
-
-struct nxgl_size_s
-{
-  nxgl_coord_t w;        /* Width in pixels */
-  nxgl_coord_t h;        /* Height in rows */
-};
-
-/* Describes a positioned rectangle on the display */
-
-struct nxgl_rect_s
-{
-  struct nxgl_point_s pt1; /* Upper, left-hand corner */
-  struct nxgl_point_s pt2; /* Lower, right-hand corner */
-};
-
-/* Describes a vector starting at pt1 and extending throug pt2 */
-
-struct nxgl_vector_s
-{
-  struct nxgl_point_s pt1; /* Start position */
-  struct nxgl_point_s pt2; /* End position */
-};
-
-/* Describes a run, i.e., a horizontal line.  Note that the start/end positions
- * have fractional precision.  This is necessary for good joining of trapezoids
- * when a more complex shape is decomposed into trapezoids
- */
-
-struct nxgl_run_s
-{
-  b16_t        x1;        /* Left X position, range: 0 to x2 */
-  b16_t        x2;        /* Right X position, range: x1 to screen width - 1 */
-  nxgl_coord_t y;         /* Top Y position, range: 0 to screen height - 1 */
-};
-
-/* Describes a horizontal trapezoid on the display in terms the run at the
- * top of the trapezoid and the run at the bottom
- */
-
-struct nxgl_trapezoid_s
-{
-  struct nxgl_run_s top;  /* Top run */
-  struct nxgl_run_s bot;  /* bottom run */
-};
 
 /****************************************************************************
  * Public Data
@@ -192,8 +121,6 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-
-/* Color conversions ********************************************************/
 
 /****************************************************************************
  * Name: nxgl_rgb2yuv
@@ -216,211 +143,6 @@ void nxgl_rgb2yuv(uint8_t r, uint8_t g, uint8_t b,
 
 void nxgl_yuv2rgb(uint8_t y, uint8_t u, uint8_t v,
                   uint8_t *r, uint8_t *g, uint8_t *b);
-
-/* Rasterizers **************************************************************/
-
-/****************************************************************************
- * Name: nxgl_setpixel_*bpp
- *
- * Descripton:
- *   Draw a single pixel in graphics memory at the given position and
- *   with the given color.  This is equivalent to nxgl_fillrectangle_*bpp()
- *   with a 1x1 rectangle but is more efficient.
- *
- ****************************************************************************/
-
-void nxgl_setpixel_1bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                        FAR const struct nxgl_point_s *pos, uint8_t color);
-void nxgl_setpixel_2bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                        FAR const struct nxgl_point_s *pos, uint8_t color);
-void nxgl_setpixel_4bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                        FAR const struct nxgl_point_s *pos, uint8_t color);
-void nxgl_setpixel_8bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                        FAR const struct nxgl_point_s *pos, uint8_t color);
-void nxgl_setpixel_16bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                         FAR const struct nxgl_point_s *pos, uint16_t color);
-void nxgl_setpixel_24bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                         FAR const struct nxgl_point_s *pos, uint32_t color);
-void nxgl_setpixel_32bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                         FAR const struct nxgl_point_s *pos, uint32_t color);
-
-/****************************************************************************
- * Name: nxgl_fillrectangle_*bpp
- *
- * Descripton:
- *   Fill a rectangle region in the graphics memory with a fixed color
- *
- ****************************************************************************/
-
-void nxgl_fillrectangle_1bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             uint8_t color);
-void nxgl_fillrectangle_2bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             uint8_t color);
-void nxgl_fillrectangle_4bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             uint8_t color);
-void nxgl_fillrectangle_8bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             uint8_t color);
-void nxgl_fillrectangle_16bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *rect,
-                              uint16_t color);
-void nxgl_fillrectangle_24bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *rect,
-                              uint32_t color);
-void nxgl_fillrectangle_32bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *rect,
-                              uint32_t color);
-
-/****************************************************************************
- * Name: nxgl_getrectangle_*bpp
- *
- * Descripton:
- *   Fetch a rectangular region from graphics memory.  The source is
- *   expressed as a rectangle.
- *
- ****************************************************************************/
-
-void nxgl_getrectangle_1bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                            FAR const struct nxgl_rect_s *rect,
-                            FAR void *dest, unsigned int deststride);
-void nxgl_getrectangle_2bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                            FAR const struct nxgl_rect_s *rect,
-                            FAR void *dest, unsigned int deststride);
-void nxgl_getrectangle_4bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                            FAR const struct nxgl_rect_s *rect,
-                            FAR void *dest, unsigned int deststride);
-void nxgl_getrectangle_8bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                            FAR const struct nxgl_rect_s *rect,
-                            FAR void *dest, unsigned int deststride);
-void nxgl_getrectangle_16bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR void *dest, unsigned int deststride);
-void nxgl_getrectangle_24bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR void *dest, unsigned int deststride);
-void nxgl_getrectangle_32bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR void *dest, unsigned int deststride);
-
-/****************************************************************************
- * Name: nxglib_filltrapezoid_*bpp
- *
- * Descripton:
- *   Fill a trapezoidal region in the graphics memory with a fixed color.
- *   Clip the trapezoid to lie within a bounding box.  This is useful for
- *   drawing complex shapes that can be broken into a set of trapezoids.
- *
- ****************************************************************************/
-
-void nxgl_filltrapezoid_1bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_trapezoid_s *trap,
-                             FAR const struct nxgl_rect_s *bounds,
-                             uint8_t color);
-void nxgl_filltrapezoid_2bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_trapezoid_s *trap,
-                             FAR const struct nxgl_rect_s *bounds,
-                             uint8_t color);
-void nxgl_filltrapezoid_4bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_trapezoid_s *trap,
-                             FAR const struct nxgl_rect_s *bounds,
-                             uint8_t color);
-void nxgl_filltrapezoid_8bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_trapezoid_s *trap,
-                             FAR const struct nxgl_rect_s *bounds,
-                             uint8_t color);
-void nxgl_filltrapezoid_16bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_trapezoid_s *trap,
-                              FAR const struct nxgl_rect_s *bounds,
-                              uint16_t color);
-void nxgl_filltrapezoid_24bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_trapezoid_s *trap,
-                              FAR const struct nxgl_rect_s *bounds,
-                              uint32_t color);
-void nxgl_filltrapezoid_32bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_trapezoid_s *trap,
-                              FAR const struct nxgl_rect_s *bounds,
-                              uint32_t color);
-
-/****************************************************************************
- * Name: nxgl_moverectangle_*bpp
- *
- * Descripton:
- *   Move a rectangular region from location to another in the
- *   framebuffer/LCD memory.  The source is expressed as a rectangle; the
- *   destination position is expressed as a point corresponding to the
- *   translation of the upper, left-hand corner.
- *
- ****************************************************************************/
-
-void nxgl_moverectangle_1bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR struct nxgl_point_s *offset);
-void nxgl_moverectangle_2bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR struct nxgl_point_s *offset);
-void nxgl_moverectangle_4bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR struct nxgl_point_s *offset);
-void nxgl_moverectangle_8bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *rect,
-                             FAR struct nxgl_point_s *offset);
-void nxgl_moverectangle_16bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *rect,
-                              FAR struct nxgl_point_s *offset);
-void nxgl_moverectangle_24bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *rect,
-                              FAR struct nxgl_point_s *offset);
-void nxgl_moverectangle_32bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *rect,
-                              FAR struct nxgl_point_s *offset);
-
-/****************************************************************************
- * Name: nxgl_copyrectangle_*bpp
- *
- * Descripton:
- *   Copy a rectangular bitmap image into the specific position in the
- *   graphics memory.
- *
- ****************************************************************************/
-
-void nxgl_copyrectangle_1bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *dest,
-                             FAR const void *src,
-                             FAR const struct nxgl_point_s *origin,
-                             unsigned int srcstride);
-void nxgl_copyrectangle_2bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *dest,
-                             FAR const void *src,
-                             FAR const struct nxgl_point_s *origin,
-                             unsigned int srcstride);
-void nxgl_copyrectangle_4bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *dest,
-                             FAR const void *src,
-                             FAR const struct nxgl_point_s *origin,
-                             unsigned int srcstride);
-void nxgl_copyrectangle_8bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                             FAR const struct nxgl_rect_s *dest,
-                             FAR const void *src,
-                             FAR const struct nxgl_point_s *origin,
-                             unsigned int srcstride);
-void nxgl_copyrectangle_16bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *dest,
-                              FAR const void *src,
-                              FAR const struct nxgl_point_s *origin,
-                              unsigned int srcstride);
-void nxgl_copyrectangle_24bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *dest,
-                              FAR const void *src,
-                              FAR const struct nxgl_point_s *origin,
-                              unsigned int srcstride);
-void nxgl_copyrectangle_32bpp(FAR NX_PLANEINFOTYPE *pinfo,
-                              FAR const struct nxgl_rect_s *dest,
-                              FAR const void *src,
-                              FAR const struct nxgl_point_s *origin,
-                              unsigned int srcstride);
 
 /****************************************************************************
  * Name: nxgl_rectcopy
@@ -459,7 +181,7 @@ void nxgl_vectoradd(FAR struct nxgl_point_s *dest,
                     FAR const struct nxgl_point_s *v2);
 
 /****************************************************************************
- * Name: nxgl_vectorsubtract
+ * Name: nxgl_vectsubtract
  *
  * Description:
  *   Add subtract vector v2 from vector v1 and return the result in vector dest
@@ -679,12 +401,12 @@ bool nxgl_colorcmp(const nxgl_mxpixel_t color1[CONFIG_NX_NPLANES],
  *      this case, 3 trapezoids will be returned, but traps[1] will be
  *      degenerate.
  *
- * Input parameters:
+ * Input Parameters:
  *   vector - A pointer to the vector described the line to be drawn.
  *   traps  - A pointer to a array of trapezoids (size 3).
  *   rect   - A pointer to a rectangle.
  *
- * Returned value:
+ * Returned Value:
  *   0: Line successfully broken up into three trapezoids.  Values in
  *      traps[0], traps[1], and traps[2] are valid.
  *   1: Line successfully represented by one trapezoid. Value in traps[1]
@@ -708,13 +430,13 @@ int nxgl_splitline(FAR struct nxgl_vector_s *vector,
  *   circumference of the circle.  These points may then be used by
  *   nx_drawcircle() or related APIs to draw a circle outline.
  *
- * Input parameters:
+ * Input Parameters:
  *   center - A pointer to the point that is the center of the circle
  *   radius - The radius of the circle in pixels.
  *   circle - A pointer the first entry in an array of 16 points where the
  *            circle points will be returned.
  *
- * Returned value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -730,13 +452,13 @@ void nxgl_circlepts(FAR const struct nxgl_point_s *center,
  *   Given a description of a a circle, return 8 trapezoids that can be
  *   used to fill the circle by nx_fillcircle() and other interfaces.
  *
- * Input parameters:
+ * Input Parameters:
  *   center - A pointer to the point that is the center of the circle
  *   radius - The radius of the circle in pixels.
  *   circle - A pointer the first entry in an array of 8 trapezoids where
  *            the circle description will be returned.
  *
- * Returned value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/

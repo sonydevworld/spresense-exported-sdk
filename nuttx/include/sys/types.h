@@ -64,11 +64,11 @@
 /* NULL is usually defined in stddef.h (which includes this file) */
 
 #ifndef NULL
-    /* SDCC is sensitive to NULL pointer type conversions, and C++ defines
-     * NULL as zero
-     */
+  /* SDCC is sensitive to NULL pointer type conversions, and C++ defines
+   * NULL as zero
+   */
 
-#  if defined(SDCC) || defined(__cplusplus)
+#  if defined(SDCC) || defined(__SDCC) || defined(__cplusplus)
 #    define NULL (0)
 #  else
 #    define NULL ((void*)0)
@@ -85,17 +85,12 @@
 #undef  OK
 #define OK 0
 
-/* HPUX-like MIN/MAX value */
-
-#define PRIOR_RR_MIN      0
-#define PRIOR_RR_MAX    255
-#define PRIOR_FIFO_MIN    0
-#define PRIOR_FIFO_MAX  255
-#define PRIOR_OTHER_MIN   0
-#define PRIOR_OTHER_MAX 255
-
-/* Scheduling Priorities.  NOTE:  Only the idle task can take the true
- * minimum priority.
+/* Scheduling Priorities.
+ *
+ * NOTES:
+ * - Only the idle task can take the true minimum priority.
+ * - These definitions are non-standard internal definitions and, for
+ *   portability reasons, should not be used by application software.
  */
 
 #define SCHED_PRIORITY_MAX     255
@@ -111,26 +106,28 @@
 
 /* Floating point types */
 
-typedef float  float32;
+typedef float        float32;
 #ifndef CONFIG_HAVE_DOUBLE
-typedef float  double_t;
-typedef float  float64;
+typedef float        double_t;
+typedef float        float64;
 #else
-typedef double double_t;
-typedef double float64;
+typedef double       double_t;
+typedef double       float64;
 #endif
 
 /* Misc. scalar types */
 
 /* mode_t is an integer type used for file attributes.  mode_t needs
- * to be at least 16-bits but, in fact must be sizeof(int) because it is
- * pased via varargs.
+ * to be at least 16-bits but, in fact, must be sizeof(int) because it is
+ * passed via varargs.
  */
 
 typedef unsigned int mode_t;
 
 /* size_t is used for sizes of memory objects.
  * ssize_t is used for a count of bytes or an error indication.
+ *
+ * See also definitions of SIZE_MAX et al in limits.h.
  *
  * REVISIT: size_t belongs in stddef.h
  */
@@ -244,9 +241,18 @@ typedef int16_t      blksize_t;
 typedef unsigned int socklen_t;
 typedef uint16_t     sa_family_t;
 
-/* Used for system times in clock ticks */
+/* Used for system times in clock ticks. This type is the natural width of
+ * the system timer.
+ *
+ * NOTE: The signed-ness of clock_t is not specified at OpenGroup.org.  An
+ * unsigned type is used to support the full range of the internal clock.
+ */
 
+#ifdef CONFIG_SYSTEM_TIME64
+typedef uint64_t     clock_t;
+#else
 typedef uint32_t     clock_t;
+#endif
 
 /* The type useconds_t shall be an unsigned integer type capable of storing
  * values at least in the range [0, 1000000]. The type suseconds_t shall be
@@ -269,6 +275,8 @@ typedef volatile uint32_t cpu_set_t;
 #else
 #  error SMP: Extensions needed to support this number of CPUs
 #endif
+#else
+typedef volatile uint8_t cpu_set_t;
 #endif /* CONFIG_SMP */
 
 /* BSD types provided only to support porting to NuttX. */

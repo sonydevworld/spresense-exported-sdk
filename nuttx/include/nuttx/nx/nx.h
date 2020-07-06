@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/nx/nx.h
  *
- *   Copyright (C) 2008-2011, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2011, 2015, 2017, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +51,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_NX_NPLANES
@@ -83,6 +85,7 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* Handles ******************************************************************/
 
 /* The interface to the NX server is managed using a opaque handle: */
@@ -94,6 +97,14 @@ typedef FAR void *NXHANDLE;
 typedef FAR void *NXWINDOW;
 
 /* NX server callbacks ******************************************************/
+
+/* Event callbacks */
+
+enum nx_event_e
+{
+  NXEVENT_BLOCKED = 0,   /* Window messages are blocked */
+  NXEVENT_SYNCHED,       /* Synchronization handshake */
+};
 
 /* These define callbacks that must be provided to nx_openwindow.  These
  * callbacks will be invoked as part of the processing performed by
@@ -139,8 +150,8 @@ struct nx_callback_s
    *            the overall display
    *   bounds - The bounding rectangle that the describes the entire
    *            display
-   *   arg  - User provided argument (see nx_openwindow, nx_requestbkgd,
-   *          nxtk_openwindow, or nxtk_opentoolbar)
+   *   arg    - User provided argument (see nx_openwindow, nx_requestbkgd,
+   *            nxtk_openwindow, or nxtk_opentoolbar)
    *
    * Returned Value:
    *   None
@@ -162,8 +173,8 @@ struct nx_callback_s
    *   hwnd    - Window handle
    *   pos     - The (x,y) position of the mouse
    *   buttons - See NX_MOUSE_* definitions
-   *   arg  - User provided argument (see nx_openwindow, nx_requestbkgd,
-   *          nxtk_openwindow, or nxtk_opentoolbar)
+   *   arg     - User provided argument (see nx_openwindow, nx_requestbkgd,
+   *             nxtk_openwindow, or nxtk_opentoolbar)
    *
    * Returned Value:
    *   None
@@ -198,35 +209,51 @@ struct nx_callback_s
 #endif
 
   /**************************************************************************
-   * Name: blocked
+   * Name: event
    *
    * Description:
-   *   This callback is the response from nx_block (or nxtk_block). Those
-   *   blocking interfaces are used to assure that no further messages are
-   *   directed to the window. Receipt of the blocked callback signifies
-   *   that (1) there are no further pending callbacks and (2) that the
-   *   window is now 'defunct' and will receive no further callbacks.
+   *   This callback is used to communicate server events to the window
+   *   listener.
    *
-   *   This callback supports coordinated destruction of a window in multi-
-   *   user mode.  In multi-use mode, the client window logic must stay
-   *   intact until all of the queued callbacks are processed.  Then the
-   *   window may be safely closed.  Closing the window prior with pending
-   *   callbacks can lead to bad behavior when the callback is executed.
+   *   NXEVENT_BLOCKED - Window messages are blocked.
+   *
+   *     This callback is the response from nx_block (or nxtk_block). Those
+   *     blocking interfaces are used to assure that no further messages are
+   *     directed to the window. Receipt of the blocked callback signifies
+   *     that (1) there are no further pending callbacks and (2) that the
+   *     window is now 'defunct' and will receive no further callbacks.
+   *
+   *     This callback supports coordinated destruction of a window.  In
+   *     the multi-user mode, the client window logic must stay intact until
+   *     all of the queued callbacks are processed.  Then the window may be
+   *     safely closed.  Closing the window prior with pending callbacks can
+   *     lead to bad behavior when the callback is executed.
+   *
+   *   NXEVENT_SYNCHED - Synchronization handshake
+   *
+   *     This completes the handshake started by nx_synch().  nx_synch()
+   *     sends a syncrhonization messages to the NX server which responds
+   *     with this event.  The sleeping client is awakened and continues
+   *     graphics processing, completing the handshake.
+   *
+   *     Due to the highly asynchronous nature of client-server
+   *     communications, nx_synch() is sometimes necessary to assure that
+   *     the client and server are fully synchronized.
    *
    * Input Parameters:
-   *   hwnd - Window handle of the blocked window
-   *   arg1 - User provided argument (see nx_openwindow, nx_requestbkgd,
-   *          nxtk_openwindow, or nxtk_opentoolbar)
-   *   arg2 - User provided argument (see nx_block or nxtk_block)
+   *   hwnd  - Window handle of window receiving the event
+   *   event - The server event
+   *   arg1  - User provided argument (see nx_openwindow, nx_requestbkgd,
+   *           nxtk_openwindow, or nxtk_opentoolbar)
+   *   arg2  - User provided argument (see nx[tk]_block or nx[tk]_synch)
    *
    * Returned Value:
    *   None
    *
    **************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
-  void (*blocked)(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
-#endif
+  void (*event)(NXWINDOW hwnd, enum nx_event_e event, FAR void *arg1,
+                FAR void *arg2);
 };
 
 /****************************************************************************
@@ -258,57 +285,21 @@ extern "C"
  *   a macro that can be used when only one server instance is required.  In
  *   that case, a default server name is used.
  *
- *   Multiple user mode only!
- *
  * Input Parameters:
  *   mqname - The name for the server incoming message queue
  *   dev     - Vtable "object" of the framebuffer "driver" to use
  *
- * Return:
+ * Returned Value:
  *   This function usually does not return.  If it does return, it will
  *   return ERROR and errno will be set appropriately.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
 int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev);
-#  define nx_run(dev) nx_runinstance(NX_DEFAULT_SERVER_MQNAME, dev)
-#endif
+#define nx_run(dev) nx_runinstance(NX_DEFAULT_SERVER_MQNAME, dev)
 
 /****************************************************************************
- * Name: nx_start
- *
- * Description:
- *   nx_start() provides a wrapper function to simplify and standardize the
- *   starting of the NX server.
- *
- *   NOTE:  Currently, many applications include logic to start the NX
- *   server from application initialization logic.  That, of course, cannot
- *   work in the NuttX kernel build because the resources required by the
- *   NX server are private to the kernel mode logic.
- *
- *   nx_start() can be called (indirectly) from applications via the
- *   boardctl() interface with the BOARDIOC_NX_START command.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) is returned on success.  This indicates that the NX server
- *   has been successfully started, is running, and waiting to accept
- *   connections from NX clients.
- *
- *   A negated errno value is returned on failure.  The errno value indicates
- *   the nature of the failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NX_MULTIUSER
-int nx_start(void);
-#endif
-
-/****************************************************************************
- * Name:nx_connectinstance (and nx_connect macro)
+ * Name: nx_connectinstance (and nx_connect macro)
  *
  * Description:
  *   Open a connection from a client to the NX server.  One one client
@@ -325,88 +316,34 @@ int nx_start(void);
  *     server instance is required.  In that case, a default server name
  *     is used.
  *
- *   Multiple user mode only!
- *
  * Input Parameters:
  *   svrmqname - The name for the server incoming message queue
  *
- * Return:
+ * Returned Value:
  *   Success: A non-NULL handle used with subsequent NX accesses
  *   Failure:  NULL is returned and errno is set appropriately
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
 NXHANDLE nx_connectinstance(FAR const char *svrmqname);
-#  define nx_connect(cb) nx_connectinstance(NX_DEFAULT_SERVER_MQNAME)
-#endif
-
-/****************************************************************************
- * Name: nx_open
- *
- * Description:
- *   Create, initialize and return an NX handle for use in subsequent
- *   NX API calls.  nx_open is the single user equivalent of nx_connect
- *   plus nx_run.
- *
- *   Single user mode only!
- *
- * Input Parameters:
- *   dev - Vtable "object" of the framebuffer/LCD "driver" to use
- *   cb - Callbacks used to process received NX server messages
- *
- * Return:
- *   Success: A non-NULL handle used with subsequent NX accesses
- *   Failure:  NULL is returned and errno is set appropriately
- *
- ****************************************************************************/
-
-#ifndef CONFIG_NX_MULTIUSER
-NXHANDLE nx_open(FAR NX_DRIVERTYPE *dev);
-#endif
+#define nx_connect(cb) nx_connectinstance(NX_DEFAULT_SERVER_MQNAME)
 
 /****************************************************************************
  * Name: nx_disconnect
  *
  * Description:
  *   Disconnect a client from the NX server and/or free resources reserved
- *   by nx_connect/nx_connectinstance. nx_disconnect is multi-user equivalent
- *   of nx_close.
- *
- *   Multiple user mode only!
+ *   by nx_connect/nx_connectinstance.
  *
  * Input Parameters:
  *   handle - the handle returned by nx_connect
  *
- * Return:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
 void nx_disconnect(NXHANDLE handle);
-#endif
-
-/****************************************************************************
- * Name: nx_close
- *
- * Description:
- *   Close the single user NX interface.  nx_close is single-user equivalent
- *   of nx_disconnect.
- *
- *   Single user mode only!
- *
- * Input Parameters:
- *   handle - the handle returned by nx_open
- *
- * Return:
- *   None
- *
- ****************************************************************************/
-
-#ifndef CONFIG_NX_MULTIUSER
-void nx_close(NXHANDLE handle);
-#endif
 
 /****************************************************************************
  * Name: nx_eventhandler
@@ -425,7 +362,7 @@ void nx_close(NXHANDLE handle);
  * Input Parameters:
  *   handle - the handle returned by nx_connect
  *
- * Return:
+ * Returned Value:
  *     OK: No errors occurred.  If CONFIG_NX_BLOCKING is defined, then
  *         one or more server messages were processed.
  *  ERROR: An error occurred and errno has been set appropriately.  Of
@@ -435,11 +372,7 @@ void nx_close(NXHANDLE handle);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
 int nx_eventhandler(NXHANDLE handle);
-#else
-#  define nx_eventhandler(handle) (OK)
-#endif
 
 /****************************************************************************
  * Name: nx_eventnotify
@@ -456,16 +389,12 @@ int nx_eventhandler(NXHANDLE handle);
  * Input Parameters:
  *   handle - the handle returned by nx_connect
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NX_MULTIUSER) && !defined(CONFIG_DISABLE_SIGNALS)
 int nx_eventnotify(NXHANDLE handle, int signo);
-#else
-#  define nx_eventnotify(handle, signo) (OK)
-#endif
 
 /****************************************************************************
  * Name: nx_openwindow
@@ -474,18 +403,23 @@ int nx_eventnotify(NXHANDLE handle, int signo);
  *   Create a new window.
  *
  * Input Parameters:
- *   handle - The handle returned by nx_connect or nx_open
+ *   handle - The handle returned by nx_connect()
+ *   flags  - Optional flags.  These include:
+ *            NXBE_WINDOW_RAMBACKED:  Creates a RAM backed window.  This
+ *              option is only valid if CONFIG_NX_RAMBACKED is enabled.
+ *            NXBE_WINDOW_HIDDEN:  The window is create in the HIDDEN state
+ *             and can be made visible later with nx_setvisibility().
  *   cb     - Callbacks used to process window events
  *   arg    - User provided value that will be returned with NX callbacks.
  *
- * Return:
+ * Returned Value:
  *   Success: A non-NULL handle used with subsequent NX accesses
  *   Failure:  NULL is returned and errno is set appropriately
  *
  ****************************************************************************/
 
-NXWINDOW nx_openwindow(NXHANDLE handle, FAR const struct nx_callback_s *cb,
-                       FAR void *arg);
+NXWINDOW nx_openwindow(NXHANDLE handle, uint8_t flags,
+                       FAR const struct nx_callback_s *cb, FAR void *arg);
 
 /****************************************************************************
  * Name: nx_closewindow
@@ -496,7 +430,7 @@ NXWINDOW nx_openwindow(NXHANDLE handle, FAR const struct nx_callback_s *cb,
  * Input Parameters:
  *   wnd - The window to be destroyed
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -507,36 +441,84 @@ int nx_closewindow(NXWINDOW hwnd);
  * Name: nx_block
  *
  * Description:
- *   This is callback will do to things:  (1) any queue a 'blocked' callback
- *   to the window and then (2) block any further window messaging.
+ *   The response to this function call is two things:  (1) any queued
+ *   callback messages to the window are 'blocked' and then (2) also
+ *   subsequent window messaging is blocked.
  *
- *   The 'blocked' callback is the response from nx_block (or nxtk_block).
- *   Those blocking interfaces are used to assure that no further messages are
- *   are directed to the window. Receipt of the blocked callback signifies
- *   that (1) there are no further pending callbacks and (2) that the
- *   window is now 'defunct' and will receive no further callbacks.
+ *   The 'event' callback with the NXEVENT_BLOCKED event is the response
+ *   from nx_block (or nxtk_block).  Those blocking interfaces are used to
+ *   assure that no further messages are are directed to the window. Receipt
+ *   of the NXEVENT_BLOCKED event signifies that (1) there are no further
+ *    pending callbacks and (2) that the window is now 'defunct' and will
+ *   receive no further callbacks.
  *
- *   This callback supports coordinated destruction of a window in multi-
- *   user mode.  In multi-use more, the client window logic must stay
- *   intact until all of the queued callbacks are processed.  Then the
- *   window may be safely closed.  Closing the window prior with pending
- *   callbacks can lead to bad behavior when the callback is executed.
- *
- *   Multiple user mode only!
+ *   This callback supports coordinated destruction of a window.  The client
+ *   window logic must stay intact until all of the queued callbacks are
+ *   processed.  Then the window may be safely closed.  Closing the window
+ *   prior with pending callbacks can lead to bad behavior when the callback
+ *   is executed.
  *
  * Input Parameters:
  *   wnd - The window to be blocked
  *   arg - An argument that will accompany the block messages (This is arg2
- *         in the blocked callback).
+ *         in the event callback).
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
 int nx_block(NXWINDOW hwnd, FAR void *arg);
-#endif
+
+/****************************************************************************
+ * Name: nx_synch
+ *
+ * Description:
+ *   This interface can be used to synchronize the window client with the
+ *   NX server.  It really just implements an 'echo':  A synch message is
+ *   sent from the window client to the server which then responds
+ *   immediately by sending the NXEVENT_SYNCHED back to the windows client.
+ *
+ *   Due to the highly asynchronous nature of client-server communications,
+ *   nx_synch() is sometimes necessary to assure that the client and server
+ *   are fully synchronized in time.
+ *
+ *   Usage by the window client might be something like this:
+ *
+ *     extern bool g_synched;
+ *     extern sem_t g_synch_sem;
+ *
+ *     g_synched = false;
+ *     ret = nx_synch(hwnd, handle);
+ *     if (ret < 0)
+ *       {
+ *          -- Handle the error --
+ *       }
+ *
+ *     while (!g_synched)
+ *       {
+ *         ret = sem_wait(&g_sync_sem);
+ *         if (ret < 0)
+ *           {
+ *              -- Handle the error --
+ *           }
+ *       }
+ *
+ *   When the window listener thread receives the NXEVENT_SYNCHED event, it
+ *   would set g_synched to true and post g_synch_sem, waking up the above
+ *   loop.
+ *
+ * Input Parameters:
+ *   wnd - The window to be synched
+ *   arg - An argument that will accompany the synch messages (This is arg2
+ *         in the event callback).
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nx_synch(NXWINDOW hwnd, FAR void *arg);
 
 /****************************************************************************
  * Name: nx_requestbkgd
@@ -549,8 +531,7 @@ int nx_block(NXWINDOW hwnd, FAR void *arg);
  *   background window in the following conditions:
  *
  *   - If you want to implement a windowless solution.  The single screen
- *     can be used to create a truly simple graphic environment.  In this
- *     case, you should probably also de-select CONFIG_NX_MULTIUSER as well.
+ *     can be used to create a truly simple graphic environment.
  *   - When you want more on the background than a solid color.  For
  *     example, if you want an image in the background, or animations in the
  *     background, or live video, etc.
@@ -573,7 +554,7 @@ int nx_block(NXWINDOW hwnd, FAR void *arg);
  *   cb     - Callbacks to use for processing background window events
  *   arg    - User provided value that will be returned with NX callbacks.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -591,7 +572,7 @@ int nx_requestbkgd(NXHANDLE handle, FAR const struct nx_callback_s *cb,
  * Input Parameters:
  *   hwnd - The handle returned (indirectly) by nx_requestbkgd
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -609,7 +590,7 @@ int nx_releasebkgd(NXWINDOW hwnd);
  * Input Parameters:
  *   hwnd   - The window handle
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -626,7 +607,7 @@ int nx_getposition(NXWINDOW hwnd);
  *   hwnd  - The window handle
  *   pos   - The new position of the window
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -643,7 +624,7 @@ int nx_setposition(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos);
  *   hwnd   - The window handle
  *   size   - The new size of the window.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -656,10 +637,10 @@ int nx_setsize(NXWINDOW hwnd, FAR const struct nxgl_size_s *size);
  * Description:
  *   Bring the specified window to the top of the display.
  *
- * Input parameters:
+ * Input Parameters:
  *   hwnd - the window to be raised
  *
- * Returned value:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -672,15 +653,73 @@ int nx_raise(NXWINDOW hwnd);
  * Description:
  *   Lower the specified window to the bottom of the display.
  *
- * Input parameters:
- *   hwnd - the window to be lowered
+ * Input Parameters:
+ *   hwnd - The window to be lowered
  *
- * Returned value:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
 int nx_lower(NXWINDOW hwnd);
+
+/****************************************************************************
+ * Name: nx_modal
+ *
+ * Description:
+ *   May be used to either (1) raise a window to the top of the display and
+ *   select modal behavior, or (2) disable modal behavior.
+ *
+ * Input Parameters:
+ *   hwnd  - The window to be modified
+ *   modal - True: enter modal state; False: leave modal state
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nx_modal(NXWINDOW hwnd, bool modal);
+
+/****************************************************************************
+ * Name: nx_setvisibility
+ *
+ * Description:
+ *   Select if the window is visible or hidden.  A hidden window is still
+ *   present and will update normally, but will not be visible on the
+ *   display until it is unhidden.
+ *
+ * Input Parameters:
+ *   hwnd - The window to be modified
+ *   hide - True: Window will be hidden; false: Window will be visible
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nx_setvisibility(NXWINDOW hwnd, bool hide);
+
+/****************************************************************************
+ * Name: nx_ishidden
+ *
+ * Description:
+ *   Return true if the window is hidden.
+ *
+ *   NOTE:  There will be a delay between the time that the visibility of
+ *   the window is changed via nx_setvisibily() before that new setting is
+ *   reported by nx_ishidden().  nx_synch() may be used if temporal
+ *   synchronization is required.
+ *
+ * Input Parameters:
+ *   hwnd - The window to be queried
+ *
+ * Returned Value:
+ *   True: the window is hidden, false: the window is visible
+ *
+ ****************************************************************************/
+
+bool nx_ishidden(NXWINDOW hwnd);
 
 /****************************************************************************
  * Name: nx_setpixel
@@ -694,7 +733,7 @@ int nx_lower(NXWINDOW hwnd);
  *   pos  - The pixel location to be set
  *   col  - The color to use in the set
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -713,7 +752,7 @@ int nx_setpixel(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
  *   rect  - The location to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -742,7 +781,7 @@ int nx_fill(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
  *   rect  - The location to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -763,7 +802,7 @@ int nx_getrectangle(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
  *   trap  - The trapezoidal region to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -788,7 +827,7 @@ int nx_filltrapezoid(NXWINDOW hwnd, FAR const struct nxgl_rect_s *clip,
  *   caps   - Draw a circular on the both ends of the line to support better
  *            line joins
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -810,7 +849,7 @@ int nx_drawline(NXWINDOW hwnd, FAR struct nxgl_vector_s *vector,
  *   width  - The width of the line
  *   color  - The color to use to fill the line
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -831,7 +870,7 @@ int nx_drawcircle(NXWINDOW hwnd, FAR const struct nxgl_point_s *center,
  *   radius - The radius of the circle in pixels.
  *   color  - The color to use to fill the circle
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -850,7 +889,7 @@ int nx_fillcircle(NXWINDOW hwnd, FAR const struct nxgl_point_s *center,
  *   handle  - The connection handle
  *   color - The color to use in the background
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -869,7 +908,7 @@ int nx_setbgcolor(NXHANDLE handle, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
  *   offset - The offset to move the region.  The  rectangular region will be
  *            moved so that the origin is translated by this amount.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -895,7 +934,7 @@ int nx_move(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
  *            may lie outside of the display.
  *   stride - The width of the full source image in bytes.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -919,13 +958,17 @@ int nx_bitmap(NXWINDOW hwnd, FAR const struct nxgl_rect_s *dest,
  *   - When VNC is enabled.  This is case, this callout is necessary to
  *     update the remote frame buffer to match the local framebuffer.
  *
- * When this feature is enabled, some external logic must provide this
- * interface.  This is the function that will handle the notification.  It
- * receives the rectangular region that was updated on the provided plane.
+ *   When this feature is enabled, some external logic must provide this
+ *   interface.  This is the function that will handle the notification.  It
+ *   receives the rectangular region that was updated on the provided plane.
+ *
+ *   NOTE: This function is also required for use with the LCD framebuffer
+ *   driver front end when CONFIG_LCD_UPDATE=y, although that use does not
+ *   depend on CONFIG_NX (and this function seems misnamed in that case).
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_UPDATE
+#if defined(CONFIG_NX_UPDATE) || defined(CONFIG_LCD_UPDATE)
 void nx_notify_rectangle(FAR NX_PLANEINFOTYPE *pinfo,
                          FAR const struct nxgl_rect_s *rect);
 #endif
@@ -993,7 +1036,7 @@ void nx_redrawreq(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect);
  *   This function is the same a nx_openwindow EXCEPT that the client provides
  *   the window structure instance.  nx_constructwindow will initialize the
  *   the pre-allocated window structure for use by NX.  This function is
- *   provided in addition to nx_open window in order to support a kind of
+ *   provided in addition to nx_openwindow in order to support a kind of
  *   inheritance:  The caller's window structure may include extensions that
  *   are not visible to NX.
  *
@@ -1005,16 +1048,19 @@ void nx_redrawreq(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect);
  * Input Parameters:
  *   handle - The handle returned by nx_connect
  *   hwnd   - The pre-allocated window structure.
+ *   flags  - Optional flags.  Must be zero unless CONFIG_NX_RAMBACKED is
+ *            enabled.  In that case, it may be zero or
+ *            NXBE_WINDOW_RAMBACKED
  *   cb     - Callbacks used to process window events
  *   arg    - User provided value that will be returned with NX callbacks.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately.  In the
  *   case of ERROR, NX will have deallocated the pre-allocated window.
  *
  ****************************************************************************/
 
-int nx_constructwindow(NXHANDLE handle, NXWINDOW hwnd,
+int nx_constructwindow(NXHANDLE handle, NXWINDOW hwnd, uint8_t flags,
                        FAR const struct nx_callback_s *cb, FAR void *arg);
 
 #undef EXTERN

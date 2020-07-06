@@ -1,7 +1,8 @@
 /********************************************************************************
  * include/pthread.h
  *
- *   Copyright (C) 2007-2009, 2011-2012, 2015-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012, 2015-2017, 2019 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +55,20 @@
 
 #include <nuttx/semaphore.h> /* For sem_t and SEM_PRIO_* defines */
 
+#ifdef CONFIG_PTHREAD_SPINLOCKS
+/* The architecture specific spinlock.h header file must provide the
+ * following:
+ *
+ *   SP_LOCKED   - A definition of the locked state value (usually 1)
+ *   SP_UNLOCKED - A definition of the unlocked state value (usually 0)
+ *   spinlock_t  - The type of a spinlock memory object.
+ *
+ * SP_LOCKED and SP_UNLOCKED must constants of type spinlock_t.
+ */
+
+#  include <arch/spinlock.h>
+#endif
+
 /********************************************************************************
  * Pre-processor Definitions
  ********************************************************************************/
@@ -77,23 +92,26 @@
  *
  * PTHREAD_MUTEX_NORMAL: This type of mutex does not detect deadlock. A thread
  *   attempting to relock this mutex without first unlocking it will deadlock.
- *   Attempting to unlock a mutex locked by a different thread results in undefined
- *   behavior. Attempting to unlock an unlocked mutex results in undefined behavior.
+ *   Attempting to unlock a mutex locked by a different thread results in
+ *   undefined behavior. Attempting to unlock an unlocked mutex results in
+ *   undefined behavior.
  * PTHREAD_MUTEX_ERRORCHECK
- *   This type of mutex provides error checking. A thread attempting to relock this
- *   mutex without first unlocking it will return with an error. A thread attempting
- *   to unlock a mutex which another thread has locked will return with an error. A
- *   thread attempting to unlock an unlocked mutex will return with an error.
+ *   This type of mutex provides error checking. A thread attempting to relock
+ *   this mutex without first unlocking it will return with an error. A thread
+ *   attempting to unlock a mutex which another thread has locked will return
+ *   with an error.   A thread attempting to unlock an unlocked mutex will return
+ *   with an error.
  * PTHREAD_MUTEX_RECURSIVE
- *   A thread attempting to relock this mutex without first unlocking it will succeed
- *   in locking the mutex. The relocking deadlock which can occur with mutexes of type
- *   PTHREAD_MUTEX_NORMAL cannot occur with this type of mutex. Multiple locks of this
- *   mutex require the same number of unlocks to release the mutex before another thread
- *   can acquire the mutex. A thread attempting to unlock a mutex which another thread
- *   has locked will return with an error. A thread attempting to unlock an unlocked
- *   mutex will return with an error.
+ *   A thread attempting to relock this mutex without first unlocking it will
+ *   succeed in locking the mutex. The relocking deadlock which can occur with
+ *   mutexes of type PTHREAD_MUTEX_NORMAL cannot occur with this type of mutex.
+ *   Multiple locks of this mutex require the same number of unlocks to release
+ *   the mutex before another thread can acquire the mutex. A thread attempting
+ *   to unlock a mutex which another thread has locked will return with an error.
+ *   A thread attempting to unlock an unlocked mutex will return with an error.
  * PTHREAD_MUTEX_DEFAULT
- *  An implementation is allowed to map this mutex to one of the other mutex types.
+ *  An implementation is allowed to map this mutex to one of the other mutex
+ *  types.
  */
 
 #define PTHREAD_MUTEX_NORMAL          0
@@ -133,7 +151,9 @@
 
 #define PTHREAD_ONCE_INIT             (false)
 
-/* This is returned by pthread_wait.  It must not match any errno in errno.h */
+/* This is returned by pthread_barrier_wait.  It must not match any errno
+ * in errno.h
+ */
 
 #define PTHREAD_BARRIER_SERIAL_THREAD 0x1000
 
@@ -203,13 +223,17 @@ extern "C"
 
 /* pthread-specific types */
 
+#ifndef __PTHREAD_KEY_T_DEFINED
 typedef int pthread_key_t;
 #define __PTHREAD_KEY_T_DEFINED 1
+#endif
 
+#ifndef __PTHREAD_ADDR_T_DEFINED
 typedef FAR void *pthread_addr_t;
 #define __PTHREAD_ADDR_T_DEFINED 1
+#endif
 
-typedef pthread_addr_t (*pthread_startroutine_t)(pthread_addr_t);
+typedef CODE pthread_addr_t (*pthread_startroutine_t)(pthread_addr_t);
 typedef pthread_startroutine_t pthread_func_t;
 
 struct pthread_attr_s
@@ -227,6 +251,7 @@ struct pthread_attr_s
   cpu_set_t affinity;          /* Set of permitted CPUs for the thread */
 #endif
 
+  FAR void  *stackaddr;        /* Address of memory to be used as stack */
   size_t stacksize;            /* Size of the stack allocated for the pthread */
 
 #ifdef CONFIG_SCHED_SPORADIC
@@ -235,22 +260,30 @@ struct pthread_attr_s
 #endif
 };
 
+#ifndef __PTHREAD_ATTR_T_DEFINED
 typedef struct pthread_attr_s pthread_attr_t;
 #define __PTHREAD_ATTR_T_DEFINED 1
+#endif
 
+#ifndef __PTHREAD_T_DEFINED
 typedef pid_t pthread_t;
 #define __PTHREAD_T_DEFINED 1
+#endif
 
+#ifndef __PTHREAD_CONDATTR_T_DEFINED
 typedef int pthread_condattr_t;
 #define __PTHREAD_CONDATTR_T_DEFINED 1
+#endif
 
 struct pthread_cond_s
 {
   sem_t sem;
 };
 
+#ifndef __PTHREAD_COND_T_DEFINED
 typedef struct pthread_cond_s pthread_cond_t;
 #define __PTHREAD_COND_T_DEFINED 1
+#endif
 
 #define PTHREAD_COND_INITIALIZER {SEM_INITIALIZER(0)}
 
@@ -268,8 +301,10 @@ struct pthread_mutexattr_s
 #endif
 };
 
+#ifndef __PTHREAD_MUTEXATTR_T_DEFINED
 typedef struct pthread_mutexattr_s pthread_mutexattr_t;
 #define __PTHREAD_MUTEXATTR_T_DEFINED 1
+#endif
 
 struct pthread_mutex_s
 {
@@ -292,8 +327,10 @@ struct pthread_mutex_s
 #endif
 };
 
+#ifndef __PTHREAD_MUTEX_T_DEFINED
 typedef struct pthread_mutex_s pthread_mutex_t;
 #define __PTHREAD_MUTEX_T_DEFINED 1
+#endif
 
 #ifndef CONFIG_PTHREAD_MUTEX_UNSAFE
 #  ifdef CONFIG_PTHREAD_MUTEX_DEFAULT_UNSAFE
@@ -322,8 +359,10 @@ struct pthread_barrierattr_s
   int pshared;
 };
 
+#ifndef __PTHREAD_BARRIERATTR_T_DEFINED
 typedef struct pthread_barrierattr_s pthread_barrierattr_t;
 #define __PTHREAD_BARRIERATTR_T_DEFINED 1
+#endif
 
 struct pthread_barrier_s
 {
@@ -331,19 +370,23 @@ struct pthread_barrier_s
   unsigned int count;
 };
 
+#ifndef __PTHREAD_BARRIER_T_DEFINED
 typedef struct pthread_barrier_s pthread_barrier_t;
 #define __PTHREAD_BARRIER_T_DEFINED 1
+#endif
 
+#ifndef __PTHREAD_ONCE_T_DEFINED
 typedef bool pthread_once_t;
 #define __PTHREAD_ONCE_T_DEFINED 1
+#endif
 
 struct pthread_rwlock_s
 {
-    pthread_mutex_t lock;
-    pthread_cond_t  cv;
-    unsigned int num_readers;
-    unsigned int num_writers;
-    bool write_in_progress;
+  pthread_mutex_t lock;
+  pthread_cond_t  cv;
+  unsigned int num_readers;
+  unsigned int num_writers;
+  bool write_in_progress;
 };
 
 typedef struct pthread_rwlock_s pthread_rwlock_t;
@@ -353,6 +396,25 @@ typedef int pthread_rwlockattr_t;
 #define PTHREAD_RWLOCK_INITIALIZER  {PTHREAD_MUTEX_INITIALIZER, \
                                      PTHREAD_COND_INITIALIZER, \
                                      0, 0, false}
+
+#ifdef CONFIG_PTHREAD_SPINLOCKS
+#ifndef __PTHREAD_SPINLOCK_T_DEFINED
+/* This (non-standard) structure represents a pthread spinlock */
+
+struct pthread_spinlock_s
+{
+  volatile spinlock_t sp_lock;  /* Indicates if the spinlock is locked or
+                                 * not.  See the values SP_LOCKED and
+                                 * SP_UNLOCKED. */
+  pthread_t sp_holder;          /* ID of the thread that holds the spinlock */
+};
+
+/* It is referenced via this standard type */
+
+typedef FAR struct pthread_spinlock_s pthread_spinlock_t;
+#define __PTHREAD_SPINLOCK_T_DEFINED 1
+#endif
+#endif /* CONFIG_PTHREAD_SPINLOCKS */
 
 #ifdef CONFIG_PTHREAD_CLEANUP
 /* This type describes the pthread cleanup callback (non-standard) */
@@ -403,8 +465,20 @@ int pthread_attr_getaffinity_np(FAR const pthread_attr_t *attr,
 
 /* Set or obtain the default stack size */
 
-int pthread_attr_setstacksize(FAR pthread_attr_t *attr, long stacksize);
-int pthread_attr_getstacksize(FAR const pthread_attr_t *attr, long *stackaddr);
+int pthread_attr_setstacksize(FAR pthread_attr_t *attr, size_t stacksize);
+int pthread_attr_getstacksize(FAR const pthread_attr_t *attr, size_t *stackaddr);
+
+/* Set or obtain stack address and size attributes */
+
+int pthread_attr_setstack(FAR pthread_attr_t *attr,
+                          FAR void *stackaddr, long stacksize);
+int pthread_attr_getstack(FAR pthread_attr_t *attr,
+                          FAR void **stackaddr, FAR long *stacksize);
+
+/* Get run-time stack address and size */
+
+FAR void *pthread_get_stackaddr_np(pthread_t thread);
+ssize_t pthread_get_stacksize_np(pthread_t thread);
 
 /* To create a thread object and runnable thread, a routine must be specified
  * as the new thread's start routine.  An argument may be passed to this
@@ -479,7 +553,7 @@ int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize,
 /* Thread-specific Data Interfaces */
 
 int pthread_key_create(FAR pthread_key_t *key,
-                       CODE void (*destructor)(FAR void*));
+                       CODE void (*destructor)(FAR void *));
 int pthread_setspecific(pthread_key_t key, FAR const void *value);
 FAR void *pthread_getspecific(pthread_key_t key);
 int pthread_key_delete(pthread_key_t key);
@@ -509,6 +583,8 @@ int pthread_mutex_init(FAR pthread_mutex_t *mutex,
                        FAR const pthread_mutexattr_t *attr);
 int pthread_mutex_destroy(FAR pthread_mutex_t *mutex);
 int pthread_mutex_lock(FAR pthread_mutex_t *mutex);
+int pthread_mutex_timedlock(FAR pthread_mutex_t *mutex,
+                            FAR const struct timespec *abs_timeout);
 int pthread_mutex_trylock(FAR pthread_mutex_t *mutex);
 int pthread_mutex_unlock(FAR pthread_mutex_t *mutex);
 
@@ -525,7 +601,8 @@ int pthread_condattr_destroy(FAR pthread_condattr_t *attr);
 
 /* A thread can create and delete condition variables. */
 
-int pthread_cond_init(FAR pthread_cond_t *cond, FAR const pthread_condattr_t *attr);
+int pthread_cond_init(FAR pthread_cond_t *cond,
+                      FAR const pthread_condattr_t *attr);
 int pthread_cond_destroy(FAR pthread_cond_t *cond);
 
 /* A thread can signal to and broadcast on a condition variable. */
@@ -563,7 +640,7 @@ int pthread_barrier_wait(FAR pthread_barrier_t *barrier);
 /* Pthread initialization */
 
 int pthread_once(FAR pthread_once_t *once_control,
-                        CODE void (*init_routine)(void));
+                 CODE void (*init_routine)(void));
 
 /* Pthread rwlock */
 
@@ -584,6 +661,16 @@ int pthread_rwlock_unlock(FAR pthread_rwlock_t *lock);
 
 int pthread_kill(pthread_t thread, int sig);
 int pthread_sigmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
+
+#ifdef CONFIG_PTHREAD_SPINLOCKS
+/* Pthread spinlocks */
+
+int pthread_spin_init(FAR pthread_spinlock_t *lock, int pshared);
+int pthread_spin_destroy(FAR pthread_spinlock_t *lock);
+int pthread_spin_lock(FAR pthread_spinlock_t *lock);
+int pthread_spin_trylock(FAR pthread_spinlock_t *lock);
+int pthread_spin_unlock(FAR pthread_spinlock_t *lock);
+#endif
 
 #ifdef __cplusplus
 }
@@ -657,6 +744,14 @@ struct pthread_barrier_s;
 typedef struct pthread_barrier_s pthread_barrier_t;
 #  define __PTHREAD_BARRIER_T_DEFINED 1
 #endif
+
+#ifdef CONFIG_PTHREAD_SPINLOCKS
+#ifndef __PTHREAD_SPINLOCK_T_DEFINED
+struct pthread_spinlock_s;
+typedef FAR struct pthread_spinlock_s pthread_spinlock_t;
+#define __PTHREAD_SPINLOCK_T_DEFINED 1
+#endif
+#endif /* CONFIG_PTHREAD_SPINLOCKS */
 
 #ifndef __PTHREAD_ONCE_T_DEFINED
 typedef bool pthread_once_t;

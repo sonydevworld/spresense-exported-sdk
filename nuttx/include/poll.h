@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/poll.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,8 +41,10 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <stdint.h>
+#include <signal.h>
 #include <semaphore.h>
 
 /****************************************************************************
@@ -88,6 +90,11 @@
 #define POLLHUP      (0x08)
 #define POLLNVAL     (0x10)
 
+#define POLLFD       (0x00)
+#define POLLFILE     (0x40)
+#define POLLSOCK     (0x80)
+#define POLLMASK     (0xC0)
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -103,15 +110,28 @@ typedef unsigned int nfds_t;
 
 typedef uint8_t pollevent_t;
 
-/* This is the Nuttx variant of the standard pollfd structure. */
+/* This is the Nuttx variant of the standard pollfd structure.  The poll()
+ * interfaces receive a variable length array of such structures.
+ *
+ * REVISIT: In a multi-threaded environment, one use case might be to share
+ * a single, array of struct pollfd in poll calls on different threads.
+ * That use case is not supportable with this variant due way in which the
+ * non-standard internal fields are used in the implementation of poll().
+ */
 
 struct pollfd
 {
-  int         fd;       /* The descriptor being polled */
-  sem_t      *sem;      /* Pointer to semaphore used to post output event */
-  pollevent_t events;   /* The input event flags */
-  pollevent_t revents;  /* The output event flags */
-  FAR void   *priv;     /* For use by drivers */
+  /* Standard fields */
+
+  int          fd;      /* The descriptor being polled */
+  pollevent_t  events;  /* The input event flags */
+  pollevent_t  revents; /* The output event flags */
+
+  /* Non-standard fields used internally by NuttX. */
+
+  FAR void    *ptr;     /* The psock or file being polled */
+  FAR sem_t   *sem;     /* Pointer to semaphore used to post output event */
+  FAR void    *priv;    /* For use by drivers */
 };
 
 /****************************************************************************
@@ -132,6 +152,10 @@ extern "C"
  ****************************************************************************/
 
 int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout);
+
+int ppoll(FAR struct pollfd *fds, nfds_t nfds,
+          FAR const struct timespec *timeout_ts,
+          FAR const sigset_t *sigmask);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -95,6 +95,8 @@
 #define XENIX_SUPER_MAGIC     0x012ff7b4
 #define XFS_SUPER_MAGIC       0x58465342
 #define _XIAFS_SUPER_MAGIC    0x012fd16d
+#define SPIFFS_SUPER_MAGIC    0x20090315
+#define LITTLEFS_SUPER_MAGIC  0x0a732923
 
 /* NuttX specific file-systems */
 
@@ -104,6 +106,8 @@
 #define SMARTFS_MAGIC         0x54524D53
 #define UNIONFS_MAGIC         0x53464e55
 #define HOSTFS_MAGIC          0x54534f48
+#define USERFS_MAGIC          0x52455355
+#define CROMFS_MAGIC          0x4d4f5243
 
 /****************************************************************************
  * Type Definitions

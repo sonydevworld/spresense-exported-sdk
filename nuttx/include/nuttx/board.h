@@ -35,7 +35,7 @@
 /* This header file contains function prototypes for the interfaces between
  * (1) the nuttx core-code, (2) the microprocessor specific logic that
  * resides under the arch/ sub-directory, and (3) the board-specific logic
- * that resides under configs/
+ * that resides under boards/
  *
  * Naming conventions:
  *
@@ -75,21 +75,21 @@
  *
  *    Board related declarations are retained in this header file.
  *
- *    There is also a configs/<board>/include/board.h header file that
- *    can be used to communicate other board-specific information between
- *    the architecture logic and even application logic.  Any definitions
- *    which are common between a single architecture and several boards
- *    should go in this board.h header file; this file is reserved for
- *    board-related definitions common to all architectures.
+ *    There is also a boards/<arch>/<chip>/<board>/include/board.h header
+ *    file that can be used to communicate other board-specific information
+ *    between the architecture logic and even application logic.  Any
+ *    definitions that are common between a single architecture and several
+ *    boards should go in this board.h header file; this file is reserved
+ *    for board-related definitions common to all architectures.
  *
  * 4. Board-Specific Interfaces.
  *
- *    Any interface which is unique to a board should be prefixed with
+ *    Any interface that is unique to a board should be prefixed with
  *    the board name, for example stm32f4discovery_. Sometimes the board
  *    name is too long so stm32_ would be okay too. These should be
- *    prototyped in configs/<board>/src/<board>.h and should not be used
- *    outside of that board directory since board-specific definitions
- *    have no meaning outside of the board directory.
+ *    prototyped in boards/<arch>/<chip>/<board>/src/<board>.h and should
+ *    not be used outside of that board directory since board-specific
+ *    definitions have no meaning outside of the board directory.
  */
 
 #ifndef __INCLUDE_NUTTX_BOARD_H
@@ -120,20 +120,53 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_initialize
+ * Name: board_early_initialize
  *
  * Description:
- *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
+ *   If CONFIG_BOARD_EARLY_INITIALIZE is selected, then an additional
  *   initialization call will be performed in the boot-up sequence to a
- *   function called board_initialize().  board_initialize() will be
- *   called immediately after up_initialize() is called and just before the
- *   initial application is started.  This additional initialization phase
- *   may be used, for example, to initialize board-specific device drivers.
+ *   function called board_early_initialize().  board_early_initialize()
+ *   will be called immediately after up_initialize() and well before
+ *   board_early_initialize() is called and the initial application is
+ *   started.  The context in which board_early_initialize() executes is
+ *   suitable for early initialization of most, simple device drivers and
+ *   is a logical, board-specific extension of up_initialize().
+ *
+ *   board_early_initialize() runs on the startup, initialization thread.
+ *   Some initialization operations cannot be performed on the start-up,
+ *   initialization thread.  That is because the initialization thread
+ *   cannot wait for event.  Waiting may be required, for example, to
+ *   mount a file system or or initialize a device such as an SD card.
+ *   For this reason, such driver initialize must be deferred to
+ *   board_late_initialize().
+
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARD_EARLY_INITIALIZE
+void board_early_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: board_late_initialize
+ *
+ * Description:
+ *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
+ *   initialization call will be performed in the boot-up sequence to a
+ *   function called board_late_initialize().  board_late_initialize() will
+ *   be called after up_initialize() and board_early_initialize() and just
+ *   before the initial application is started.  This additional
+ *   initialization phase may be used, for example, to initialize board-
+ *   specific device drivers for which board_early_initialize() is not
+ *   suitable.
+ *
+ *   Waiting for events, use of I2C, SPI, etc are permissable in the context
+ *   of board_late_initialize().  That is because board_late_initialize()
+ *   will run on a temporary, internal kernel thread.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARD_INITIALIZE
-void board_initialize(void);
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
+void board_late_initialize(void);
 #endif
 
 /****************************************************************************
@@ -148,7 +181,7 @@ void board_initialize(void);
  *   arg - The boardctl() argument is passed to the board_app_initialize()
  *         implementation without modification.  The argument has no
  *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initalization logic and the
+ *         between the board-specific initialization logic and the
  *         matching application logic.  The value cold be such things as a
  *         mode enumeration value, a set of DIP switch switch settings, a
  *         pointer to configuration data read from a file or serial FLASH,
@@ -162,6 +195,28 @@ void board_initialize(void);
  ****************************************************************************/
 
 int board_app_initialize(uintptr_t arg);
+
+/****************************************************************************
+ * Name: board_app_finalinitialize
+ *
+ * Description:
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command
+ *   BOARDIOC_FINALINIT.
+ *
+ * Input Parameters:
+ *   arg - The argument has no meaning.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_FINALINIT
+int board_app_finalinitialize(uintptr_t arg);
+#endif
 
 /****************************************************************************
  * Name: board_power_off
@@ -190,13 +245,14 @@ int board_power_off(int status);
  * Name: board_reset
  *
  * Description:
- *   Reset board.  This function may or may not be supported by a
- *   particular board architecture.
+ *   Reset board.  Support for this function is required by board-level
+ *   logic if CONFIG_BOARDCTL_RESET is selected.
  *
  * Input Parameters:
  *   status - Status information provided with the reset event.  This
- *     meaning of this status information is board-specific.  If not used by
- *     a board, the value zero may be provided in calls to board_reset.
+ *            meaning of this status information is board-specific.  If not
+ *            used by a board, the value zero may be provided in calls to
+ *            board_reset().
  *
  * Returned Value:
  *   If this function returns, then it was not possible to power-off the
@@ -308,73 +364,19 @@ FAR void *board_composite_connect(int port, int configid);
 #endif
 
 /****************************************************************************
- * Name: board_tsc_setup
- *
- * Description:
- *   Each board that supports a touchscreen device must provide this function.
- *   This function is called by application-specific, setup logic to
- *   configure the touchscreen device.  This function will register the driver
- *   as /dev/inputN where N is the minor device number.
- *
- *   This is an internal OS interface but may be invoked indirectly from
- *   application-level touchscreen testing logic (perhaps by
- *   apps/examples/touchscreen).  If CONFIG_LIB_BOARDCTL=y and
- *   CONFIG_BOARDCTL_TSCTEST=y, then this functions will be invoked via the
- *   (non-standard) boardctl() interface using the BOARDIOC_TSCTEST_SETUP
- *   command.
- *
- * Input Parameters:
- *   minor   - The input device minor number
- *
- * Returned Value:
- *   Zero is returned on success.  Otherwise, a negated errno value is
- *   returned to indicate the nature of the failure.
- *
- ****************************************************************************/
-
-int board_tsc_setup(int minor);
-
-/****************************************************************************
- * Name: board_tsc_teardown
- *
- * Description:
- *   Each board that supports a touchscreen device must provide this function.
- *   This function is called by application-specific, setup logic to
- *   uninitialize the touchscreen device.
- *
- *   This is an internal OS interface but may be invoked indirectly from
- *   application-level touchscreen testing logic (perhaps by
- *   apps/examples/touchscreen).  If CONFIG_LIB_BOARDCTL=y and
- *   CONFIG_BOARDCTL_TSCTEST=y, then this functions will be invoked via the
- *   (non-standard) boardctl() interface using the BOARDIOC_TSCTEST_TEARDOWN
- *   command.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None.
- *
- ****************************************************************************/
-
-void board_tsc_teardown(void);
-
-/****************************************************************************
  * Name: board_graphics_setup
  *
  * Description:
  *   If the driver for the graphics device on the platform some unusual
  *   initialization, then this board interface should be provided.
  *
- *   This is an internal OS interface but may be invoked indirectly from
- *   application-level graphics logic.  If CONFIG_LIB_BOARDCTL=y and
- *   CONFIG_BOARDCTL_GRAPHICS=y, then this functions will be invoked via the
- *   (non-standard) boardctl() interface using the BOARDIOC_GRAPHICS_SETUP
- *   command.
+ *   This is an internal OS interface. It is invoked by graphics sub-system
+ *   initialization logic (nxmu_start()) or from the LCD framebuffer driver
+ *   (when the NX server is not used).
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_LCDDRIVER
+#if defined(CONFIG_NX_LCDDRIVER) || defined(CONFIG_LCD_FRAMEBUFFER)
 struct lcd_dev_s;
 FAR struct lcd_dev_s *board_graphics_setup(unsigned int devno);
 #else
@@ -412,6 +414,9 @@ int board_ioctl(unsigned int cmd, uintptr_t arg);
  *                            the specified LCD.  This allows support for
  *                            multiple LCD devices.
  *   board_lcd_uninitialize - Uninitialize the LCD support
+ *
+ *  Alternatively, board_graphics_setup() may be used if external graphics
+ *  initialization is configured.
  *
  ****************************************************************************/
 

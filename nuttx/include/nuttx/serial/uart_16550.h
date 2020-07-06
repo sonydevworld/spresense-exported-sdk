@@ -290,7 +290,8 @@
 #define UART_MCR_OUT1                (1 << 2)  /* Bit 2:  Auxiliary user-defined output 1 */
 #define UART_MCR_OUT2                (1 << 3)  /* Bit 3:  Auxiliary user-defined output 2 */
 #define UART_MCR_LPBK                (1 << 4)  /* Bit 4:  Loopback Mode Select */
-                                               /* Bit 5-7: Reserved */
+#define UART_MCR_AFCE                (1 << 5)  /* Bit 5:  Auto Flow Control Enable */
+                                               /* Bit 6-7: Reserved */
 
 /* LSR Line Status Register */
 
@@ -345,8 +346,12 @@ typedef uint32_t uart_addrwidth_t;
  *
  ************************************************************************************/
 
+#ifndef CONFIG_SERIAL_UART_ARCH_MMIO
 uart_datawidth_t uart_getreg(uart_addrwidth_t base, unsigned int offset);
 void uart_putreg(uart_addrwidth_t base, unsigned int offset, uart_datawidth_t value);
+#endif
+
+struct file;  /* Forward reference */
 int uart_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 #endif /* CONFIG_16550_UART */

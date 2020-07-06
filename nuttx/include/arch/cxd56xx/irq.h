@@ -61,21 +61,21 @@
 
 /* Processor Exceptions (vectors 0-15) */
 
-#define CXD56_IRQ_RESERVED         (0) /* Reserved vector (only used with CONFIG_DEBUG) */
-                                       /* Vector  0: Reset stack pointer value */
-                                       /* Vector  1: Reset (not handler as an IRQ) */
-#define CXD56_IRQ_NMI              (2) /* Vector  2: Non-Maskable Interrupt (NMI) */
-#define CXD56_IRQ_HARDFAULT        (3) /* Vector  3: Hard fault */
-#define CXD56_IRQ_MEMFAULT         (4) /* Vector  4: Memory management (MPU) */
-#define CXD56_IRQ_BUSFAULT         (5) /* Vector  5: Bus fault */
-#define CXD56_IRQ_USAGEFAULT       (6) /* Vector  6: Usage fault */
-#define CXD56_IRQ_SIGNVALUE        (7) /* Vector  7: Sign value */
-#define CXD56_IRQ_SVCALL          (11) /* Vector 11: SVC call */
-#define CXD56_IRQ_DBGMONITOR      (12) /* Vector 12: Debug Monitor */
-                                       /* Vector 13: Reserved */
-#define CXD56_IRQ_PENDSV          (14) /* Vector 14: Pendable system service request */
-#define CXD56_IRQ_SYSTICK         (15) /* Vector 15: System tick */
-#define CXD56_IRQ_EXTINT          (16) /* Vector 16: Vector number of the first external interrupt */
+#define CXD56_IRQ_RESERVED       (0) /* Reserved vector (only used with CONFIG_DEBUG) */
+                                     /* Vector  0: Reset stack pointer value */
+                                     /* Vector  1: Reset (not handler as an IRQ) */
+#define CXD56_IRQ_NMI            (2) /* Vector  2: Non-Maskable Interrupt (NMI) */
+#define CXD56_IRQ_HARDFAULT      (3) /* Vector  3: Hard fault */
+#define CXD56_IRQ_MEMFAULT       (4) /* Vector  4: Memory management (MPU) */
+#define CXD56_IRQ_BUSFAULT       (5) /* Vector  5: Bus fault */
+#define CXD56_IRQ_USAGEFAULT     (6) /* Vector  6: Usage fault */
+#define CXD56_IRQ_SIGNVALUE      (7) /* Vector  7: Sign value */
+#define CXD56_IRQ_SVCALL        (11) /* Vector 11: SVC call */
+#define CXD56_IRQ_DBGMONITOR    (12) /* Vector 12: Debug Monitor */
+                                     /* Vector 13: Reserved */
+#define CXD56_IRQ_PENDSV        (14) /* Vector 14: Pendable system service request */
+#define CXD56_IRQ_SYSTICK       (15) /* Vector 15: System tick */
+#define CXD56_IRQ_EXTINT        (16) /* Vector 16: Vector number of the first external interrupt */
 
 /* Cortex-M4 External interrupts (vectors >= 16) */
 
@@ -215,22 +215,8 @@
  * Cortex-M0 is supported)
  */
 
-#define NR_VECTORS                CXD56_IRQ_NIRQS
-#define NR_IRQS                   CXD56_IRQ_NIRQS
-
-/* Cortex-M0 External interrupts (vectors >= 16) */
-#if 0
-#define CXD56M0_IRQ_NIRQS         (CXD56_IRQ_EXTINT+CXD56M0_IRQ_NEXTINT)
-#endif
-
-/* Total number of IRQ numbers (This will need to be revisited if/when the
- * Cortex-M0 is supported)
- */
-
-#if 0
-#define NR_VECTORS                CXD56M0_IRQ_NIRQS
-#define NR_IRQS                   CXD56M0_IRQ_NIRQS
-#endif
+#define NR_VECTORS              CXD56_IRQ_NIRQS
+#define NR_IRQS                 CXD56_IRQ_NIRQS
 
 /****************************************************************************
  * Public Types
@@ -268,4 +254,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_ARM_INCLUDE_CXD56XX_IRQ_H */
-

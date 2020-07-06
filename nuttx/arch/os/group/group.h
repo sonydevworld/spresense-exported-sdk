@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/group/group.h
  *
- *   Copyright (C) 2007-2013, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013, 2015, 2018-2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,14 +49,16 @@
 #include <sched.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/sched.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Any negative GID is invalid. */
 
-#define INVALID_GROUP_ID    (pid_t)-1
-#define IS_INVALID_GID(gid) ((int)(gid) < 0)
+/* Any negative GRPID is invalid. */
+
+#define INVALID_GROUP_ID        (pid_t)-1
+#define IS_INVALID_GRPID(grpid) ((int)(grpid) < 0)
 
 /****************************************************************************
  * Public Type Definitions
@@ -81,7 +84,7 @@ extern FAR struct task_group_s *g_grouphead;
  * This must only be accessed with interrupts disabled.
  */
 
-extern gid_t g_gid_current;
+extern grpid_t g_grpid_current;
 #endif
 
 /****************************************************************************
@@ -94,7 +97,6 @@ void weak_function task_initialize(void);
 
 /* Task group data structure management */
 
-#ifdef HAVE_TASK_GROUP
 int  group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype);
 int  group_initialize(FAR struct task_tcb_s *tcb);
 #ifndef CONFIG_DISABLE_PTHREAD
@@ -108,7 +110,7 @@ void group_delwaiter(FAR struct task_group_s *group);
 #endif
 
 #if defined(HAVE_GROUP_MEMBERS) || defined(CONFIG_ARCH_ADDRENV)
-FAR struct task_group_s *group_findbygid(gid_t gid);
+FAR struct task_group_s *group_findby_grpid(grpid_t grpid);
 #endif
 
 #ifdef HAVE_GROUP_MEMBERS
@@ -116,6 +118,10 @@ FAR struct task_group_s *group_findbypid(pid_t pid);
 int group_foreachchild(FAR struct task_group_s *group,
                        foreachchild_t handler, FAR void *arg);
 int group_killchildren(FAR struct task_tcb_s *tcb);
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+int group_suspendchildren(FAR struct tcb_s *tcb);
+int group_continue(FAR struct tcb_s *tcb);
+#endif
 #endif
 
 #ifdef CONFIG_ARCH_ADDRENV
@@ -130,10 +136,7 @@ FAR struct task_group_s *task_getgroup(pid_t pid);
 
 /* Signaling group members */
 
-#ifndef CONFIG_DISABLE_SIGNALS
-int  group_signal(FAR struct task_group_s *group, FAR siginfo_t *siginfo);
-#endif
-#endif /* HAVE_TASK_GROUP */
+int group_signal(FAR struct task_group_s *group, FAR siginfo_t *siginfo);
 
 /* Parent/child data management */
 
@@ -157,12 +160,10 @@ void group_removechildren(FAR struct task_group_s *group);
 
 /* Group data resource configuration */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
 int  group_setupidlefiles(FAR struct task_tcb_s *tcb);
 int  group_setuptaskfiles(FAR struct task_tcb_s *tcb);
 #if CONFIG_NFILE_STREAMS > 0
 int  group_setupstreams(FAR struct task_tcb_s *tcb);
-#endif
 #endif
 
 #endif /* __SCHED_GROUP_GROUP_H */

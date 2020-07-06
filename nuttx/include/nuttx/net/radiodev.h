@@ -44,7 +44,8 @@
 
 #include <nuttx/net/netdev.h>
 
-#if defined(CONFIG_NET_6LOWPAN) || defined(CONFIG_NET_IEEE802154)
+#if defined(CONFIG_NET_6LOWPAN) || defined(CONFIG_NET_BLUETOOTH) || \
+    defined (CONFIG_NET_IEEE802154)
 
 /****************************************************************************
  * Public Types
@@ -59,7 +60,7 @@
 struct radiodev_properties_s
 {
   uint8_t sp_addrlen;                 /* Length of an address */
-  uint8_t sp_pktlen;                  /* Fixed packet/frame size (up to 255) */
+  uint8_t sp_framelen;                /* Fixed packet/frame size (up to 255) */
   struct netdev_varaddr_s sp_mcast;   /* Multicast address */
   struct netdev_varaddr_s sp_bcast;   /* Broadcast address */
 #ifdef CONFIG_NET_STARPOINT
@@ -100,7 +101,7 @@ struct radiodev_properties_s
  *     the reassembled packet.
  *
  *     For fagemented frames, d_buf provided by radio driver will not be
- *     used.  6LoWPAN must handle mutliple reassemblies from different
+ *     used.  6LoWPAN must handle multiple reassemblies from different
  *     sources simultaneously.  To support this, 6LoWPAN will allocate a
  *     unique reassembly buffer for each active reassembly, based on the
  *     reassembly tag and source radio address.  These reassembly buffers
@@ -136,13 +137,13 @@ struct radiodev_properties_s
  *    driver must still provide its (single) reassembly buffer in d_buf;
  *    that buffer is still used for the case where the packet is not
  *    fragmented into many frames.  In either case, the packet buffer will
- *    have a size of advertised MTU of the protocol, CONFIG_NET_6LOWPAN_MTU,
+ *    have a size of advertised MTU of the protocol, CONFIG_NET_6LOWPAN_PKTSIZE,
  *    plus CONFIG_NET_GUARDSIZE and some additional overhead for reassembly
  *    state data.
  *
  *    The radio network driver should then inform the network of the recipt
  *    of a frame by calling sixlowpan_input() or ieee802154_input().  That
- *    single frame (or, perhaps, list of frames) should be provided as 
+ *    single frame (or, perhaps, list of frames) should be provided as
  *    second argument of that call.
  *
  *    The network will free the IOB by calling iob_free after it has
@@ -155,7 +156,7 @@ struct iob_s;  /* Forward reference */
 
 struct radio_driver_s
 {
-  /* This definitiona must appear first in the structure definition to
+  /* This definition must appear first in the structure definition to
    * assure cast compatibility.
    */
 
@@ -189,7 +190,7 @@ struct radio_driver_s
    * Description:
    *   Calculate the MAC header length given the frame meta-data.
    *
-   * Input parameters:
+   * Input Parameters:
    *   netdev    - The networkd device that will mediate the MAC interface
    *   meta      - Obfuscated metadata structure needed to recreate the
    *               radio MAC header
@@ -209,7 +210,7 @@ struct radio_driver_s
    * Description:
    *   Requests the transfer of a list of frames to the MAC.
    *
-   * Input parameters:
+   * Input Parameters:
    *   netdev    - The network device that will mediate the MAC interface
    *   meta      - Obfuscated metadata structure needed to create the radio
    *               MAC header
@@ -233,7 +234,7 @@ struct radio_driver_s
    *   run time.  This information is provided to the 6LoWPAN network via the
    *   following structure.
    *
-   * Input parameters:
+   * Input Parameters:
    *   netdev     - The network device to be queried
    *   properties - Location where radio properities will be returned.
    *
@@ -251,5 +252,5 @@ struct radio_driver_s
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /* CONFIG_NET_6LOWPAN || CONFIG_NET_IEEE802154 */
+#endif /* CONFIG_NET_6LOWPAN || CONFIG_NET_BLUETOOTH || CONFIG_NET_IEEE802154 */
 #endif /* __INCLUDE_NUTTX_NET_RADIODEV_H */

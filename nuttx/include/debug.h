@@ -287,6 +287,24 @@
 #  define finfo(x...)
 #endif
 
+#ifdef CONFIG_DEBUG_CONTACTLESS_ERROR
+#  define ctlserr(format, ...)  _err(format, ##__VA_ARGS__)
+#else
+#  define ctlserr(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_CONTACTLESS_WARN
+#  define ctlswarn(format, ...) _warn(format, ##__VA_ARGS__)
+#else
+#  define ctlswarn(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_CONTACTLESS_INFO
+#  define ctlsinfo(format, ...) _info(format, ##__VA_ARGS__)
+#else
+#  define ctlsinfo(x...)
+#endif
+
 #ifdef CONFIG_DEBUG_CRYPTO_ERROR
 #  define crypterr(format, ...)     _err(format, ##__VA_ARGS__)
 #else
@@ -867,6 +885,24 @@
 #  define finfo       (void)
 #endif
 
+#ifdef CONFIG_DEBUG_CONTACTLESS_ERROR
+#  define ctlserr     _err
+#else
+#  define ctlserr     (void)
+#endif
+
+#ifdef CONFIG_DEBUG_CONTACTLESS_WARN
+#  define ctlswarn    _warn
+#else
+#  define ctlswarn    (void)
+#endif
+
+#ifdef CONFIG_DEBUG_CONTACTLESS_INFO
+#  define ctlsinfo    _info
+#else
+#  define ctlsinfo    (void)
+#endif
+
 #ifdef CONFIG_DEBUG_CRYPTO_ERROR
 #  define crypterr     _err
 #else
@@ -1363,6 +1399,14 @@
 #  define finfodumpbuffer(m,b,n)
 #endif
 
+#ifdef CONFIG_DEBUG_CONTACTLESS
+#  define ctlserrdumpbuffer(m,b,n) errdumpbuffer(m,b,n)
+#  define ctlinfodumpbuffer(m,b,n) infodumpbuffer(m,b,n)
+#else
+#  define ctlserrferrdumpbuffer(m,b,n)
+#  define ctlinfodumpbuffer(m,b,n)
+#endif
+
 #ifdef CONFIG_DEBUG_INPUT
 #  define ierrdumpbuffer(m,b,n)  errdumpbuffer(m,b,n)
 #  define iinfodumpbuffer(m,b,n) infodumpbuffer(m,b,n)
@@ -1572,19 +1616,19 @@ void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer,
 
 #ifndef CONFIG_CPP_HAVE_VARARGS
 #ifdef CONFIG_DEBUG_ALERT
-int _alert(const char *format, ...);
+void _alert(const char *format, ...);
 #endif
 
 #ifdef CONFIG_DEBUG_ERROR
-int  _err(const char *format, ...);
+void _err(const char *format, ...);
 #endif
 
 #ifdef CONFIG_DEBUG_WARN
-int _warn(const char *format, ...);
+void _warn(const char *format, ...);
 #endif
 
 #ifdef CONFIG_DEBUG_INFO
-int _info(const char *format, ...);
+void _info(const char *format, ...);
 #endif
 #endif /* CONFIG_CPP_HAVE_VARARGS */
 

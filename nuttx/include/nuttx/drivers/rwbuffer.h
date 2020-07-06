@@ -44,7 +44,8 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
+
+#include <nuttx/semaphore.h>
 #include <nuttx/wqueue.h>
 
 #if defined(CONFIG_DRVR_WRITEBUFFER) || defined(CONFIG_DRVR_READAHEAD)
@@ -62,10 +63,10 @@
  * reload the read-ahead buffer, when appropriate.
  */
 
-typedef ssize_t (*rwbreload_t)(FAR void *dev, FAR uint8_t *buffer,
-                               off_t startblock, size_t nblocks);
-typedef ssize_t (*rwbflush_t)(FAR void *dev, FAR const uint8_t *buffer,
-                              off_t startblock, size_t nblocks);
+typedef CODE ssize_t (*rwbreload_t)(FAR void *dev, FAR uint8_t *buffer,
+                                    off_t startblock, size_t nblocks);
+typedef CODE ssize_t (*rwbflush_t)(FAR void *dev, FAR const uint8_t *buffer,
+                                   off_t startblock, size_t nblocks);
 
 /* This structure holds the state of the buffers.  In typical usage,
  * an instance of this structure is declared within each block driver
@@ -200,6 +201,10 @@ int rwb_mediaremoved(FAR struct rwbuffer_s *rwb);
 #ifdef CONFIG_DRVR_INVALIDATE
 int rwb_invalidate(FAR struct rwbuffer_s *rwb,
                    off_t startblock, size_t blockcount);
+#endif
+
+#ifdef CONFIG_DRVR_WRITEBUFFER
+int rwb_flush(FAR struct rwbuffer_s *rwb);
 #endif
 
 #undef EXTERN

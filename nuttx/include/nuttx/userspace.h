@@ -106,6 +106,7 @@ struct userspace_s
   uintptr_t us_dataend;
   uintptr_t us_bssstart;
   uintptr_t us_bssend;
+  uintptr_t us_heapend;
 
   /* Memory manager heap structure */
 
@@ -113,24 +114,22 @@ struct userspace_s
 
   /* Task/thread startup routines */
 
-  void (*task_startup)(main_t entrypt, int argc, FAR char *argv[])
+  CODE void (*task_startup)(main_t entrypt, int argc, FAR char *argv[])
     noreturn_function;
 #ifndef CONFIG_DISABLE_PTHREAD
-  void (*pthread_startup)(pthread_startroutine_t entrypt,
+  CODE void (*pthread_startup)(pthread_startroutine_t entrypt,
     pthread_addr_t arg);
 #endif
 
   /* Signal handler trampoline */
 
-#ifndef CONFIG_DISABLE_SIGNALS
-  void (*signal_handler)(_sa_sigaction_t sighand, int signo,
+  CODE void (*signal_handler)(_sa_sigaction_t sighand, int signo,
     FAR siginfo_t *info, FAR void *ucontext);
-#endif
 
   /* User-space work queue support */
 
 #ifdef CONFIG_LIB_USRWORK
-  int (*work_usrstart)(void);
+  CODE int (*work_usrstart)(void);
 #endif
 };
 
@@ -157,11 +156,11 @@ extern "C"
  *   This function is the user-space, task startup function.  It is called
  *   from up_task_start() in user-mode.
  *
- * Inputs:
+ * Input Parameters:
  *   entrypt - The user-space address of the task entry point
  *   argc and argv - Standard arguments for the task entry point
  *
- * Return:
+ * Returned Value:
  *   None.  This function does not return.
  *
  ****************************************************************************/
@@ -177,11 +176,11 @@ void task_startup(main_t entrypt, int argc, FAR char *argv[]) noreturn_function;
  *   This function is the user-space, pthread startup function.  It is called
  *   from up_pthread_start() in user-mode.
  *
- * Inputs:
+ * Input Parameters:
  *   entrypt - The user-space address of the pthread entry point
  *   arg     - Standard argument for the pthread entry point
  *
- * Return:
+ * Returned Value:
  *   None.  This function does not return.
  *
  ****************************************************************************/

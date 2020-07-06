@@ -61,17 +61,17 @@
  *   - The io_flink field points to the next frame in the list (if enable)
  *   - The last frame in the list will have io_flink == NULL.
  *
- * Parameters:
+ * Input Parameters:
  *   radio       The radio network driver interface.
  *   framelist - The head of an incoming list of frames.  Normally this
  *               would be a single frame.  A list may be provided if
  *               appropriate, however.
  *   meta      - Meta data characterizing the received frame.
  *
- *               If there are multilple frames in the list, this metadata
+ *               If there are multiple frames in the list, this metadata
  *               must apply to all of the frames in the list.
  *
- * Return:
+ * Returned Value:
  *   OK    The IEEE 802.15.4 has been processed  and can be deleted
  *   ERROR Hold the IEEE 802.15.4 and try again later. There is a listening
  *         socket but no recv in place to catch the IEEE 802.15.4 yet.

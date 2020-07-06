@@ -45,17 +45,14 @@
 
 #include <nuttx/config.h>
 
+#include <signal.h>
 #include <sys/types.h>
 
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
-/* Configuration ************************************************************/
-/* Prerequisites: CONFIG_DISABLE_SIGNALS must not be defined */
 
-#ifdef CONFIG_DISABLE_SIGNALS
-#  undef CONFIG_ARCH_PHY_INTERRUPT
-#endif
+/* Configuration ************************************************************/
 
 /* Maximum number of phy_notify clients */
 
@@ -97,14 +94,13 @@ extern "C"
  *   driver in support of the SIOCMIISIG ioctl command.  It should never
  *   by called directly by application logic.
  *
- * Parameters:
+ * Input Parameters:
  *   intf  - Provides the name of the network interface, for example, "eth0".
  *           The length of intf must not exceed 4 bytes (excluding NULL
  *           terminator).  Configurable with CONFIG_PHY_NOTIFICATION_MAXINTFLEN.
  *   pid   - Identifies the task to receive the signal.  The special value
  *           of zero means to use the pid of the current task.
- *   signo - This is the signal number to use when notifying the task.
- *   arg   - An argument that will accompany the notification signal.
+ *   event - Describe the way a task is to be notified
  *
  * Returned Value:
  *   OK on success; Negated errno on failure.
@@ -112,8 +108,8 @@ extern "C"
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
-int phy_notify_subscribe(FAR const char *intf, pid_t pid, int signo,
-                         FAR void *arg);
+int phy_notify_subscribe(FAR const char *intf, pid_t pid,
+                         FAR struct sigevent *event);
 #endif
 
 /****************************************************************************
@@ -127,7 +123,7 @@ int phy_notify_subscribe(FAR const char *intf, pid_t pid, int signo,
  *   driver in support of the SIOCMIISIG ioctl command.  It should never
  *   by called directly by application logic.
  *
- * Parameters:
+ * Input Parameters:
  *   intf  - Provides the name of the network interface, for example, "eth0".
  *           The length of 'intf' must not exceed 4 bytes (excluding NULL
  *           terminator).  Configurable with CONFIG_PHY_NOTIFICATION_MAXINTFLEN.

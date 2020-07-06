@@ -56,26 +56,27 @@
  * Pre-processor Definitions
  ****************************************************************************/
 /* IOCTL Commands ***********************************************************/
-/* The Audio module uses a standard character driver framework.  However, a
- * lot of the Audio driver functionality is configured via a device control
- * interface, such as sampling rate, volume, data format, etc.
- * The Audio ioctl commands are lised below:
+/* IOCTL Commands to store and read configuration for user application.
  *
  * CFGDIOC_GETCONFIG - Get a specified Config Data item.
  *
  *   ioctl argument:  Pointer to a config_data_s structure to receive the
- *                    config data.  All fields of the strucure must be
+ *                    config data.  All fields of the structure must be
  *                    specified (i.e. id, instance, pointer and len).
  *
  * CFGDIOC_SETCONFIG - Set a specified Config Data Item
  *
  *   ioctl argument:  Pointer to a config_data_s structure to receive the
- *                    config data.  All fields of the strucure must be
+ *                    config data.  All fields of the structure must be
  *                    specified (i.e. id, instance, pointer and len).
  */
 
-#define CFGDIOC_GETCONFIG  _CFGDIOC(1)
-#define CFGDIOC_SETCONFIG  _CFGDIOC(2)
+#define CFGDIOC_GETCONFIG    _CFGDIOC(1)
+#define CFGDIOC_SETCONFIG    _CFGDIOC(2)
+#define CFGDIOC_DELCONFIG    _CFGDIOC(3)
+#define CFGDIOC_FINDCONFIG   _CFGDIOC(4)
+#define CFGDIOC_FIRSTCONFIG  _CFGDIOC(5)
+#define CFGDIOC_NEXTCONFIG   _CFGDIOC(6)
 
 /****************************************************************************
  * Public Types
@@ -85,8 +86,12 @@
 
 struct config_data_s
 {
+#ifdef CONFIG_MTD_CONFIG_NAMED
+  char        name[CONFIG_MTD_CONFIG_NAME_LEN];
+#else
   uint16_t    id;           /* ID of the config data item */
   int         instance;     /* Instance of the item */
+#endif
   FAR uint8_t *configdata;  /* Pointer to the config data */
   size_t      len;          /* Length of the config data buffer */
 };
@@ -117,7 +122,7 @@ extern "C"
  *   When this function is called, the MTD device pass in should already
  *   be initialized appropriately to access the physical device or partition.
  *
- * Input parameters:
+ * Input Parameters:
  *   mtd - Pointer to the MTD device to bind with the /dev/config device
  *
  * Returned Value:

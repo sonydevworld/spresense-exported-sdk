@@ -49,13 +49,6 @@
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
-/*  Length of the string form for IP address (excludes NULL termination) */
-
-#define INET_ADDRSTRLEN 16
-
-/*  Length of the string form for IPv6 address (excludes NULL termination) */
-
-#define INET6_ADDRSTRLEN 46
 
 /* This macro to convert a 16/32-bit constant values quantity from host byte
  * order to network byte order.  The 16-bit version of this macro is required
@@ -97,7 +90,16 @@ extern "C"
 #define EXTERN extern
 #endif
 
-/* Functions to convert between nost and network byte ordering */
+/* Functions to convert between host and network byte ordering.
+ *
+ * REVISIT:  Since network order is defined as big-endian, the following
+ * functions are equivalent to functions declared in endian.h:
+ *
+ *   htonl   htobe32
+ *   htons   htobe16
+ *   ntohl   be32toh
+ *   ntohs   be16toh
+ */
 
 uint32_t    ntohl(uint32_t nl);
 uint16_t    ntohs(uint16_t ns);

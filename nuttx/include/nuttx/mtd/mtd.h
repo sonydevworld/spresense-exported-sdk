@@ -52,6 +52,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Ioctl commands */
 
 #define MTDIOC_GEOMETRY   _MTDIOC(0x0001) /* IN:  Pointer to write-able struct
@@ -80,6 +81,8 @@
                                            *      0=Use normal memory region
                                            *      1=Use alternate/extended memory
                                            * OUT: None */
+#define MTDIOC_ECCSTATUS  _MTDIOC(0x0008) /* IN:  Pointer to uint8_t
+                                           * OUT: ECC status */
 
 /* Macros to hide implementation */
 
@@ -96,10 +99,6 @@
 
 #if defined(CONFIG_M25P_SUBSECTOR_ERASE)
 #  define CONFIG_MTD_SUBSECTOR_ERASE 1
-#endif
-
-#if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MTD)
-#  define CONFIG_MTD_REGISTRATION   1
 #endif
 
 /****************************************************************************
@@ -190,19 +189,9 @@ struct mtd_dev_s
 
   int (*ioctl)(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
-#ifdef CONFIG_MTD_REGISTRATION
-  /* An assigned MTD number for procfs reporting */
-
-  uint8_t mtdno;
-
-  /* Pointer to the next registered MTD device */
-
-  FAR struct mtd_dev_s  *pnext;
-
   /* Name of this MTD device */
 
   FAR const char *name;
-#endif
 };
 
 /****************************************************************************
@@ -241,7 +230,7 @@ extern "C"
  *   partitions, that mutual exclusion would be provided by the file system
  *   above the FLASH driver.
  *
- * Input parameters:
+ * Input Parameters:
  *   mtd        - The MTD device to be partitioned
  *   firstblock - The offset in bytes to the first block
  *   nblocks    - The number of blocks in the partition
@@ -286,6 +275,20 @@ FAR struct mtd_dev_s *mtd_rwb_initialize(FAR struct mtd_dev_s *mtd);
 #endif
 
 /****************************************************************************
+ * Name: ftl_initialize_by_path
+ *
+ * Description:
+ *   Initialize to provide a block driver wrapper around an MTD interface
+ *
+ * Input Parameters:
+ *   path - The block device path.
+ *   mtd  - The MTD device that supports the FLASH interface.
+ *
+ ****************************************************************************/
+
+int ftl_initialize_by_path(FAR const char *path, FAR struct mtd_dev_s *mtd);
+
+/****************************************************************************
  * Name: ftl_initialize
  *
  * Description:
@@ -320,6 +323,7 @@ int smart_initialize(int minor, FAR struct mtd_dev_s *mtd,
                      FAR const char *partname);
 
 /* MTD Driver Initialization ************************************************/
+
 /* Create an initialized MTD device instance for a particular memory device.
  * MTD devices are not registered in the file system as are other device
  * driver but, but are created as instances that can be bound to other
@@ -425,6 +429,15 @@ FAR struct mtd_dev_s *is25xp_initialize(FAR struct spi_dev_s *dev);
 FAR struct mtd_dev_s *m25p_initialize(FAR struct spi_dev_s *dev);
 
 /****************************************************************************
+ * Name: mx35_initialize
+ *
+ * Description:
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *mx35_initialize(FAR struct spi_dev_s *dev);
+
+/****************************************************************************
  * Name: rammtd_initialize
  *
  * Description:
@@ -514,6 +527,28 @@ FAR struct mtd_dev_s *sst39vf_initialize(void);
 FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
 
 /****************************************************************************
+ * Name: gd25_initialize
+ *
+ * Description:
+ *   Initializes the driver for SPI-based GD25 FLASH
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev,
+                                      uint32_t spi_devid);
+
+/****************************************************************************
+ * Name: gd5f_initialize
+ *
+ * Description:
+ *   Initializes the driver for SPI-based GD5F FLASH
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *gd5f_initialize(FAR struct spi_dev_s *dev,
+                                      uint32_t spi_devid);
+
+/****************************************************************************
  * Name: s25fl1_initialize
  *
  * Description:
@@ -561,67 +596,72 @@ FAR struct mtd_dev_s *n25qxxx_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
 /****************************************************************************
+ * Name: blockmtd_initialize
+ *
+ * Description:
+ *   Create and initialize a BLOCK MTD device instance.
+ *
+ * Input Parameters:
+ *   path - Path name of the block device backing the MTD device
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *blockmtd_initialize(FAR const char *path, size_t offset,
+                                          size_t mtdlen, int16_t sectsize,
+                                          int32_t erasesize);
+
+/****************************************************************************
+ * Name: blockmtd_teardown
+ *
+ * Description:
+ *   Teardown a previously created blockmtd device.
+ *
+ * Input Parameters:
+ *   dev - Pointer to the mtd driver instance.
+ *
+ ****************************************************************************/
+
+void blockmtd_teardown(FAR struct mtd_dev_s *dev);
+
+/****************************************************************************
  * Name: filemtd_initialize
  *
  * Description:
- *   Create a file backed MTD device.
+ *   Create and initialize a FILE MTD device instance.
+ *
+ * Input Parameters:
+ *   path - Path name of the file backing the MTD device
  *
  ****************************************************************************/
 
 FAR struct mtd_dev_s *filemtd_initialize(FAR const char *path, size_t offset,
-                        int16_t sectsize, int32_t erasesize);
+                                         int16_t sectsize, int32_t erasesize);
 
 /****************************************************************************
  * Name: filemtd_teardown
  *
  * Description:
- *   Tear down a filemtd device.
+ *   Teardown a previously created filemtd device.
+ *
+ * Input Parameters:
+ *   dev - Pointer to the mtd driver instance.
  *
  ****************************************************************************/
 
-void filemtd_teardown(FAR struct mtd_dev_s* mtd);
+void filemtd_teardown(FAR struct mtd_dev_s *dev);
 
 /****************************************************************************
  * Name: filemtd_isfilemtd
  *
  * Description:
- *   Test if MTD is a filemtd device.
+ *   Tests if the provided mtd is a filemtd or blockmtd device.
+ *
+ * Input Parameters:
+ *   mtd - Pointer to the mtd.
  *
  ****************************************************************************/
 
-bool filemtd_isfilemtd(FAR struct mtd_dev_s* mtd);
-
-/****************************************************************************
- * Name: mtd_register
- *
- * Description:
- *   Registers MTD device with the procfs file system.  This assigns a unique
- *   MTD number and associates the given device name, then adds it to
- *   the list of registered devices.
- *
- * In an embedded system, this all is really unnecessary, but is provided
- * in the procfs system simply for information purposes (if desired).
- *
- ****************************************************************************/
-
-#ifdef CONFIG_MTD_REGISTRATION
-int mtd_register(FAR struct mtd_dev_s *mtd, FAR const char *name);
-#endif
-
-/****************************************************************************
- * Name: mtd_unregister
- *
- * Description:
- *   Un-registers an MTD device with the procfs file system.
- *
- * In an embedded system, this all is really unnecessary, but is provided
- * in the procfs system simply for information purposes (if desired).
- *
- ****************************************************************************/
-
-#ifdef CONFIG_MTD_REGISTRATION
-int mtd_unregister(FAR struct mtd_dev_s *mtd);
-#endif
+bool filemtd_isfilemtd(FAR struct mtd_dev_s *mtd);
 
 #undef EXTERN
 #ifdef __cplusplus

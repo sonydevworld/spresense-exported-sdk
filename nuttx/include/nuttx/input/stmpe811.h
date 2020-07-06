@@ -58,7 +58,6 @@
  ********************************************************************************************/
 /* Configuration ****************************************************************************/
 /* Prerequisites:  CONFIG_INPUT=y
- * Other settings that effect the driver: CONFIG_DISABLE_POLL
  *
  * CONFIG_INPUT_STMPE811
  *   Enables support for the STMPE811 driver (Needs CONFIG_INPUT)
@@ -69,8 +68,7 @@
  * CONFIG_STMPE811_MULTIPLE
  *   Can be defined to support multiple STMPE811 devices on board.
  * CONFIG_STMPE811_NPOLLWAITERS
- *   Maximum number of threads that can be waiting on poll() (ignored if
- *   CONFIG_DISABLE_POLL is set).
+ *   Maximum number of threads that can be waiting on poll()
  * CONFIG_STMPE811_TSC_DISABLE
  *   Disable driver touchscreen functionality.
  * CONFIG_STMPE811_ADC_DISABLE
@@ -121,10 +119,6 @@
 #  ifndef CONFIG_I2C
 #    error "CONFIG_I2C is required in the I2C support"
 #  endif
-#endif
-
-#ifdef CONFIG_DISABLE_SIGNALS
-#  error "Signals are required.  CONFIG_DISABLE_SIGNALS must not be selected."
 #endif
 
 #ifndef CONFIG_SCHED_WORKQUEUE
@@ -190,7 +184,7 @@
 #define STMPE811_GPIO_SETPIN         0x10  /* GPIO set pin register */
 #define STMPE811_GPIO_CLRPIN         0x11  /* GPIO clear pin register */
 #define STMPE811_GPIO_MPSTA          0x12  /* GPIO monitor pin state register */
-#define STMPE811_GPIO_DIR            0x13  /* GPIO direction register */
+#define STMPE811_GPIO_DIR_REG        0x13  /* GPIO direction register */
 #define STMPE811_GPIO_ED             0x14  /* GPIO edge detect register */
 #define STMPE811_GPIO_RE             0x15  /* GPIO rising edge register */
 #define STMPE811_GPIO_FE             0x16  /* GPIO falling edge register */
@@ -453,7 +447,7 @@
  * handler but rather from the context of the worker thread with interrupts enabled.
  */
 
-typedef void (*stmpe811_handler_t)(int pin);
+typedef CODE void (*stmpe811_handler_t)(int pin);
 
 /* A reference to a structure of this type must be passed to the STMPE811 driver when the
  * driver is instantiated. This structure provides information about the configuration of the

@@ -62,17 +62,19 @@
 #define NUTTX_DTYPE_CHR         0x02
 #define NUTTX_DTYPE_BLK         0x04
 #define NUTTX_DTYPE_DIRECTORY   0x08
+#define NUTTX_DTYPE_LINK        0x10
 
 /* These must exactly match the definitions from include/sys/stat.h: */
 
-#define NUTTX_S_IFIFO           0010000
-#define NUTTX_S_IFCHR           0020000
-#define NUTTX_S_IFDIR           0040000
-#define NUTTX_S_IFBLK           0060000
-#define NUTTX_S_IFREG           0100000
-#define NUTTX_S_IFLNK           0120000
+#define NUTTX_S_IFIFO           (0 << 11)
+#define NUTTX_S_IFCHR           (1 << 11)
+#define NUTTX_S_IFDIR           (2 << 11)
+#define NUTTX_S_IFBLK           (3 << 11)
+#define NUTTX_S_IFREG           (4 << 11)
+#define NUTTX_S_IFSOCK          (8 << 11)
+#define NUTTX_S_IFLNK           (1 << 15)
 
-/* These must exactly match the definitions from include/fctnl.h: */
+/* These must exactly match the definitions from include/fcntl.h: */
 
 #define NUTTX_O_RDONLY   (1 << 0)  /* Open for read access (only) */
 #define NUTTX_O_WRONLY   (1 << 1)  /* Open for write access (only) */
@@ -83,6 +85,7 @@
 #define NUTTX_O_NONBLOCK (1 << 6)  /* Don't wait for data */
 #define NUTTX_O_SYNC     (1 << 7)  /* Synchronize output on write */
 #define NUTTX_O_BINARY   (1 << 8)  /* Open the file in binary mode. */
+#define NUTTX_O_DIRECT   (1 << 9)  /* Avoid caching, write directly to hardware */
 
 #define NUTTX_O_RDWR     (NUTTX_O_RDONLY | NUTTX_O_WRONLY)
 
@@ -161,6 +164,7 @@ int           host_ioctl(int fd, int request, unsigned long arg);
 void          host_sync(int fd);
 int           host_dup(int fd);
 int           host_fstat(int fd, struct nuttx_stat_s *buf);
+int           host_ftruncate(int fd, off_t length);
 void         *host_opendir(const char *name);
 int           host_readdir(void* dirp, struct nuttx_dirent_s* entry);
 void          host_rewinddir(void* dirp);
@@ -181,6 +185,7 @@ int           host_ioctl(int fd, int request, unsigned long arg);
 void          host_sync(int fd);
 int           host_dup(int fd);
 int           host_fstat(int fd, struct stat *buf);
+int           host_ftruncate(int fd, off_t length);
 void         *host_opendir(const char *name);
 int           host_readdir(void* dirp, struct dirent *entry);
 void          host_rewinddir(void* dirp);

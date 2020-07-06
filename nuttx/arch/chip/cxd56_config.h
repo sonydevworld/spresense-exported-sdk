@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_CXD56XX_CXD56XX_CONFIG_H
-#define __ARCH_ARM_SRC_CXD56XX_CXD56XX_CONFIG_H
+#ifndef __ARCH_ARM_SRC_CXD56XX_CXD56_CONFIG_H
+#define __ARCH_ARM_SRC_CXD56XX_CXD56_CONFIG_H
 
 /****************************************************************************
  * Included Files
@@ -48,17 +48,6 @@
 
 /* Required configuration settings */
 
-/* There are two version of the FPU support built into the most NuttX
- * Cortex-M4 ports. The current CXD56xx port support only one of these
- * options, the "Non-Lazy Floating Point Register Save".  As a consequence,
- * CONFIG_ARMV7M_CMNVECTOR must be defined in *all* CXD56xx configuration
- * files.
- */
-
-#ifndef CONFIG_ARMV7M_CMNVECTOR
-#  error "CONFIG_ARMV7M_CMNVECTOR must be defined for the CXD56xx"
-#endif
-
 /* Are any UARTs enabled? */
 
 #undef HAVE_UART
@@ -67,7 +56,7 @@
 #  define HAVE_UART 1
 #endif
 
-/* Make sure all features are disabled for diabled U[S]ARTs.  This simplifies
+/* Make sure all features are disabled for disabled U[S]ARTs.  This simplifies
  * checking later.
  */
 
@@ -146,4 +135,4 @@
  * Public Functions
  ****************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_CXD56XX_CXD56XX_CONFIG_H */
+#endif /* __ARCH_ARM_SRC_CXD56XX_CXD56_CONFIG_H */

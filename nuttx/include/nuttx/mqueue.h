@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/mqueue.h
  *
- *   Copyright (C) 2007, 2009, 2011, 2014-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2014-2017 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,19 +43,54 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/signal.h>
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <mqueue.h>
 #include <queue.h>
-#include <signal.h>
 
 #if CONFIG_MQ_MAXMSGSIZE > 0
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* Most internal nxmq_* interfaces are not available in the user space in
+ * PROTECTED and KERNEL builds.  In that context, the application message
+ * queu interfaces must be used.  The differences between the two sets of
+ * interfaces are:  (1) the nxmq_* interfaces do not cause cancellation
+ * points and (2) they do not modify the errno variable.
+ *
+ * This is only important when compiling libraries (libc or libnx) that are
+ * used both by the OS (libkc.a and libknx.a) or by the applications
+ * (libuc.a and libunx.a).  The that case, the correct interface must be
+ * used for the build context.
+ *
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
+ */
+
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
+#  define _MQ_SEND(d,m,l,p)           nxmq_send(d,m,l,p)
+#  define _MQ_TIMEDSEND(d,m,l,p,t)    nxmq_timedsend(d,m,l,p,t)
+#  define _MQ_RECEIVE(d,m,l,p)        nxmq_receive(d,m,l,p)
+#  define _MQ_TIMEDRECEIVE(d,m,l,p,t) nxmq_timedreceive(d,m,l,p,t)
+#  define _MQ_GETERRNO(r)             (-(r))
+#  define _MQ_SETERRNO(r)             set_errno(-(r))
+#  define _MQ_GETERRVAL(r)            (r)
+#else
+#  define _MQ_SEND(d,m,l,p)           mq_send(d,m,l,p)
+#  define _MQ_TIMEDSEND(d,m,l,p,t)    mq_timedsend(d,m,l,p,t)
+#  define _MQ_RECEIVE(d,m,l,p)        mq_receive(d,m,l,p)
+#  define _MQ_TIMEDRECEIVE(d,m,l,p,t) mq_timedreceive(d,m,l,p,t)
+#  define _MQ_GETERRNO(r)             errno
+#  define _MQ_SETERRNO(r)
+#  define _MQ_GETERRVAL(r)            (-errno)
+#endif
 
 /****************************************************************************
  * Public Type Declarations
@@ -77,11 +113,10 @@ struct mqueue_inode_s
 #else
   uint16_t maxmsgsize;        /* Max size of message in message queue */
 #endif
-#ifndef CONFIG_DISABLE_SIGNALS
   FAR struct mq_des *ntmqdes; /* Notification: Owning mqdes (NULL if none) */
   pid_t ntpid;                /* Notification: Receiving Task's PID */
   struct sigevent ntevent;    /* Notification description */
-#endif
+  struct sigwork_s ntwork;    /* Notification work */
 };
 
 /* This describes the message queue descriptor that is held in the
@@ -111,12 +146,157 @@ extern "C"
 #define EXTERN extern
 #endif
 
-struct mq_attr;       /* Forward reference */
 struct tcb_s;         /* Forward reference */
+struct mq_attr;       /* Forward reference */
+struct timespec;      /* Forward reference */
 struct task_group_s;  /* Forward reference */
 
 /****************************************************************************
- * Name: mq_msgqfree
+ * Name: nxmq_send
+ *
+ * Description:
+ *   This function adds the specified message (msg) to the message queue
+ *   (mqdes).  This is an internal OS interface.  It is functionally
+ *   equivalent to mq_send() except that:
+ *
+ *   - It is not a cancellation point, and
+ *   - It does not modify the errno value.
+ *
+ *  See comments with mq_send() for a more complete description of the
+ *  behavior of this function
+ *
+ * Input Parameters:
+ *   mqdes  - Message queue descriptor
+ *   msg    - Message to send
+ *   msglen - The length of the message in bytes
+ *   prio   - The priority of the message
+ *
+ * Returned Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   (see mq_send() for the list list valid return values).
+ *
+ ****************************************************************************/
+
+int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen,\
+              unsigned int prio);
+
+/****************************************************************************
+ * Name: nxmq_timedsend
+ *
+ * Description:
+ *   This function adds the specified message (msg) to the message queue
+ *   (mqdes).  nxmq_timedsend() behaves just like mq_send(), except that if
+ *   the queue is full and the O_NONBLOCK flag is not enabled for the
+ *   message queue description, then abstime points to a structure which
+ *   specifies a ceiling on the time for which the call will block.
+ *
+ *   nxmq_timedsend() is functionally equivalent to mq_timedsend() except
+ *   that:
+ *
+ *   - It is not a cancellation point, and
+ *   - It does not modify the errno value.
+ *
+ *  See comments with mq_timedsend() for a more complete description of the
+ *  behavior of this function
+ *
+ * Input Parameters:
+ *   mqdes   - Message queue descriptor
+ *   msg     - Message to send
+ *   msglen  - The length of the message in bytes
+ *   prio    - The priority of the message
+ *   abstime - the absolute time to wait until a timeout is decleared
+ *
+ * Returned Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   (see mq_timedsend() for the list list valid return values).
+ *
+ *   EAGAIN   The queue was empty, and the O_NONBLOCK flag was set for the
+ *            message queue description referred to by mqdes.
+ *   EINVAL   Either msg or mqdes is NULL or the value of prio is invalid.
+ *   EPERM    Message queue opened not opened for writing.
+ *   EMSGSIZE 'msglen' was greater than the maxmsgsize attribute of the
+ *            message queue.
+ *   EINTR    The call was interrupted by a signal handler.
+ *
+ ****************************************************************************/
+
+int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen,
+                   unsigned int prio, FAR const struct timespec *abstime);
+
+/****************************************************************************
+ * Name: nxmq_receive
+ *
+ * Description:
+ *   This function receives the oldest of the highest priority messages
+ *   from the message queue specified by "mqdes."  This is an internal OS
+ *   interface.  It is functionally equivalent to mq_receive except that:
+ *
+ *   - It is not a cancellation point, and
+ *   - It does not modify the errno value.
+ *
+ *  See comments with mq_receive() for a more complete description of the
+ *  behavior of this function
+ *
+ * Input Parameters:
+ *   mqdes  - Message Queue Descriptor
+ *   msg    - Buffer to receive the message
+ *   msglen - Size of the buffer in bytes
+ *   prio   - If not NULL, the location to store message priority.
+ *
+ * Returned Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   (see mq_receive() for the list list valid return values).
+ *
+ ****************************************************************************/
+
+ssize_t nxmq_receive(mqd_t mqdes, FAR char *msg, size_t msglen,
+                     FAR unsigned int *prio);
+
+/****************************************************************************
+ * Name: nxmq_timedreceive
+ *
+ * Description:
+ *   This function receives the oldest of the highest priority messages from
+ *   the message queue specified by "mqdes."  If the message queue is empty
+ *   and O_NONBLOCK was not set, nxmq_timedreceive() will block until a
+ *   message is added to the message queue (or until a timeout occurs).
+ *
+ *   nxmq_timedreceive() is an internal OS interface.  It is functionally
+ *   equivalent to mq_timedreceive() except that:
+ *
+ *   - It is not a cancellation point, and
+ *   - It does not modify the errno value.
+ *
+ *  See comments with mq_timedreceive() for a more complete description of
+ *  the behavior of this function
+ *
+ * Input Parameters:
+ *   mqdes   - Message Queue Descriptor
+ *   msg     - Buffer to receive the message
+ *   msglen  - Size of the buffer in bytes
+ *   prio    - If not NULL, the location to store message priority.
+ *   abstime - the absolute time to wait until a timeout is declared.
+ *
+ * Returned Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   (see mq_timedreceive() for the list list valid return values).
+ *
+ ****************************************************************************/
+
+ssize_t nxmq_timedreceive(mqd_t mqdes, FAR char *msg, size_t msglen,
+                          FAR unsigned int *prio,
+                          FAR const struct timespec *abstime);
+
+/****************************************************************************
+ * Name: nxmq_free_msgq
  *
  * Description:
  *   This function deallocates an initialized message queue structure.
@@ -125,99 +305,100 @@ struct task_group_s;  /* Forward reference */
  *   closed so that no thread will attempt access it while it is being
  *   deleted.
  *
- * Inputs:
+ * Input Parameters:
  *   msgq - Named essage queue to be freed
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-void mq_msgqfree(FAR struct mqueue_inode_s *msgq);
+void nxmq_free_msgq(FAR struct mqueue_inode_s *msgq);
 
 /****************************************************************************
- * Name: mq_msgqalloc
+ * Name: nxmq_alloc_msgq
  *
  * Description:
  *   This function implements a part of the POSIX message queue open logic.
- *   It allocates and initializes a structu mqueue_inode_s structure.
+ *   It allocates and initializes a struct mqueue_inode_s structure.
  *
- * Parameters:
+ * Input Parameters:
  *   mode   - mode_t value is ignored
  *   attr   - The mq_maxmsg attribute is used at the time that the message
  *            queue is created to determine the maximum number of
- *             messages that may be placed in the message queue.
+ *            messages that may be placed in the message queue.
  *
- * Return Value:
- *   The allocated and initalized message queue structure or NULL in the
+ * Returned Value:
+ *   The allocated and initialized message queue structure or NULL in the
  *   event of a failure.
  *
  ****************************************************************************/
 
-FAR struct mqueue_inode_s *mq_msgqalloc(mode_t mode,
-                                        FAR struct mq_attr *attr);
+FAR struct mqueue_inode_s *nxmq_alloc_msgq(mode_t mode,
+                                           FAR struct mq_attr *attr);
 
 /****************************************************************************
- * Name: mq_descreate
+ * Name: nxmq_create_des
  *
  * Description:
  *   Create a message queue descriptor for the specified TCB
  *
- * Inputs:
+ * Input Parameters:
  *   TCB - task that needs the descriptor.
  *   msgq - Named message queue containing the message
  *   oflags - access rights for the descriptor
  *
- * Return Value:
+ * Returned Value:
  *   On success, the message queue descriptor is returned.  NULL is returned
  *   on a failure to allocate.
  *
  ****************************************************************************/
 
-mqd_t mq_descreate(FAR struct tcb_s *mtcb, FAR struct mqueue_inode_s *msgq,
-                   int oflags);
+mqd_t nxmq_create_des(FAR struct tcb_s *mtcb,
+                      FAR struct mqueue_inode_s *msgq, int oflags);
 
 /****************************************************************************
- * Name: mq_close_group
+ * Name: nxmq_close_group
  *
  * Description:
  *   This function is used to indicate that all threads in the group are
- *   finished with the specified message queue mqdes.  The mq_close_group()
+ *   finished with the specified message queue mqdes.  nxmq_close_group()
  *   deallocates any system resources allocated by the system for use by
  *   this task for its message queue.
  *
- * Parameters:
+ * Input Parameters:
  *   mqdes - Message queue descriptor.
  *   group - Group that has the open descriptor.
  *
- * Return Value:
- *   0 (OK) if the message queue is closed successfully,
- *   otherwise, -1 (ERROR).
+ * Returned Value:
+ *   Zero (OK) if the message queue is closed successfully.  Otherwise, a
+ *   negated errno value is returned.
  *
  ****************************************************************************/
 
-int mq_close_group(mqd_t mqdes, FAR struct task_group_s *group);
+int nxmq_close_group(mqd_t mqdes, FAR struct task_group_s *group);
 
 /****************************************************************************
- * Name: mq_desclose_group
+ * Name: nxmq_desclose_group
  *
  * Description:
  *   This function performs the portion of the mq_close operation related
  *   to freeing resource used by the message queue descriptor itself.
  *
- * Parameters:
+ * Input Parameters:
  *   mqdes - Message queue descriptor.
  *   group - Group that has the open descriptor.
  *
- * Return Value:
- *   None.
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   and failure.
  *
  * Assumptions:
  * - Called only from mq_close() with the scheduler locked.
  *
  ****************************************************************************/
 
-void mq_desclose_group(mqd_t mqdes, FAR struct task_group_s *group);
+int nxmq_desclose_group(mqd_t mqdes, FAR struct task_group_s *group);
 
 #undef EXTERN
 #ifdef __cplusplus

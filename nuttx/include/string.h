@@ -44,9 +44,11 @@
 
 #include <stddef.h>
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+/* Non-standard support for cases where CHAR_BIT != 8 carried in strings.h
+ * only for convenience.  See include/nuttx/b2c.h.
+ */
+
+#include <nuttx/b2c.h>
 
 /****************************************************************************
  * Public Function Prototypes
@@ -75,6 +77,7 @@ int        strcoll(FAR const char *, FAR const char *s2);
 FAR char  *strcpy(FAR char *dest, FAR const char *src);
 FAR char  *stpcpy(FAR char *dest, FAR const char *src);
 FAR char  *strncpy(FAR char *, FAR const char *, size_t);
+FAR char  *stpncpy(FAR char *, FAR const char *, size_t);
 FAR char  *strpbrk(FAR const char *, FAR const char *);
 FAR char  *strchr(FAR const char *s, int c);
 FAR char  *strrchr(FAR const char *s, int c);
@@ -82,11 +85,14 @@ size_t     strspn(FAR const char *, FAR const char *);
 size_t     strcspn(FAR const char *, FAR const char *);
 FAR char  *strstr(FAR const char *, FAR const char *);
 FAR char  *strcasestr(FAR const char *, FAR const char *);
+FAR char  *strsep(FAR char **, FAR const char *);
+FAR char  *strsignal(int signum);
 FAR char  *strtok(FAR char *, FAR const char *);
 FAR char  *strtok_r(FAR char *, FAR const char *, FAR char **);
 size_t     strxfrm(FAR char *, FAR const char *, size_t n);
 
 FAR void  *memchr(FAR const void *s, int c, size_t n);
+FAR void  *memrchr(FAR const void *s, int c, size_t n);
 FAR void  *memccpy(FAR void *s1, FAR const void *s2, int c, size_t n);
 int        memcmp(FAR const void *s1, FAR const void *s2, size_t n);
 FAR void  *memcpy(FAR void *dest, FAR const void *src, size_t n);

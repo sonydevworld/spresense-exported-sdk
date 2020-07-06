@@ -70,8 +70,8 @@
  * Name: SPI_LOCK
  *
  * Description:
- *   On SPI busses where there are multiple devices, it will be necessary to
- *   lock SPI to have exclusive access to the busses for a sequence of
+ *   On SPI buses where there are multiple devices, it will be necessary to
+ *   lock SPI to have exclusive access to the buses for a sequence of
  *   transfers.  The bus should be locked before the chip is selected. After
  *   locking the SPI bus, the caller should then also call the setfrequency,
  *   setbits, and setmode methods to make sure that the SPI is properly
@@ -225,6 +225,10 @@
    *          condition. (see spi_exchange)
    *   Bit 4: HWFEAT_LSBFIRST
    *          Data transferred LSB first (default is MSB first)
+   *   Bit 5: Turn deferred trigger mode on or off.  Primarily used for DMA
+   *          mode.  If a transfer is deferred then the DMA will not actually
+   *          be triggered until a subsequent call to SPI_TRIGGER to set it
+   *          off.
    */
 
 #  ifdef CONFIG_SPI_CRCGENERATION
@@ -241,6 +245,10 @@
 #  ifdef CONFIG_SPI_BITORDER
 #    define HWFEAT_MSBFIRST                          (0 << 4)
 #    define HWFEAT_LSBFIRST                          (1 << 4)
+#  endif
+
+#  ifdef CONFIG_SPI_TRIGGER
+#    define HWFEAT_TRIGGER                           (1 << 5)
 #  endif
 
 #else
@@ -378,7 +386,7 @@
  * Name: SPI_EXCHANGE
  *
  * Description:
- *   Exahange a block of data from SPI. Required.
+ *   Exchange a block of data from SPI. Required.
  *
  * Input Parameters:
  *   dev      - Device-specific state data
@@ -420,6 +428,25 @@
 #define SPI_REGISTERCALLBACK(d,c,a) \
   ((d)->ops->registercallback ? (d)->ops->registercallback(d,c,a) : -ENOSYS)
 
+/****************************************************************************
+ * Name: SPI_TRIGGER
+ *
+ * Description:
+ *   Trigger a previously configured DMA transfer.
+ *
+ * Input Parameters:
+ *   dev      - Device-specific state data
+ *
+ * Returned Value:
+ *   OK       - Trigger was fired
+ *   -ENOSYS  - Trigger not fired due to lack of DMA or low level support
+ *   -EIO     - Trigger not fired because not previously primed
+ *
+ ****************************************************************************/
+
+#  define SPI_TRIGGER(d) \
+  (((d)->ops->trigger) ? ((d)->ops->trigger(d)) : -ENOSYS)
+
 /* SPI Device Macros ********************************************************/
 
 /* This builds a SPI devid from its type and index */
@@ -457,6 +484,9 @@
 #define SPIDEV_IEEE802154(n)    SPIDEV_ID(SPIDEVTYPE_IEEE802154,    (n))
 #define SPIDEV_CONTACTLESS(n)   SPIDEV_ID(SPIDEVTYPE_CONTACTLESS,   (n))
 #define SPIDEV_CANBUS(n)        SPIDEV_ID(SPIDEVTYPE_CANBUS,        (n))
+#define SPIDEV_USBHOST(n)       SPIDEV_ID(SPIDEVTYPE_USBHOST,       (n))
+#define SPIDEV_LPWAN(n)         SPIDEV_ID(SPIDEVTYPE_LPWAN,         (n))
+#define SPIDEV_ADC(n)           SPIDEV_ID(SPIDEVTYPE_ADC,           (n))
 #define SPIDEV_USER(n)          SPIDEV_ID(SPIDEVTYPE_USER,          (n))
 
 /****************************************************************************
@@ -465,7 +495,7 @@
 
 /* The type of the media change callback function */
 
-typedef void (*spi_mediachange_t)(FAR void *arg);
+typedef CODE void (*spi_mediachange_t)(FAR void *arg);
 
 /* If the board supports multiple SPI devices types, this enumeration
  * identifies which is selected or de-selected.
@@ -492,7 +522,10 @@ enum spi_devtype_e
   SPIDEVTYPE_TEMPERATURE,   /* Select SPI Temperature sensor device */
   SPIDEVTYPE_IEEE802154,    /* Select SPI IEEE 802.15.4 wireless device */
   SPIDEVTYPE_CONTACTLESS,   /* Select SPI Contactless device */
-  SPIDEVTYPE_CANBUS,        /* Select SPI CAN Bus controller over SPI */
+  SPIDEVTYPE_CANBUS,        /* Select SPI CAN bus controller over SPI */
+  SPIDEVTYPE_USBHOST,       /* Select SPI USB host controller over SPI */
+  SPIDEVTYPE_LPWAN,         /* Select SPI LPWAN controller over SPI */
+  SPIDEVTYPE_ADC,           /* Select SPI ADC device */
   SPIDEVTYPE_USER           /* Board-specific values start here
                              * This must always be the last definition. */
 };
@@ -504,7 +537,8 @@ enum spi_mode_e
   SPIDEV_MODE0 = 0,     /* CPOL=0 CHPHA=0 */
   SPIDEV_MODE1,         /* CPOL=0 CHPHA=1 */
   SPIDEV_MODE2,         /* CPOL=1 CHPHA=0 */
-  SPIDEV_MODE3          /* CPOL=1 CHPHA=1 */
+  SPIDEV_MODE3,         /* CPOL=1 CHPHA=1 */
+  SPIDEV_MODETI,        /* CPOL=0 CPHA=1 TI Synchronous Serial Frame Format */
 };
 
 #ifdef CONFIG_SPI_HWFEATURES
@@ -547,6 +581,9 @@ struct spi_ops_s
                   FAR const void *buffer, size_t nwords);
   CODE void     (*recvblock)(FAR struct spi_dev_s *dev, FAR void *buffer,
                   size_t nwords);
+#endif
+#ifdef CONFIG_SPI_TRIGGER
+  CODE int      (*trigger)(FAR struct spi_dev_s *dev);
 #endif
   CODE int      (*registercallback)(FAR struct spi_dev_s *dev,
                   spi_mediachange_t callback, void *arg);

@@ -81,15 +81,13 @@ extern volatile uint32_t g_system_timer;
 
 #ifndef CONFIG_CLOCK_TIMEKEEPING
 extern struct timespec   g_basetime;
-
-#ifdef CONFIG_CLOCK_MONOTONIC
-extern struct timespec   g_monotonic_basetime;
-#endif
 #endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+int  clock_basetime(FAR struct timespec *tp);
 
 void weak_function clock_initialize(void);
 #ifndef CONFIG_SCHED_TICKLESS
@@ -98,15 +96,9 @@ void weak_function clock_timer(void);
 
 int  clock_abstime2ticks(clockid_t clockid,
                          FAR const struct timespec *abstime,
-                         FAR ssystime_t *ticks);
+                         FAR sclock_t *ticks);
 int  clock_time2ticks(FAR const struct timespec *reltime,
-                      FAR ssystime_t *ticks);
-int  clock_ticks2time(ssystime_t ticks, FAR struct timespec *reltime);
-void clock_timespec_add(FAR const struct timespec *ts1,
-                        FAR const struct timespec *ts2,
-                        FAR struct timespec *ts3);
-void clock_timespec_subtract(FAR const struct timespec *ts1,
-                             FAR const struct timespec *ts2,
-                             FAR struct timespec *ts3);
+                      FAR sclock_t *ticks);
+int  clock_ticks2time(sclock_t ticks, FAR struct timespec *reltime);
 
 #endif /* __SCHED_CLOCK_CLOCK_H */

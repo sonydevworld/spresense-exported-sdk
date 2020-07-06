@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/fs/dirent.h
  *
- *   Copyright (C) 2007, 2009, 2011-2013, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011-2013, 2015, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,16 +103,26 @@ struct fs_romfsdir_s
 };
 #endif /* CONFIG_FS_ROMFS */
 
+#ifdef CONFIG_FS_CROMFS
+/* For CROMFS, we need to return the next compressed node to be examined. */
+
+struct fs_cromfsdir_s
+{
+  uint32_t     cr_firstoffset;         /* Offset to the first entry in the directory */
+  uint32_t     cr_curroffset;          /* Current offset into the directory contents */
+};
+#endif /* CONFIG_FS_CROMFS */
+
 #ifdef CONFIG_FS_TMPFS
 /* For TMPFS, we need the directory object and an index into the directory
  * entries.
  */
 
-struct tmpfs_directory_s;              /* Forward reference */
+struct tmpfs_directory_s;               /* Forward reference */
 struct fs_tmpfsdir_s
 {
   FAR struct tmpfs_directory_s *tf_tdo; /* Directory being enumerated */
-  unsigned int tf_index;               /* Directory index */
+  unsigned int tf_index;                /* Directory index */
 };
 #endif /* CONFIG_FS_TMPFS */
 
@@ -161,6 +172,16 @@ struct fs_smartfsdir_s
 };
 #endif
 
+#ifdef CONFIG_FS_SPIFFS
+/* SPIFFS is an SPI-oriented FLASH file system originally by Peter Andersson */
+
+struct fs_spiffsdir_s
+{
+  int16_t block;                               /* Current block */
+  int entry;                                   /* Current entry */
+};
+#endif
+
 #ifdef CONFIG_FS_UNIONFS
 /* The Union File System can be used to merge to different mountpoints so
  * that they appear as a single merged directory.
@@ -177,6 +198,17 @@ struct fs_unionfsdir_s
 };
 #endif
 
+#ifdef CONFIG_FS_USERFS
+/* The UserFS uses an opaque representation since the actual userspace representation
+ * of the directory state structure is unknowable.
+ */
+
+struct fs_userfsdir_s
+{
+  FAR void *fs_dir;                           /* Opaque pointer to UserFS DIR */
+};
+#endif
+
 #ifdef CONFIG_FS_HOSTFS
 /* HOSTFS provides mapping to directories on the host machine in the
  * sim environment.
@@ -184,7 +216,7 @@ struct fs_unionfsdir_s
 
 struct fs_hostfsdir_s
 {
-  FAR void *fs_dir;                           /* Opaque pointer to host DIR * */
+  FAR void *fs_dir;                           /* Opaque pointer to host DIR */
 };
 #endif
 
@@ -233,6 +265,9 @@ struct fs_dirent_s
 #ifdef CONFIG_FS_ROMFS
       struct fs_romfsdir_s   romfs;
 #endif
+#ifdef CONFIG_FS_CROMFS
+      struct fs_cromfsdir_s  cromfs;
+#endif
 #ifdef CONFIG_FS_TMPFS
       struct fs_tmpfsdir_s   tmpfs;
 #endif
@@ -251,8 +286,17 @@ struct fs_dirent_s
 #ifdef CONFIG_FS_SMARTFS
       struct fs_smartfsdir_s smartfs;
 #endif
+#ifdef CONFIG_FS_SPIFFS
+      struct fs_spiffsdir_s  spiffs;
+#endif
+#ifdef CONFIG_FS_LITTLEFS
+      FAR void              *littlefs;
+#endif
 #ifdef CONFIG_FS_UNIONFS
       struct fs_unionfsdir_s unionfs;
+#endif
+#ifdef CONFIG_FS_USERFS
+      struct fs_userfsdir_s  userfs;
 #endif
 #ifdef CONFIG_FS_HOSTFS
       struct fs_hostfsdir_s  hostfs;

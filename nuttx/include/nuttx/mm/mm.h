@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/mm/mm.h
  *
- *   Copyright (C) 2007-2009, 2013-2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2013-2014, 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,13 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
+#include <string.h>
 #include <semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 /* If the MCU has a small (16-bit) address capability, then we will use
  * a smaller chunk header that contains 16-bit size/offset information.
@@ -58,7 +60,7 @@
  */
 
 #ifdef CONFIG_SMALL_MEMORY
-  /* If the MCU has a small addressing capability, then for the smaller
+  /* If the MCU has a small addressing capability, then force the smaller
    * chunk header.
    */
 
@@ -130,8 +132,8 @@
  * REVISIT: We could do better on machines with 16-bit addressing.
  */
 
-#  define MM_MIN_SHIFT    4  /* 16 bytes */
-#  define MM_MAX_SHIFT   15  /* 32 Kb */
+#  define MM_MIN_SHIFT   B2C_SHIFT( 4)  /* 16 bytes */
+#  define MM_MAX_SHIFT   B2C_SHIFT(15)  /* 32 Kb */
 
 #elif defined(CONFIG_HAVE_LONG_LONG)
 /* Four byte offsets; Pointers may be 4 or 8 bytes
@@ -139,19 +141,19 @@
  */
 
 #  if UINTPTR_MAX <= UINT32_MAX
-#    define MM_MIN_SHIFT  4  /* 16 bytes */
+#    define MM_MIN_SHIFT B2C_SHIFT( 4)  /* 16 bytes */
 #  elif UINTPTR_MAX <= UINT64_MAX
-#    define MM_MIN_SHIFT  5  /* 32 bytes */
+#    define MM_MIN_SHIFT B2C_SHIFT( 5)  /* 32 bytes */
 #  endif
-#  define MM_MAX_SHIFT   22  /*  4 Mb */
+#  define MM_MAX_SHIFT   B2C_SHIFT(22)  /*  4 Mb */
 
 #else
 /* Four byte offsets; Pointers must be 4 bytes.
  * sizeof(struct mm_freenode_s) is 16 bytes.
  */
 
-#  define MM_MIN_SHIFT    4  /* 16 bytes */
-#  define MM_MAX_SHIFT   22  /*  4 Mb */
+#  define MM_MIN_SHIFT   B2C_SHIFT( 4)  /* 16 bytes */
+#  define MM_MAX_SHIFT   B2C_SHIFT(22)  /*  4 Mb */
 #endif
 
 /* All other definitions derive from these two */
@@ -204,9 +206,9 @@ struct mm_allocnode_s
 /* What is the size of the allocnode? */
 
 #ifdef CONFIG_MM_SMALL
-# define SIZEOF_MM_ALLOCNODE   4
+# define SIZEOF_MM_ALLOCNODE   B2C(4)
 #else
-# define SIZEOF_MM_ALLOCNODE   8
+# define SIZEOF_MM_ALLOCNODE   B2C(8)
 #endif
 
 #define CHECK_ALLOCNODE_SIZE \
@@ -240,11 +242,11 @@ struct mm_heap_s
 
   sem_t mm_semaphore;
   pid_t mm_holder;
-  int   mm_counts_held;
+  int mm_counts_held;
 
   /* This is the size of the heap provided to mm */
 
-  size_t  mm_heapsize;
+  size_t mm_heapsize;
 
   /* This is the first and last nodes of the heap */
 
@@ -425,9 +427,17 @@ FAR void *mm_memalign(FAR struct mm_heap_s *heap, size_t alignment,
 FAR void *kmm_memalign(size_t alignment, size_t size);
 #endif
 
+/* Functions contained in mm_heapmember.c ***********************************/
+
+bool mm_heapmember(FAR struct mm_heap_s *heap, FAR void *mem);
+
+/* Functions contained in mm_uheapmember.c **********************************/
+
+bool umm_heapmember(FAR void *mem);
+
 /* Functions contained in kmm_heapmember.c **********************************/
 
-#if defined(CONFIG_MM_KERNEL_HEAP) && defined(CONFIG_DEBUG_FEATURES)
+#ifdef CONFIG_MM_KERNEL_HEAP
 bool kmm_heapmember(FAR void *mem);
 #endif
 

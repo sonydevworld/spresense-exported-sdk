@@ -323,7 +323,7 @@ enum cdcacm_event_e
   CDCACM_EVENT_SENDBREAK       /* Send break request received */
 };
 
-typedef FAR void (*cdcacm_callback_t)(enum cdcacm_event_e event);
+typedef CODE void (*cdcacm_callback_t)(enum cdcacm_event_e event);
 
 /****************************************************************************
  * Public Function Prototypes
@@ -336,7 +336,7 @@ typedef FAR void (*cdcacm_callback_t)(enum cdcacm_event_e event);
  *   Register USB serial port (and USB serial console if so configured) and
  *   return the class object.
  *
- * Input Parameter:
+ * Input Parameters:
  *   minor - Device minor number.  E.g., minor 0 would correspond to
  *     /dev/ttyACM0.
  *   classdev - The location to return the CDC serial class' device
@@ -360,7 +360,7 @@ int cdcacm_classobject(int minor, FAR struct usbdev_devinfo_s *devinfo,
  * Description:
  *   Register USB serial port (and USB serial console if so configured).
  *
- * Input Parameter:
+ * Input Parameters:
  *   minor - Device minor number.  E.g., minor 0 would correspond to
  *     /dev/ttyACM0.
  *   handle - An optional opaque reference to the CDC/ACM class object that
@@ -381,7 +381,7 @@ int cdcacm_initialize(int minor, FAR void **handle);
  *
  * Description:
  *   Un-initialize the USB storage class driver.  This function is used
- *   internally by the USB composite driver to uninitialized the CDC/ACM
+ *   internally by the USB composite driver to uninitialize the CDC/ACM
  *   driver.  This same interface is available (with an untyped input
  *   parameter) when the CDC/ACM driver is used standalone.
  *

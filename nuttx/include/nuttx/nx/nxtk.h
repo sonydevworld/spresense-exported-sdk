@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/nx/nxtk.h
  *
- *   Copyright (C) 2008-2012, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2012, 2015, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,17 +122,23 @@ extern "C"
  *
  * Input Parameters:
  *   handle - The handle returned by nx_connect
+ *   flags  - Optional flags.  These include:
+ *            NXBE_WINDOW_RAMBACKED:  Creates a RAM backed window.  This
+ *              option is only valid if CONFIG_NX_RAMBACKED is enabled.
+ *            NXBE_WINDOW_HIDDEN:  The window is create in the HIDDEN state
+ *             and can be made visible later with nxtk_setvisibility().
  *   cb     - Callbacks used to process window events
  *   arg    - User provided value that will be returned with NXTK callbacks.
  *
- * Return:
+ * Returned Value:
  *   Success: A non-NULL handle used with subsequent NXTK window accesses
  *   Failure:  NULL is returned and errno is set appropriately
  *
  ****************************************************************************/
 
-NXTKWINDOW nxtk_openwindow(NXHANDLE handle,
-                           FAR const struct nx_callback_s *cb, FAR void *arg);
+NXTKWINDOW nxtk_openwindow(NXHANDLE handle, uint8_t flags,
+                           FAR const struct nx_callback_s *cb,
+                           FAR void *arg);
 
 /****************************************************************************
  * Name: nxtk_closewindow
@@ -143,7 +149,7 @@ NXTKWINDOW nxtk_openwindow(NXHANDLE handle,
  * Input Parameters:
  *   hfwnd - The handle returned by nxtk_openwindow
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -154,36 +160,84 @@ int nxtk_closewindow(NXTKWINDOW hfwnd);
  * Name: nxtk_block
  *
  * Description:
- *   This is callback will do to things:  (1) any queue a 'blocked' callback
- *   to the window and then (2) block any further window messaging.
+ *   The response to this function call is two things:  (1) any queued
+ *   callback messages to the window are 'blocked' and then (2) also
+ *   subsequent window messaging is blocked.
  *
- *   The 'blocked' callback is the response from nx_block (or nxtk_block).
- *   Those blocking interfaces are used to assure that no further messages
- *   are are directed to the window. Receipt of the blocked callback
- *   signifies that (1) there are no further pending callbacks and (2) that
- *   the window is now 'defunct' and will receive no further callbacks.
+ *   The 'event' callback with the NXEVENT_BLOCKED event is the response
+ *   from nx_block (or nxtk_block).  Those blocking interfaces are used to
+ *   assure that no further messages are are directed to the window. Receipt
+ *   of the NXEVENT_BLOCKED event signifies that (1) there are no further
+ *    pending callbacks and (2) that the window is now 'defunct' and will
+ *   receive no further callbacks.
  *
- *   This callback supports coordinated destruction of a window in multi-
- *   user mode.  In multi-use mode, the client window logic must stay
- *   intact until all of the queued callbacks are processed.  Then the
- *   window may be safely closed.  Closing the window prior with pending
- *   callbacks can lead to bad behavior when the callback is executed.
- *
- *   Multiple user mode only!
+ *   This callback supports coordinated destruction of a window.  The client
+ *   window logic must stay intact until all of the queued callbacks are
+ *   processed.  Then the window may be safely closed.  Closing the window
+ *   prior with pending callbacks can lead to bad behavior when the callback
+ *   is executed.
  *
  * Input Parameters:
  *   hfwnd - The window to be blocked
- *   arg - An argument that will accompany the block messages (This is arg2
- *         in the blocked callback).
+ *   arg   - An argument that will accompany the block messages (This is arg2
+ *           in the blocked callback).
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_MULTIUSER
 int nxtk_block(NXTKWINDOW hfwnd, FAR void *arg);
-#endif
+
+/****************************************************************************
+ * Name: nxtk_synch
+ *
+ * Description:
+ *   This interface can be used to syncrhonize the window client with the
+ *   NX server.  It really just implements an 'echo':  A synch message is
+ *   sent from the window client to the server which then responds
+ *   immediately by sending the NXEVENT_SYNCHED back to the windows client.
+ *
+ *   Due to the highly asynchronous nature of client-server communications,
+ *   nxtk_synch() is sometimes necessary to assure that the client and server
+ *   are fully synchronized in time.
+ *
+ *   Usage by the window client might be something like this:
+ *
+ *     extern bool g_synched;
+ *     extern sem_t g_synch_sem;
+ *
+ *     g_synched = false;
+ *     ret = nxtk_synch(hwnd, handle);
+ *     if (ret < 0)
+ *       {
+ *          -- Handle the error --
+ *       }
+ *
+ *     while (!g_synched)
+ *       {
+ *         ret = sem_wait(&g_sync_sem);
+ *         if (ret < 0)
+ *           {
+ *              -- Handle the error --
+ *           }
+ *       }
+ *
+ *   When the windwo listener thread receives the NXEVENT_SYNCHED event, it
+ *   would set g_synched to true and post g_synch_sem, waking up the above
+ *   loop.
+ *
+ * Input Parameters:
+ *   hfwnd - The window to be synched
+ *   arg   - An argument that will accompany the block messages (This is arg2
+ *           in the event callback).
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxtk_synch(NXTKWINDOW hfwnd, FAR void *arg);
 
 /****************************************************************************
  * Name: nxtk_getposition
@@ -196,7 +250,7 @@ int nxtk_block(NXTKWINDOW hfwnd, FAR void *arg);
  * Input Parameters:
  *   hfwnd - The window handle returned by nxtk_openwindow.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -215,7 +269,7 @@ int nxtk_getposition(NXTKWINDOW hfwnd);
  *   hfwnd - The window handle returned by nxtk_openwindow
  *   pos   - The new position of the client sub-window
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -234,7 +288,7 @@ int nxtk_setposition(NXTKWINDOW hfwnd, FAR const struct nxgl_point_s *pos);
  *   hfwnd - The window handle returned by nxtk_openwindow
  *   size  - The new size of the client sub-window.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -248,11 +302,11 @@ int nxtk_setsize(NXTKWINDOW hfwnd, FAR const struct nxgl_size_s *size);
  *   Bring the window containing the specified client sub-window to the top
  *   of the display.
  *
- * Input parameters:
+ * Input Parameters:
  *   hfwnd - the window to be raised.  This must have been previously created
  *           by nxtk_openwindow().
  *
- * Returned value:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -266,16 +320,74 @@ int nxtk_raise(NXTKWINDOW hfwnd);
  *   Lower the window containing the specified client sub-window to the
  *   bottom of the display.
  *
- * Input parameters:
+ * Input Parameters:
  *   hfwnd - the window to be lowered.  This must have been previously created
  *           by nxtk_openwindow().
  *
- * Returned value:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
 int nxtk_lower(NXTKWINDOW hfwnd);
+
+/****************************************************************************
+ * Name: nxtk_modal
+ *
+ * Description:
+ *   May be used to either (1) raise a window to the top of the display and
+ *   select modal behavior, or (2) disable modal behavior.
+ *
+ * Input Parameters:
+ *   hfwnd - The window to be modified
+ *   modal - True: enter modal state; False: leave modal state
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxtk_modal(NXTKWINDOW hfwnd, bool modal);
+
+/****************************************************************************
+ * Name: nxtk_setvisibility
+ *
+ * Description:
+ *   Select if the window is visible or hidden.  A hidden window is still
+ *   present and will update normally, but will not be on visible on the
+ *   display until it is unhidden.
+ *
+ * Input Parameters:
+ *   hfwnd - The window to be modified
+ *   hide  - True: Window will be hidden; false: Window will be visible
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxtk_setvisibility(NXTKWINDOW hfwnd, bool hide);
+
+/****************************************************************************
+ * Name: nxtk_ishidden
+ *
+ * Description:
+ *   Return true if the window is hidden.
+ *
+ *   NOTE:  There will be a delay between the time that the visibility of
+ *   the window is changed via nxtk_setvisibily() before that new setting is
+ *   reported by nxtk_ishidden().  nxtk_synch() may be used if temporal
+ *   synchronization is required.
+ *
+ * Input Parameters:
+ *   hfwnd - The window to be queried
+ *
+ * Returned Value:
+ *   True: the window is hidden, false: the window is visible
+ *
+ ****************************************************************************/
+
+bool nxtk_ishidden(NXTKWINDOW hfwnd);
 
 /****************************************************************************
  * Name: nxtk_fillwindow
@@ -288,7 +400,7 @@ int nxtk_lower(NXTKWINDOW hfwnd);
  *   rect  - The location within the client window to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -312,7 +424,7 @@ int nxtk_fillwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
  *   dest - The location to copy the memory region
  *   deststride - The width, in bytes, of the dest memory
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -332,7 +444,7 @@ int nxtk_getwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
  *   trap  - The trapezoidal region to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -357,7 +469,7 @@ int nxtk_filltrapwindow(NXTKWINDOW hfwnd,
  *   caps   - Draw a circular cap the ends of the line to support better
  *            line joins
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -379,7 +491,7 @@ int nxtk_drawlinewindow(NXTKWINDOW hfwnd, FAR struct nxgl_vector_s *vector,
  *   width  - The width of the line
  *   color  - The color to use to fill the line
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -401,7 +513,7 @@ int nxtk_drawcirclewindow(NXTKWINDOW hfwnd,
  *   radius - The radius of the circle in pixels.
  *   color  - The color to use to fill the circle
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -425,7 +537,7 @@ int nxtk_fillcirclewindow(NXWINDOW hfwnd,
  *   offset - The offset to move the region.  The  rectangular region will be
  *            moved so that the origin is translated by this amount.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -451,7 +563,7 @@ int nxtk_movewindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
  *            origin may lie outside of the sub-window display.
  *   stride - The width of the full source image in pixels.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -473,7 +585,7 @@ int nxtk_bitmapwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *dest,
  *   cb     - Callbacks used to process toolbar events
  *   arg    - User provided value that will be returned with toolbar callbacks.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -490,7 +602,7 @@ int nxtk_opentoolbar(NXTKWINDOW hfwnd, nxgl_coord_t height,
  * Input Parameters:
  *   hfwnd - The handle returned by nxtk_openwindow
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -513,7 +625,7 @@ int nxtk_closetoolbar(NXTKWINDOW hfwnd);
  *   hfwnd  - The handle returned by nxtk_openwindow
  *   bounds - User provided location in which to return the bounding box.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -531,7 +643,7 @@ int nxtk_toolbarbounds(NXTKWINDOW hfwnd, FAR struct nxgl_rect_s *bounds);
  *   rect  - The location within the toolbar window to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -555,7 +667,7 @@ int nxtk_filltoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
  *   dest - The location to copy the memory region
  *   deststride - The width, in bytes, of the dest memory
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -575,7 +687,7 @@ int nxtk_gettoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
  *   trap  - The trapezoidal region to be filled
  *   color - The color to use in the fill
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -601,7 +713,7 @@ int nxtk_filltraptoolbar(NXTKWINDOW hfwnd,
  *   caps   - Draw a circular cap on the ends of the line to support better
  *            line joins
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -623,7 +735,7 @@ int nxtk_drawlinetoolbar(NXTKWINDOW hfwnd, FAR struct nxgl_vector_s *vector,
  *   width  - The width of the line
  *   color  - The color to use to fill the line
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -645,7 +757,7 @@ int nxtk_drawcircletoolbar(NXTKWINDOW hfwnd,
  *   radius - The radius of the circle in pixels.
  *   color  - The color to use to fill the circle
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -670,7 +782,7 @@ int nxtk_fillcircletoolbar(NXWINDOW hfwnd,
  *   offset - The offset to move the region.  The  rectangular region will be
  *            moved so that the origin is translated by this amount.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
@@ -695,7 +807,7 @@ int nxtk_movetoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
  *            origin may lie outside of the sub-window display.
  *   stride - The width of the full source image in bytes.
  *
- * Return:
+ * Returned Value:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/

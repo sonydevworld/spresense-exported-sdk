@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/serial/serial.h
  *
- *   Copyright (C) 2007-2008, 2012-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2012-2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,12 +45,13 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
+#include <errno.h>
 #ifdef CONFIG_SERIAL_TERMIOS
 #  include <termios.h>
 #endif
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -104,11 +105,20 @@
 #define uart_send(dev,ch)        dev->ops->send(dev,ch)
 #define uart_receive(dev,s)      dev->ops->receive(dev,s)
 
-#ifdef CONFIG_SERIAL_DMA
-#  define uart_dmasend(dev)      dev->ops->dmasend(dev)
-#  define uart_dmareceive(dev)   dev->ops->dmareceive(dev)
-#  define uart_dmarxfree(dev)    dev->ops->dmarxfree(dev)
-#  define uart_dmatxavail(dev)   dev->ops->dmatxavail(dev)
+#ifdef CONFIG_SERIAL_TXDMA
+#define uart_dmasend(dev)      \
+  ((dev)->ops->dmasend ? (dev)->ops->dmasend(dev) : -ENOSYS)
+
+#define uart_dmatxavail(dev)   \
+  ((dev)->ops->dmatxavail ? (dev)->ops->dmatxavail(dev) : -ENOSYS)
+#endif
+
+#ifdef CONFIG_SERIAL_RXDMA
+#define uart_dmareceive(dev)   \
+  ((dev)->ops->dmareceive ? (dev)->ops->dmareceive(dev) : -ENOSYS)
+
+#define uart_dmarxfree(dev)    \
+  ((dev)->ops->dmarxfree ? (dev)->ops->dmarxfree(dev) : -ENOSYS)
 #endif
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
@@ -134,7 +144,7 @@ struct uart_buffer_s
   FAR char        *buffer; /* Pointer to the allocated buffer memory */
 };
 
-#ifdef CONFIG_SERIAL_DMA
+#if defined(CONFIG_SERIAL_RXDMA) || defined(CONFIG_SERIAL_TXDMA)
 struct uart_dmaxfer_s
 {
   FAR char        *buffer;  /* First DMA buffer */
@@ -143,7 +153,7 @@ struct uart_dmaxfer_s
   size_t           nlength; /* Length of next DMA buffer */
   size_t           nbytes;  /* Bytes actually transferred by DMA from both buffers */
 };
-#endif /* CONFIG_SERIAL_DMA */
+#endif /* CONFIG_SERIAL_RXDMA || CONFIG_SERIAL_TXDMA */
 
 /* This structure defines all of the operations providd by the architecture specific
  * logic.  All fields must be provided with non-NULL function pointers by the
@@ -217,11 +227,13 @@ struct uart_ops_s
                              unsigned int nbuffered, bool upper);
 #endif
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_TXDMA
   /* Start transfer bytes from the TX circular buffer using DMA */
 
   CODE void (*dmasend)(FAR struct uart_dev_s *dev);
+#endif
 
+#ifdef CONFIG_SERIAL_RXDMA
   /* Start transfer bytes from the TX circular buffer using DMA */
 
   CODE void (*dmareceive)(FAR struct uart_dev_s *dev);
@@ -229,7 +241,9 @@ struct uart_ops_s
   /* Notify DMA that there is free space in the RX buffer */
 
   CODE void (*dmarxfree)(FAR struct uart_dev_s *dev);
+#endif
 
+#ifdef CONFIG_SERIAL_TXDMA
   /* Notify DMA that there is data to be transferred in the TX buffer */
 
   CODE void (*dmatxavail)(FAR struct uart_dev_s *dev);
@@ -286,6 +300,9 @@ struct uart_dev_s
   tcflag_t             tc_iflag;     /* Input modes */
   tcflag_t             tc_oflag;     /* Output modes */
   tcflag_t             tc_lflag;     /* Local modes */
+#if defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP)
+  pid_t                pid;          /* Thread PID to receive signals (-1 if none) */
+#endif
 #endif
 
   /* Semaphores */
@@ -293,20 +310,19 @@ struct uart_dev_s
   sem_t                closesem;     /* Locks out new open while close is in progress */
   sem_t                xmitsem;      /* Wakeup user waiting for space in xmit.buffer */
   sem_t                recvsem;      /* Wakeup user waiting for data in recv.buffer */
-#ifndef CONFIG_DISABLE_POLL
   sem_t                pollsem;      /* Manages exclusive access to fds[] */
-#endif
 
   /* I/O buffers */
 
   struct uart_buffer_s xmit;         /* Describes transmit buffer */
   struct uart_buffer_s recv;         /* Describes receive buffer */
 
-#ifdef CONFIG_SERIAL_DMA
-
   /* DMA transfers */
 
+#ifdef CONFIG_SERIAL_TXDMA
   struct uart_dmaxfer_s dmatx;       /* Describes transmit DMA transfer */
+#endif
+#ifdef CONFIG_SERIAL_RXDMA
   struct uart_dmaxfer_s dmarx;       /* Describes receive DMA transfer */
 #endif
 
@@ -320,9 +336,7 @@ struct uart_dev_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
-#endif
 };
 
 typedef struct uart_dev_s uart_dev_t;
@@ -437,7 +451,7 @@ void uart_connected(FAR uart_dev_t *dev, bool connected);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_TXDMA
 void uart_xmitchars_dma(FAR uart_dev_t *dev);
 #endif
 
@@ -451,7 +465,7 @@ void uart_xmitchars_dma(FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_TXDMA
 void uart_xmitchars_done(FAR uart_dev_t *dev);
 #endif
 
@@ -463,7 +477,7 @@ void uart_xmitchars_done(FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
 void uart_recvchars_dma(FAR uart_dev_t *dev);
 #endif
 
@@ -477,9 +491,20 @@ void uart_recvchars_dma(FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
 void uart_recvchars_done(FAR uart_dev_t *dev);
 #endif
+
+/************************************************************************************
+ * Name: uart_reset_sem
+ *
+ * Description:
+ *   This function is called when need reset uart semphore, this may used in kill one
+ *   process, but this process was reading/writing with the semphore.
+ *
+ ************************************************************************************/
+
+void uart_reset_sem(FAR uart_dev_t *dev);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -59,6 +59,7 @@
  */
 
 #define SYS_syscall 0x00
+#define SYS_smhcall 0xab
 
 /* The SYS_signal_handler_return is executed here... its value is not always
  * available in this context and so is assumed to be 7.
@@ -235,6 +236,24 @@ static inline uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1,
     : "=r"(reg0)
     : "i"(SYS_syscall), "r"(reg0), "r"(reg1), "r"(reg2),
       "r"(reg3), "r"(reg4), "r"(reg5), "r"(reg6)
+    : "memory"
+  );
+
+  return reg0;
+}
+
+/* semihosting(SMH) call with call number and one parameter */
+
+static inline long smh_call(unsigned int nbr, void *parm)
+{
+  register long reg0 __asm__("r0") = (long)(nbr);
+  register long reg1 __asm__("r1") = (long)(parm);
+
+  __asm__ __volatile__
+  (
+  "bkpt %1"
+    : "=r"(reg0)
+    : "i"(SYS_smhcall), "r"(reg0), "r"(reg1)
     : "memory"
   );
 

@@ -1,7 +1,7 @@
 /********************************************************************************
  * include/limits.h
  *
- *   Copyright (C) 2007-2009, 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -134,13 +134,19 @@
 
 #ifdef CONFIG_SMALL_MEMORY
 
-#define _POSIX_SSIZE_MAX      32767       /* See sys/types.h */
+#define _POSIX_SIZE_MAX       65535        /* See sys/types.h */
+#define _POSIX_SIZE_MIN       0
+
+#define _POSIX_SSIZE_MAX      32767        /* See sys/types.h */
 #define _POSIX_SSIZE_MIN      -32768
 
 #else /* CONFIG_SMALL_MEMORY */
 
-#define _POSIX_SSIZE_MAX      2147483647  /* See sys/types.h */
-#define _POSIX_SSIZE_MIN      -2147483648
+#define _POSIX_SIZE_MAX       4294967295UL /* See sys/types.h */
+#define _POSIX_SIZE_MIN       0
+
+#define _POSIX_SSIZE_MAX      2147483647L  /* See sys/types.h */
+#define _POSIX_SSIZE_MIN      -2147483648L
 
 #endif /* CONFIG_SMALL_MEMORY */
 
@@ -191,7 +197,7 @@
 #define _POSIX_SEM_NSEMS_MAX  INT_MAX
 #define _POSIX_SEM_VALUE_MAX  0x7fff
 
-/* Actual limits.  These values may be increased from the POSIX minimum
+/* Numerical limits.  These values may be increased from the POSIX minimum
  * values above or made indeterminate
  */
 
@@ -205,6 +211,9 @@
 #define OPEN_MAX       _POSIX_OPEN_MAX
 #define PATH_MAX       _POSIX_PATH_MAX
 #define PIPE_BUF       _POSIX_PIPE_BUF
+#define SIZE_MAX       _POSIX_SIZE_MAX
+#define SIZE_MIN       _POSIX_SIZE_MIN
+#define RSIZE_MAX      _POSIX_SIZE_MAX
 #define SSIZE_MAX      _POSIX_SSIZE_MAX
 #define SSIZE_MIN      _POSIX_SSIZE_MIN
 #define STREAM_MAX     _POSIX_STREAM_MAX
@@ -221,6 +230,63 @@
 #define TIMER_MAX      _POSIX_TIMER_MAX
 #define CLOCKRES_MIN   _POSIX_CLOCKRES_MIN
 
+/* Other invariant values */
+
+/* CHARCLASS_NAME_MAX
+ *   Maximum number of bytes in a character class name. Minimum Acceptable
+ *   Value: 14
+ */
+
+#define CHARCLASS_NAME_MAX 14
+
+/* Maximum value of digit in calls to the printf() and scanf() functions.
+ * Minimum Acceptable Value: 9
+ */
+
+#ifdef CONFIG_LIBC_NUMBERED_ARGS
+#  ifdef CONFIG_LIBC_NL_ARGMAX
+#    define NL_ARGMAX CONFIG_LIBC_NL_ARGMAX
+#  else
+#    define NL_ARGMAX 9
+#  endif
+#endif
+
+/* NL_LANGMAX
+ *    Maximum number of bytes in a LANG name. Minimum Acceptable Value: 14
+ */
+
+#define NL_LANGMAX 14
+
+/* NL_MSGMAX
+ *    Maximum message number. Minimum Acceptable Value: 32 67
+ */
+
+#define NL_MSGMAX 32767
+
+/* NL_NMAX
+ *   Maximum number of bytes in an N-to-1 collation mapping. Minimum
+ *   Acceptable Value: *
+ */
+
+/* NL_SETMAX
+ *   Maximum set number. Minimum Acceptable Value: 255
+ */
+
+#define NL_SETMAX 255
+
+/* NL_TEXTMAX
+ *   Maximum number of bytes in a message string. Minimum Acceptable Value:
+ *   _POSIX2_LINE_MAX
+ */
+
+#define NL_TEXTMAX _POSIX2_LINE_MAX
+
+/* NZERO
+ *   Default process priority. Minimum Acceptable Value: 20
+ */
+
+#define NZERO 20
+
 /* Required for asynchronous I/O */
 
 #define AIO_LISTIO_MAX _POSIX_AIO_LISTIO_MAX
@@ -235,5 +301,10 @@
 
 #define SEM_NSEMS_MAX  _POSIX_SEM_NSEMS_MAX
 #define SEM_VALUE_MAX  _POSIX_SEM_VALUE_MAX
+
+/* Required for readv() and writev() */
+/* There really is no upper limit on the number of vectors */
+
+#define IOV_MAX        INT_MAX
 
 #endif /* __INCLUDE_LIMITS_H */

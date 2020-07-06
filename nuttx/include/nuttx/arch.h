@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/arch.h
  *
- *   Copyright (C) 2007-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@
 /* This header file contains function prototypes for the interfaces between
  * (1) the nuttx core-code, (2) the microprocessor specific logic that
  * resides under the arch/ sub-directory, and (3) the board-specific logic
- * that resides under configs/
+ * that resides under boards/
  *
  * Naming conventions:
  *
@@ -72,27 +72,18 @@
  * 3. Common Board Interfaces.
  *
  *    Any interface that is common across all boards should be prefixed
- *    with board_ and should be prototyped in this header file. These
- *    board_ definitions provide the interface between the board-level
+ *    with board_ and should be prototyped in the board.h header file.
+ *    These board_ definitions provide the interface between the board-level
  *    logic and the architecture-specific logic.
- *
- *    Board related declarations are retained the file include/nuttx/board.h.
- *
- *    There is also a configs/<board>/include/board.h header file that
- *    can be used to communicate other board-specific information between
- *    the architecture logic and even application logic.  Any definitions
- *    which are common between a single architecture and several boards
- *    should go in this board.h header file; this file is reserved for
- *    board-related definitions common to all architectures.
  *
  * 4. Board-Specific Interfaces.
  *
- *    Any interface which is unique to a board should be prefixed with
+ *    Any interface that is unique to a board should be prefixed with
  *    the board name, for example stm32f4discovery_. Sometimes the board
- *    name is too long so stm32_ would be okay too. These should be
- *    prototyped in configs/<board>/src/<board>.h and should not be used
- *    outside of that board directory since board-specific definitions
- *    have no meaning outside of the board directory.
+ *    name is too long so stm32_ would be okay too.  These should be
+ *    prototyped in boards/<arch>/<chip><board>/src/<board>.h and should
+ *    not be used outside of that board directory since board-specific
+ *    definitions have no meaning outside of the board directory.
  */
 
 /****************************************************************************
@@ -105,11 +96,10 @@
 #include <stdbool.h>
 #include <sched.h>
 
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
-#  include <elf32.h>
-#endif
-
 #include <arch/arch.h>
+
+#include <nuttx/compiler.h>
+#include <nuttx/cache.h>
 
 /****************************************************************************
  * Pre-processor definitions
@@ -201,6 +191,18 @@ EXTERN volatile bool g_rtc_enabled;
 void up_initialize(void);
 
 /****************************************************************************
+ * Name: up_systemreset
+ *
+ * Description:
+ *   The function up_systemreset() will reset the MCU.  Optional!
+ *   Availability of this function is dependent upon the architecture
+ *   support.
+ *
+ ****************************************************************************/
+
+void up_systemreset(void) noreturn_function;
+
+/****************************************************************************
  * Name: up_idle
  *
  * Description:
@@ -224,7 +226,7 @@ void up_idle(void);
  *   has been created. This function is called to initialize
  *   the processor specific portions of the new TCB.
  *
- *   This function must setup the intial architecture registers
+ *   This function must setup the initial architecture registers
  *   and/or  stack so that execution will begin at tcb->start
  *   on the next context switch.
  *
@@ -247,7 +249,7 @@ void up_initial_state(FAR struct tcb_s *tcb);
  *   - adj_stack_ptr: Adjusted stack_alloc_ptr for HW.  The initial value of
  *     the stack pointer.
  *
- * Inputs:
+ * Input Parameters:
  *   - tcb: The TCB of new task
  *   - stack_size:  The requested stack size.  At least this much
  *     must be allocated.
@@ -289,7 +291,7 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype);
  *   - adj_stack_ptr: Adjusted stack_alloc_ptr for HW.  The
  *     initial value of the stack pointer.
  *
- * Inputs:
+ * Input Parameters:
  *   - tcb:  The TCB of new task
  *   - stack:  The new stack to be used.
  *   - stack_size:  The allocated stack size.
@@ -324,7 +326,7 @@ int up_use_stack(FAR struct tcb_s *tcb, FAR void *stack, size_t stack_size);
  *     been removed from the stack.  This will still be the initial value
  *     of the stack pointer when the task is started.
  *
- * Inputs:
+ * Input Parameters:
  *   - tcb:  The TCB of new task
  *   - frame_size:  The size of the stack frame to allocate.
  *
@@ -344,7 +346,7 @@ FAR void *up_stack_frame(FAR struct tcb_s *tcb, size_t frame_size);
  *   A task has been stopped. Free all stack related resources retained in
  *   the defunct TCB.
  *
- * Input Parmeters
+ * Input Parameters:
  *   - dtcb:  The TCB containing information about the stack to be released
  *   - ttype:  The thread type.  This may be one of following (defined in
  *     include/nuttx/sched.h):
@@ -382,7 +384,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype);
  *   logic.  Interrupts will always be disabled when this
  *   function is called.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb: Refers to the tcb to be unblocked.  This tcb is
  *     in one of the waiting tasks lists.  It must be moved to
  *     the ready-to-run list and, if it is the highest priority
@@ -404,7 +406,7 @@ void up_unblock_task(FAR struct tcb_s *tcb);
  *   logic.  Interrupts will always be disabled when this
  *   function is called.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb: Refers to a task in the ready-to-run list (normally
  *     the task at the head of the list).  It most be
  *     stopped, its context saved and moved into one of the
@@ -455,7 +457,7 @@ void up_release_pending(void);
  *   logic.  Interrupts will always be disabled when this
  *   function is called.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb: The TCB of the task that has been reprioritized
  *   priority: The new task priority
  *
@@ -521,9 +523,7 @@ void up_reprioritize_rtr(FAR struct tcb_s *tcb, uint8_t priority);
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_SIGNALS
 void up_schedule_sigaction(FAR struct tcb_s *tcb, sig_deliver_t sigdeliver);
-#endif
 
 /****************************************************************************
  * Name: up_task_start
@@ -601,12 +601,12 @@ void up_pthread_start(pthread_startroutine_t entrypt, pthread_addr_t arg)
  *   function is the user-space, signal handler trampoline function.  It is
  *   called from up_signal_dispatch() in user-mode.
  *
- * Inputs:
+ * Input Parameters:
  *   sighand - The address user-space signal handling function
  *   signo, info, and ucontext - Standard arguments to be passed to the
  *     signal handling function.
  *
- * Return:
+ * Returned Value:
  *   None.  This function does not return in the normal sense.  It returns
  *   via an architecture specific system call made by up_signal_handler()
  *   (see below).  However, this will look like a normal return by the
@@ -615,7 +615,7 @@ void up_pthread_start(pthread_startroutine_t entrypt, pthread_addr_t arg)
  ****************************************************************************/
 
 #if (defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
-     defined(CONFIG_BUILD_KERNEL) && !defined(CONFIG_DISABLE_SIGNALS)
+     defined(CONFIG_BUILD_KERNEL)
 void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
                         FAR siginfo_t *info, FAR void *ucontext);
 #endif
@@ -628,19 +628,18 @@ void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
  *   must be provided by architecture-specific logic.  It is called from
  *   up_signal_dispatch() in user-mode.
  *
- * Inputs:
+ * Input Parameters:
  *   sighand - The address user-space signal handling function
  *   signo, info, and ucontext - Standard arguments to be passed to the
  *     signal handling function.
  *
- * Return:
+ * Returned Value:
  *   None.  This function does not return in the normal sense.  It returns
  *   via an architecture specific system call.
  *
  ****************************************************************************/
 
-#if (defined(CONFIG_BUILD_PROTECTED) && !defined(__KERNEL__)) && \
-    !defined(CONFIG_DISABLE_SIGNALS)
+#if (defined(CONFIG_BUILD_PROTECTED) && !defined(__KERNEL__))
 void up_signal_handler(_sa_sigaction_t sighand, int signo,
                        FAR siginfo_t *info, FAR void *ucontext)
        noreturn_function;
@@ -732,7 +731,26 @@ uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
 #endif
 
 /****************************************************************************
- * Name: up_setpicbase, up_getpicbase
+ * Name: up_sched_have_garbage and up_sched_garbage_collection
+ *
+ * Description:
+ *   Some architectures may support unique memory allocators.  If
+ *   CONFIG_ARCH_HAVE_GARBAGE is defined, those architectures must provide
+ *   both up_sched_have_garbage and up_sched_garbage_collection.  These will
+ *   be tied into the NuttX memory garbage collection logic.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_GARBAGE
+bool up_sched_have_garbage(void);
+void up_sched_garbage_collection(void);
+#else
+#  define up_sched_have_garbage() false
+#  define up_sched_garbage_collection()
+#endif
+
+/****************************************************************************
+ * Name: up_setpicbase and up_getpicbase
  *
  * Description:
  *   It NXFLAT external modules (or any other binary format that requires)
@@ -815,6 +833,7 @@ uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
  *   up_addrenv_kstackfree   - Destroy the kernel stack.
  *
  ****************************************************************************/
+
 /****************************************************************************
  * Name: up_addrenv_create
  *
@@ -948,10 +967,10 @@ ssize_t up_addrenv_heapsize(FAR const group_addrenv_t *addrenv);
  *
  * Description:
  *   After an address environment has been established for a task group (via
- *   up_addrenv_create().  This function may be called to to instantiate
- *   that address environment in the virtual address space.  this might be
- *   necessary, for example, to load the code for the task group from a file or
- *   to access address environment private data.
+ *   up_addrenv_create().  This function may be called to instantiate
+ *   that address environment in the virtual address space.  This might be
+ *   necessary, for example, to load the code for the task group from a file
+ *   or to access address environment private data.
  *
  * Input Parameters:
  *   addrenv - The representation of the task address environment previously
@@ -978,7 +997,7 @@ int up_addrenv_select(FAR const group_addrenv_t *addrenv,
  *
  * Description:
  *   After an address environment has been temporarily instantiated by
- *   up_addrenv_select(), this function may be called to to restore the
+ *   up_addrenv_select(), this function may be called to restore the
  *   original address environment.
  *
  * Input Parameters:
@@ -1220,6 +1239,44 @@ int up_addrenv_kstackfree(FAR struct tcb_s *tcb);
 #endif
 
 /****************************************************************************
+ * Name: up_addrenv_pa_to_va
+ *
+ * Description:
+ *   Map phy address to virtual address.  Not supported by all architectures.
+ *
+ *   REVISIT:  Should this not then be conditional on having that
+ *   architecture-specific support?
+ *
+ * Input Parameters:
+ *   pa - The phy address to be mapped.
+ *
+ * Returned Value:
+ *   Virtual address on success; NULL on failure.
+ *
+ ****************************************************************************/
+
+FAR void *up_addrenv_pa_to_va(uintptr_t pa);
+
+/****************************************************************************
+ * Name: up_addrenv_va_to_pa
+ *
+ * Description:
+ *   Map virtual address to phy address.  Not supported by all architectures.
+ *
+ *   REVISIT:  Should this not then be conditional on having that
+ *   architecture-specific support?
+ *
+ * Input Parameters:
+ *   va - The virtual address to be mapped.  Not supported by all architectures.
+ *
+ * Returned Value:
+ *   Phy address on success; NULL on failure.
+ *
+ ****************************************************************************/
+
+uintptr_t up_addrenv_va_to_pa(FAR void *va);
+
+/****************************************************************************
  * Name: up_shmat
  *
  * Description:
@@ -1265,77 +1322,14 @@ int up_shmdt(uintptr_t vaddr, unsigned int npages);
 
 /****************************************************************************
  * Interfaces required for ELF module support
- ****************************************************************************/
-/****************************************************************************
- * Name: up_checkarch
  *
- * Description:
- *   Given the ELF header in 'hdr', verify that the module is appropriate
- *   for the current, configured architecture.  Every architecture that uses
- *   the module loader must provide this function.
- *
- * Input Parameters:
- *   hdr - The ELF header read from the module file.
- *
- * Returned Value:
- *   True if the architecture supports this module file.
+ *   up_checkarch   - Perform architecture-specific ELF check
+ *   up_relocate    - Perform architecture-specific ELF relocation
+ *   up_relocateadd - Perform architecture-specific ELF relocation
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
-bool up_checkarch(FAR const Elf32_Ehdr *hdr);
-#endif
-
-/****************************************************************************
- * Name: up_relocate and up_relocateadd
- *
- * Description:
- *   Perform on architecture-specific ELF relocation.  Every architecture
- *   that uses the module loader must provide this function.
- *
- * Input Parameters:
- *   rel - The relocation type
- *   sym - The ELF symbol structure containing the fully resolved value.
- *         There are a few relocation types for a few architectures that do
- *         not require symbol information.  For those, this value will be
- *         NULL.  Implementations of these functions must be able to handle
- *         that case.
- *   addr - The address that requires the relocation.
- *
- * Returned Value:
- *   Zero (OK) if the relocation was successful.  Otherwise, a negated errno
- *   value indicating the cause of the relocation failure.
- *
- ****************************************************************************/
-
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
-int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
-                uintptr_t addr);
-int up_relocateadd(FAR const Elf32_Rela *rel,
-                   FAR const Elf32_Sym *sym, uintptr_t addr);
-#endif
-
-/****************************************************************************
- * Name: up_coherent_dcache
- *
- * Description:
- *   Ensure that the I and D caches are coherent within specified region
- *   by cleaning the D cache (i.e., flushing the D cache contents to memory
- *   and invalidating the I cache. This is typically used when code has been
- *   written to a memory region, and will be executed.
- *
- * Input Parameters:
- *   addr - virtual start address of region
- *   len  - Size of the address region in bytes
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ARCH_HAVE_COHERENT_DCACHE
-void up_coherent_dcache(uintptr_t addr, size_t len);
-#endif
+/* See prototype in include/nuttx/elf.h */
 
 /****************************************************************************
  * Name: up_interrupt_context
@@ -1390,6 +1384,18 @@ void up_disable_irq(int irq);
 #endif
 
 /****************************************************************************
+ * Name: up_trigger_irq
+ *
+ * Description:
+ *   Trigger an IRQ by software. May not be supported by all architectures.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_IRQTRIGGER
+void up_trigger_irq(int irq);
+#endif
+
+/****************************************************************************
  * Name: up_prioritize_irq
  *
  * Description:
@@ -1412,8 +1418,8 @@ int up_prioritize_irq(int irq, int priority);
  * following custom functions.
  *
  *   Architecture specific timer initialiation logic initializes the timer
- *     facilities.  This happens early in the intialization sequence (via
- *     up_intialize()).
+ *     facilities.  This happens early in the initialization sequence (via
+ *     up_initialize()).
  *   int up_timer_gettime(FAR struct timespec *ts):  Returns the current
  *     time from the platform specific time source.
  *
@@ -1435,10 +1441,10 @@ int up_prioritize_irq(int irq, int priority);
  * specific interval timer implementation:
  *
  * #ifdef CONFIG_SCHED_TICKLESS_ALARM
- *   void sched_alarm_expiration(FAR const struct timespec *ts):  Called
+ *   void nxsched_alarm_expiration(FAR const struct timespec *ts):  Called
  *     by the platform-specific logic when the alarm expires.
  * #else
- *   void sched_timer_expiration(void):  Called by the platform-specific
+ *   void nxsched_timer_expiration(void):  Called by the platform-specific
  *     logic when the interval timer expires.
  * #endif
  *
@@ -1492,7 +1498,7 @@ void up_timer_getmask(FAR uint64_t *mask);
  * Description:
  *   Cancel the alarm and return the time of cancellation of the alarm.
  *   These two steps need to be as nearly atomic as possible.
- *   sched_alarm_expiration() will not be called unless the alarm is
+ *   nxsched_alarm_expiration() will not be called unless the alarm is
  *   restarted with up_alarm_start().
  *
  *   If, as a race condition, the alarm has already expired when this
@@ -1528,14 +1534,14 @@ int up_alarm_cancel(FAR struct timespec *ts);
  * Name: up_alarm_start
  *
  * Description:
- *   Start the alarm.  sched_alarm_expiration() will be called when the
+ *   Start the alarm.  nxsched_alarm_expiration() will be called when the
  *   alarm occurs (unless up_alaram_cancel is called to stop it).
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
  *   ts - The time in the future at the alarm is expected to occur.  When
- *        the alarm occurs the timer logic will call sched_alarm_expiration().
+ *        the alarm occurs the timer logic will call nxsched_alarm_expiration().
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -1558,7 +1564,7 @@ int up_alarm_start(FAR const struct timespec *ts);
  * Description:
  *   Cancel the interval timer and return the time remaining on the timer.
  *   These two steps need to be as nearly atomic as possible.
- *   sched_timer_expiration() will not be called unless the timer is
+ *   nxsched_timer_expiration() will not be called unless the timer is
  *   restarted with up_timer_start().
  *
  *   If, as a race condition, the timer has already expired when this
@@ -1596,14 +1602,14 @@ int up_timer_cancel(FAR struct timespec *ts);
  * Name: up_timer_start
  *
  * Description:
- *   Start the interval timer.  sched_timer_expiration() will be called at
+ *   Start the interval timer.  nxsched_timer_expiration() will be called at
  *   the completion of the timeout (unless up_timer_cancel is called to stop
  *   the timing.
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
- *   ts - Provides the time interval until sched_timer_expiration() is
+ *   ts - Provides the time interval until nxsched_timer_expiration() is
  *        called.
  *
  * Returned Value:
@@ -1687,6 +1693,54 @@ int up_timer_start(FAR const struct timespec *ts);
 /* See prototype in include/nuttx/spinlock.h */
 
 /****************************************************************************
+ * Name: up_fetchadd8, up_fetchadd16, and up_fetchadd32
+ *
+ * Description:
+ *   Perform an atomic fetch add operation on the provided 8-, 16-, or 32-
+ *   bit value.
+ *
+ *   This function must be provided via the architecture-specific logic.
+ *
+ * Input Parameters:
+ *   addr  - The address of value to be incremented.
+ *   value - The addend
+ *
+ * Returned Value:
+ *   The incremented value (volatile!)
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_FETCHADD
+int32_t up_fetchadd32(FAR volatile int32_t *addr, int32_t value);
+int16_t up_fetchadd16(FAR volatile int16_t *addr, int16_t value);
+int8_t up_fetchadd8(FAR volatile int8_t *addr, int8_t value);
+#endif
+
+/****************************************************************************
+ * Name: up_fetchsub8
+ *
+ * Description:
+ *   Perform an atomic fetch subtract operation on the provided 8-, 16-, or
+ *   32-bit value.
+ *
+ *   This function must be provided via the architecture-specific logic.
+ *
+ * Input Parameters:
+ *   addr  - The address of value to be decremented.
+ *   value - The subtrahend
+ *
+ * Returned Value:
+ *   The decremented value (volatile!)
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_FETCHADD
+int32_t up_fetchsub32(FAR volatile int32_t *addr, int32_t value);
+int16_t up_fetchsub16(FAR volatile int16_t *addr, int16_t value);
+int8_t up_fetchsub8(FAR volatile int8_t *addr, int8_t value);
+#endif
+
+/****************************************************************************
  * Name: up_cpu_index
  *
  * Description:
@@ -1741,7 +1795,7 @@ int up_cpu_index(void);
  *   - adj_stack_ptr: Adjusted stack_alloc_ptr for HW.  The initial value of
  *     the stack pointer.
  *
- * Inputs:
+ * Input Parameters:
  *   - cpu:         CPU index that indicates which CPU the IDLE task is
  *                  being created for.
  *   - tcb:         The TCB of new CPU IDLE task
@@ -1941,12 +1995,12 @@ void up_mdelay(unsigned int milliseconds);
 void up_udelay(useconds_t microseconds);
 
 /****************************************************************************
- * These are standard interfaces that are exported by the OS for use by the
+ * These are standard interfaces that are exported by the OS for use by thecd .
  * architecture specific logic
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_process_timer
+ * Name: nxsched_process_timer
  *
  * Description:
  *   This function handles system timer events (only when
@@ -1958,11 +2012,11 @@ void up_udelay(useconds_t microseconds);
  ****************************************************************************/
 
 #ifndef CONFIG_SCHED_TICKLESS
-void sched_process_timer(void);
+void nxsched_process_timer(void);
 #endif
 
 /****************************************************************************
- * Name:  sched_timer_expiration
+ * Name:  nxsched_timer_expiration
  *
  * Description:
  *   if CONFIG_SCHED_TICKLESS is defined, then this function is provided by
@@ -1982,11 +2036,11 @@ void sched_process_timer(void);
  ****************************************************************************/
 
 #if defined(CONFIG_SCHED_TICKLESS) && !defined(CONFIG_SCHED_TICKLESS_ALARM)
-void sched_timer_expiration(void);
+void nxsched_timer_expiration(void);
 #endif
 
 /****************************************************************************
- * Name:  sched_alarm_expiration
+ * Name:  nxsched_alarm_expiration
  *
  * Description:
  *   if CONFIG_SCHED_TICKLESS is defined, then this function is provided by
@@ -2006,19 +2060,22 @@ void sched_timer_expiration(void);
  ****************************************************************************/
 
 #if defined(CONFIG_SCHED_TICKLESS) && defined(CONFIG_SCHED_TICKLESS_ALARM)
-void sched_alarm_expiration(FAR const struct timespec *ts);
+void nxsched_alarm_expiration(FAR const struct timespec *ts);
 #endif
 
 /****************************************************************************
- * Name: sched_process_cpuload
+ * Name: nxsched_process_cpuload
  *
  * Description:
- *   Collect data that can be used for CPU load measurements.
+ *   Collect data that can be used for CPU load measurements.  When
+ *   CONFIG_SCHED_CPULOAD_EXTCLK is defined, this is an exported interface,
+ *   use the the external clock logic.  Otherwise, it is an OS Internal
+ *   interface.
  *
- * Inputs:
+ * Input Parameters:
  *   None
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions/Limitations:
@@ -2028,7 +2085,7 @@ void sched_alarm_expiration(FAR const struct timespec *ts);
  ****************************************************************************/
 
 #if defined(CONFIG_SCHED_CPULOAD) && defined(CONFIG_SCHED_CPULOAD_EXTCLK)
-void weak_function sched_process_cpuload(void);
+void weak_function nxsched_process_cpuload(void);
 #endif
 
 /****************************************************************************
@@ -2054,7 +2111,7 @@ void irq_dispatch(int irq, FAR void *context);
  * Input Parameters:
  *   None
  *
- * Returned value:
+ * Returned Value:
  *   The estimated amount of stack space used.
  *
  ****************************************************************************/
@@ -2065,7 +2122,7 @@ size_t  up_check_tcbstack(FAR struct tcb_s *tcb);
 ssize_t up_check_tcbstack_remain(FAR struct tcb_s *tcb);
 size_t  up_check_stack(void);
 ssize_t up_check_stack_remain(void);
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
+#if defined(CONFIG_ARCH_INTERRUPTSTACK) && CONFIG_ARCH_INTERRUPTSTACK > 3
 size_t  up_check_intstack(void);
 size_t  up_check_intstack_remain(void);
 #endif
@@ -2325,6 +2382,30 @@ void arch_sporadic_start(FAR struct tcb_s *tcb);
 void arch_sporadic_lowpriority(FAR struct tcb_s *tcb);
 void arch_sporadic_suspend(FAR struct tcb_s *tcb);
 void arch_sporadic_resume(FAR struct tcb_s *tcb);
+#endif
+
+/********************************************************************************
+ * Name: up_critmon_*
+ *
+ * Description:
+ *   The first interface simply provides the current time value in unknown
+ *   units.  NOTE:  This function may be called early before the timer has
+ *   been initialized.  In that event, the function should just return a
+ *   start time of zero.
+ *
+ *   Nothing is assumed about the units of this time value.  The following
+ *   are assumed, however: (1) The time is an unsigned integer value, (2)
+ *   the time is monotonically increasing, and (3) the elapsed time (also
+ *   in unknown units) can be obtained by subtracting a start time from
+ *   the current time.
+ *
+ *   The second interface simple converts an elapsed time into well known
+ *   units.
+ ********************************************************************************/
+
+#ifdef CONFIG_SCHED_CRITMONITOR
+uint32_t up_critmon_gettime(void);
+void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts);
 #endif
 
 #undef EXTERN

@@ -85,7 +85,8 @@
 /* IP Header sizes */
 
 #ifdef CONFIG_NET_IPv4
-#  define IPv4_HDRLEN     20    /* Size of IPv4 header */
+#  define IPv4_HDRLEN     20    /* Size of IPv4 header (without options) */
+#  define IPv4_HLMASK     0x0f  /* Isolates headler length in VHL field */
 #endif
 
 #ifdef CONFIG_NET_IPv6
@@ -509,6 +510,46 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
 #endif
 
 /****************************************************************************
+ * Name: net_ipv4addr_broadcast
+ *
+ * Description:
+ *    Mask out the network part of an IP address, given the address and
+ *    the netmask.
+ *
+ *    Example:
+ *
+ *     in_addr_t ipaddr;
+ *     in_addr_t netmask;
+ *     bool isbroadcast;
+ *
+ *     net_ipaddr(&netmask, 255,255,255,0);
+ *     net_ipaddr(&ipaddr, 192,16,1,255);
+ *     isbroadcast = net_ipv4addr_broadcast(ipaddr, netmask);
+ *
+ *   Will return isboadcast == true.
+ *
+ *     net_ipaddr(&ipaddr, 192,16,1,2);
+ *     isbroadcast = net_ipv4addr_broadcast(ipaddr, netmask);
+ *
+ *   Will return isboadcast == false.
+ *
+ *   NOTES:
+ *   1. This function does not check for the broadcast address
+ *      255.255.255.255.  That must be performed as a seperate check.
+ *   2. You must also separately check if the ipaddress lies on the sub-net
+ *      using, perhaps, net_ipv4addr_maskcmp().
+ *
+ * Input Parameters:
+ *   addr - The IPv4 address to check
+ *   mask - The network mask
+ *
+ ****************************************************************************/
+
+#define net_ipv4addr_broadcast(addr, mask) \
+   (((in_addr_t)(addr) & ~(in_addr_t)(mask)) == \
+    ((in_addr_t)(0xffffffff) & ~(in_addr_t)(mask)))
+
+/****************************************************************************
  * Name: net_ipv6addr_prefixcmp
  *
  * Description:
@@ -523,7 +564,8 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
  * Name: net_is_addr_loopback
  *
  * Description:
- *   Is Ithe Pv6 address a the loopback address?
+ *   Is Ithe Pv6 address a the loopback address?  See RFC 4291 (replaces
+ *   3513).
  *
  ****************************************************************************/
 
@@ -535,7 +577,8 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
  * Name: net_is_addr_unspecified
  *
  * Description:
- *   Is Ithe IPv6 address the unspecified address?
+ *   Is Ithe IPv6 address the unspecified address?  See RFC 4291 (replaces
+ *   3513).
  *
  ****************************************************************************/
 
@@ -547,7 +590,21 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
  * Name: net_is_addr_mcast
  *
  * Description:
- *   s address a multicast address? see RFC 3513.
+ *   Is address a multicast address?  See RFC 4291 (replaces 3513):
+ *
+ *   An IPv6 multicast address is an identifier for a group of interfaces
+ *   (typically on different nodes).  An interface may belong to any number
+ *   of multicast groups.  Multicast addresses have the following format
+ *   (in host order):
+ *
+ *     |   8    |  4 |  4 |                  112 bits                   |
+ *     +------ -+----+----+---------------------------------------------+
+ *     |11111111|flgs|scop|                  group ID                   |
+ *     +--------+----+----+---------------------------------------------+
+ *
+ *   Bits 120-127: Prefix == 0b11111111
+ *   Bits 116-119: Flags (3 defined)
+ *   Bits 112-115: Scope
  *
  ****************************************************************************/
 
@@ -557,7 +614,8 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
  * Name: net_is_addr_linklocal_allnodes_mcast
  *
  * Description:
- *   Is IPv6 address a the link local all-nodes multicast address?
+ *   Is IPv6 address a the link local all-nodes multicast address?  See RFC
+ *   2375
  *
  ****************************************************************************/
 
@@ -569,7 +627,8 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
  * Name: net_is_addr_linklocal_allrouters_mcast
  *
  * Description:
- *   Is IPv6 address a the link local all-routers multicast address?
+ *   Is IPv6 address a the link local all-routers multicast address?  See RFC
+ *   2375
  *
  ****************************************************************************/
 
@@ -581,41 +640,23 @@ bool net_ipv6addr_maskcmp(const net_ipv6addr_t addr1,
  * Name: net_is_addr_linklocal
  *
  * Description:
- *   Checks whether the address a is link local.
+ *   Checks whether the address 'a' is a link local unicast address.  See
+ *   RFC 4291 (replaces 3513).
  *
  ****************************************************************************/
 
 #define net_is_addr_linklocal(a) ((a)[0] == HTONS(0xfe80))
 
 /****************************************************************************
- * Name: net_ipaddr_mask
+ * Name: net_is_addr_sitelocal
  *
  * Description:
- *    Mask out the network part of an IP address, given the address and
- *    the netmask.
- *
- *    Example:
- *
- *     in_addr_t ipaddr1, ipaddr2, netmask;
- *
- *     net_ipaddr(&ipaddr1, 192,16,1,2);
- *     net_ipaddr(&netmask, 255,255,255,0);
- *     net_ipaddr_mask(&ipaddr2, &ipaddr1, &netmask);
- *
- *   In the example above, the variable "ipaddr2" will contain the IP
- *   address 192.168.1.0.
- *
- * Input Parameters:
- *   dest Where the result is to be placed.
- *   src The IP address.
- *   mask The netmask.
+ *   Checks whether the address 'a' is a site local unicast address.  See
+ *   RFC 4291 (replaces 3513).
  *
  ****************************************************************************/
 
-#define net_ipaddr_mask(dest, src, mask) \
-  do { \
-    (in_addr_t)(dest) = (in_addr_t)(src) & (in_addr_t)(mask); \
-  } while (0)
+#define net_is_addr_sitelocal(a) ((a)[0] == HTONS(0xfec0))
 
 #undef EXTERN
 #ifdef __cplusplus

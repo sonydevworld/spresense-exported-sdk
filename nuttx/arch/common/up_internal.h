@@ -1,7 +1,7 @@
 /****************************************************************************
  * common/up_internal.h
  *
- *   Copyright (C) 2007-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2015, 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,33 +52,22 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Bring-up debug configurations.  These are here (vs defconfig)
- * because these should only be controlled during low level
- * board bring-up and not part of normal platform configuration.
- */
-
-#undef  CONFIG_SUPPRESS_INTERRUPTS    /* DEFINED: Do not enable interrupts */
-#undef  CONFIG_SUPPRESS_TIMER_INTS    /* DEFINED: No timer */
-#undef  CONFIG_SUPPRESS_SERIAL_INTS   /* DEFINED: Console will poll */
-#undef  CONFIG_SUPPRESS_UART_CONFIG   /* DEFINED: Do not reconfig UART */
-#undef  CONFIG_DUMP_ON_EXIT           /* DEFINED: Dump task state on exit */
-
-#ifndef CONFIG_DEBUG_SCHED_INFO
-#  undef CONFIG_DUMP_ON_EXIT          /* Needs CONFIG_DEBUG_SCHED_INFO */
-#endif
-
 /* Determine which (if any) console driver to use.  If a console is enabled
  * and no other console device is specified, then a serial console is
  * assumed.
  */
 
-#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS == 0
+#ifndef CONFIG_DEV_CONSOLE
 #  undef  USE_SERIALDRIVER
 #  undef  USE_EARLYSERIALINIT
 #  undef  CONFIG_DEV_LOWCONSOLE
 #  undef  CONFIG_RAMLOG_CONSOLE
 #else
-#  if defined(CONFIG_RAMLOG_CONSOLE)
+#  if defined(CONFIG_ARM_LWL_CONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
+#    undef  CONFIG_DEV_LOWCONSOLE
+#  elif defined(CONFIG_RAMLOG_CONSOLE)
 #    undef  USE_SERIALDRIVER
 #    undef  USE_EARLYSERIALINIT
 #    undef  CONFIG_DEV_LOWCONSOLE
@@ -115,32 +104,25 @@
  * some configurations.
  */
 
-#if defined(CONFIG_ARCH_CORTEXM0) || defined(CONFIG_ARCH_CORTEXM3) || \
-    defined(CONFIG_ARCH_CORTEXM4) || defined(CONFIG_ARCH_CORTEXM7)
+#if defined(CONFIG_ARCH_CORTEXM0) || defined(CONFIG_ARCH_ARMV7M)
 
   /* If the floating point unit is present and enabled, then save the
    * floating point registers as well as normal ARM registers.  This only
    * applies if "lazy" floating point register save/restore is used
-   * (i.e., not CONFIG_ARMV7M_CMNVECTOR=y with CONFIG_ARMV7M_LAZYFPU=n).
    */
 
-#  if defined(CONFIG_ARCH_FPU) && (!defined(CONFIG_ARMV7M_CMNVECTOR) || \
-      defined(CONFIG_ARMV7M_LAZYFPU))
+#  if defined(CONFIG_ARCH_FPU) && defined(CONFIG_ARMV7M_LAZYFPU)
 #    define up_savestate(regs)  up_copyarmstate(regs, (uint32_t*)CURRENT_REGS)
 #  else
 #    define up_savestate(regs)  up_copyfullstate(regs, (uint32_t*)CURRENT_REGS)
 #  endif
 #  define up_restorestate(regs) (CURRENT_REGS = regs)
 
-/* The Cortex-A and Cortex-R supports the same mechanism, but only lazy
+/* The Cortex-A and Cortex-R support the same mechanism, but only lazy
  * floating point register save/restore.
  */
 
-#elif defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8)  || \
-      defined(CONFIG_ARCH_CORTEXA9) || \
-      defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR4F) || \
-      defined(CONFIG_ARCH_CORTEXR5) || defined(CONFIG_ARCH_CORTEXR5F) || \
-      defined(CONFIG_ARCH_CORTEXR7) || defined(CONFIG_ARCH_CORTEXR7F)
+#elif defined(CONFIG_ARCH_ARMV7A) || defined(CONFIG_ARCH_ARMV7R)
 
   /* If the floating point unit is present and enabled, then save the
    * floating point registers as well as normal ARM registers.
@@ -321,7 +303,7 @@ EXTERN uint32_t _eramfuncs;       /* Copy destination end address in RAM */
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
@@ -353,19 +335,13 @@ void up_pminitialize(void);
 #  define up_pminitialize()
 #endif
 
-#if defined(CONFIG_ARCH_CORTEXM0) || defined(CONFIG_ARCH_CORTEXM3) || \
-    defined(CONFIG_ARCH_CORTEXM4) || defined(CONFIG_ARCH_CORTEXM7)
-void up_systemreset(void) noreturn_function;
-#endif
-
 /* Interrupt handling *******************************************************/
 
 void up_irqinitialize(void);
 
 /* Exception handling logic unique to the Cortex-M family */
 
-#if defined(CONFIG_ARCH_CORTEXM0) || defined(CONFIG_ARCH_CORTEXM3) || \
-    defined(CONFIG_ARCH_CORTEXM4) || defined(CONFIG_ARCH_CORTEXM7)
+#if defined(CONFIG_ARCH_CORTEXM0) || defined(CONFIG_ARCH_ARMV7M)
 
 /* Interrupt acknowledge and dispatch */
 
@@ -377,8 +353,7 @@ uint32_t *up_doirq(int irq, uint32_t *regs);
 int  up_svcall(int irq, FAR void *context, FAR void *arg);
 int  up_hardfault(int irq, FAR void *context, FAR void *arg);
 
-#  if defined(CONFIG_ARCH_CORTEXM3) || defined(CONFIG_ARCH_CORTEXM4) || \
-      defined(CONFIG_ARCH_CORTEXM7)
+#  if defined(CONFIG_ARCH_ARMV7M)
 
 int  up_memfault(int irq, FAR void *context, FAR void *arg);
 
@@ -388,11 +363,7 @@ int  up_memfault(int irq, FAR void *context, FAR void *arg);
 * (but should be back-ported to the ARM7 and ARM9 families).
  */
 
-#elif defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8)  || \
-      defined(CONFIG_ARCH_CORTEXA9) || \
-      defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR4F) || \
-      defined(CONFIG_ARCH_CORTEXR5) || defined(CONFIG_ARCH_CORTEXR5F) || \
-      defined(CONFIG_ARCH_CORTEXR7) || defined(CONFIG_ARCH_CORTEXR7F)
+#elif defined(CONFIG_ARCH_ARMV7A) || defined(CONFIG_ARCH_ARMV7R)
 
 /* Interrupt acknowledge and dispatch */
 
@@ -482,10 +453,24 @@ void up_earlyserialinit(void);
 #  define up_earlyserialinit()
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void);
+#else
+#  define rpmsg_serialinit()
+#endif
+
+#ifdef CONFIG_ARM_LWL_CONSOLE
+
+/* Defined in src/common/up_lwl_console.c */
+
+void lwlconsole_init(void);
+
+#elif defined(CONFIG_DEV_LOWCONSOLE)
+
 /* Defined in drivers/lowconsole.c */
 
-#ifdef CONFIG_DEV_LOWCONSOLE
 void lowconsole_init(void);
+
 #else
 # define lowconsole_init()
 #endif
@@ -493,7 +478,7 @@ void lowconsole_init(void);
 /* DMA **********************************************************************/
 
 #ifdef CONFIG_ARCH_DMA
-void weak_function up_dmainitialize(void);
+void weak_function up_dma_initialize(void);
 #endif
 
 /* Cache control ************************************************************/
@@ -528,7 +513,7 @@ void up_wdtinit(void);
  * up_initialize().  Then this stub would not be needed.
  */
 
-#ifdef CONFIG_NET
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void);
 #else
 # define up_netinitialize()

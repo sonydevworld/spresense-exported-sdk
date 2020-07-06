@@ -40,6 +40,7 @@
  * Included Files
  *******************************************************************************************/
 
+#include <signal.h>
 #include <sys/socket.h>
 
 /*******************************************************************************************
@@ -117,11 +118,10 @@
  * of PHY state changes.
  */
 
-struct mii_iotcl_notify_s
+struct mii_ioctl_notify_s
 {
-  pid_t pid;     /* PID of the task to receive the signal.  Zero means "this task" */
-  uint8_t signo; /* Signal number to use when signalling */
-  FAR void *arg; /* An argument that will accompany the signal callback */
+  pid_t pid;             /* PID of the task to receive the signal.  Zero means "this task" */
+  struct sigevent event; /* Describe the way a task is to be notified */
 };
 
 /* Structure passed to read from or write to the MII/PHY management interface via the
@@ -156,7 +156,7 @@ struct lifreq
     int                       lifru_count;              /* Number of devices */
     int                       lifru_mtu;                /* MTU size */
     uint8_t                   lifru_flags;              /* Interface flags */
-    struct mii_iotcl_notify_s llfru_mii_notify;         /* PHY event notification */
+    struct mii_ioctl_notify_s llfru_mii_notify;         /* PHY event notification */
     struct mii_ioctl_data_s   lifru_mii_data;           /* MII request data */
   } lifr_ifru;
 };
@@ -170,12 +170,26 @@ struct lifreq
 #define lifr_count            lifr_ifru.lifru_count     /* Number of devices */
 #define lifr_flags            lifr_ifru.lifru_flags     /* interface flags */
 #define lifr_mii_notify_pid   lifr_ifru.llfru_mii_notify.pid   /* PID to be notified */
-#define lifr_mii_notify_signo lifr_ifru.llfru_mii_notify.signo /* Signal to notify with */
-#define lifr_mii_notify_arg   lifr_ifru.llfru_mii_notify.arg   /* sigval argument */
+#define lifr_mii_notify_event lifr_ifru.llfru_mii_notify.event /* Describes notification */
 #define lifr_mii_phy_id       lifr_ifru.lifru_mii_data.phy_id  /* PHY device address */
 #define lifr_mii_reg_num      lifr_ifru.lifru_mii_data.reg_num /* PHY register address */
 #define lifr_mii_val_in       lifr_ifru.lifru_mii_data.val_in  /* PHY input data */
 #define lifr_mii_val_out      lifr_ifru.lifru_mii_data.val_out /* PHY output data */
+
+/* Used only with the SIOCGLIFCONF IOCTL commnd*/
+
+struct lifconf
+{
+  size_t                      lifc_len;                 /* Size of buffer */
+  union
+  {
+    FAR char                 *lifcu_buf;                /* Buffer address */
+    FAR struct lifreq        *lifcu_req;                /* Array of ifreq structures */
+  } lifc_ifcu;
+};
+
+#define lifc_buf              lifc_ifcu.lifcu_buf       /* Buffer address */
+#define lifc_req              lifc_ifcu.lifcu_req       /* Array of ifreq structures */
 
 /* This is the I/F request that should be used with IPv4. */
 
@@ -192,7 +206,7 @@ struct ifreq
     int                       ifru_count;               /* Number of devices */
     int                       ifru_mtu;                 /* MTU size */
     uint8_t                   ifru_flags;               /* Interface flags */
-    struct mii_iotcl_notify_s ifru_mii_notify;          /* PHY event notification */
+    struct mii_ioctl_notify_s ifru_mii_notify;          /* PHY event notification */
     struct mii_ioctl_data_s   ifru_mii_data;            /* MII request data */
   } ifr_ifru;
 };
@@ -206,15 +220,78 @@ struct ifreq
 #define ifr_count             ifr_ifru.ifru_count       /* Number of devices */
 #define ifr_flags             ifr_ifru.ifru_flags       /* interface flags */
 #define ifr_mii_notify_pid    ifr_ifru.ifru_mii_notify.pid   /* PID to be notified */
-#define ifr_mii_notify_signo  ifr_ifru.ifru_mii_notify.signo /* Signal to notify with */
+#define ifr_mii_notify_event  ifr_ifru.ifru_mii_notify.event /* Describes notification */
 #define ifr_mii_notify_arg    ifr_ifru.ifru_mii_notify.arg   /* sigval argument */
 #define ifr_mii_phy_id        ifr_ifru.ifru_mii_data.phy_id  /* PHY device address */
 #define ifr_mii_reg_num       ifr_ifru.ifru_mii_data.reg_num /* PHY register address */
 #define ifr_mii_val_in        ifr_ifru.ifru_mii_data.val_in  /* PHY input data */
 #define ifr_mii_val_out       ifr_ifru.ifru_mii_data.val_out /* PHY output data */
 
+/* Used only with the SIOCGIFCONF IOCTL commnd*/
+
+struct ifconf
+{
+  size_t                      ifc_len;                   /* Size of buffer */
+  union
+  {
+    FAR char                 *ifcu_buf;                 /* Buffer address */
+    FAR struct ifreq         *ifcu_req;                 /* Array of ifreq structures */
+  } ifc_ifcu;
+};
+
+#define ifc_buf              ifc_ifcu.ifcu_buf          /* Buffer address */
+#define ifc_req              ifc_ifcu.ifcu_req          /* Array of ifreq structures */
+
 /*******************************************************************************************
  * Public Function Prototypes
  *******************************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+/*******************************************************************************************
+ * Name: if_nametoindex
+ *
+ * Description:
+ *   The if_nametoindex() function returns the interface index corresponding to name ifname.
+ *
+ * Input Parameters:
+ *   ifname - The interface name
+ *
+ * Returned Value:
+ *   The corresponding index if ifname is the name of an interface; otherwise, zero.
+ *
+ *******************************************************************************************/
+
+unsigned int if_nametoindex(FAR const char *ifname);
+
+/*******************************************************************************************
+ * Name: if_indextoname
+ *
+ * Description:
+ *   The if_indextoname() function maps an interface index to its corresponding name.
+ *
+ * Input Parameters:
+ *   ifname  - Points to a buffer of at least IF_NAMESIZE bytes.  if_indextoname() will
+ *             place in this buffer the name of the interface with index ifindex.
+ *
+ * Returned Value:
+ *   If ifindex is an interface index, then the function will return the value supplied by
+ *   ifname. Otherwise, the function returns a NULL pointer and sets errno to indicate the
+ *   error.
+ *
+ *******************************************************************************************/
+
+FAR char *if_indextoname(unsigned int ifindex, FAR char *ifname);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __INCLUDE_NET_IF_H */

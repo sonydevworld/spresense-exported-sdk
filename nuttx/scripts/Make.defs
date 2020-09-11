@@ -16,7 +16,11 @@ STRIP            = arm-none-eabi-strip
 OBJCOPY          = arm-none-eabi-objcopy
 OBJDUMP          = arm-none-eabi-objdump
 NXFLATLDFLAGS1   = -r -d -warn-common
+<<<<<<< HEAD
 NXFLATLDFLAGS2   = -r -d -warn-common -Tspresense/nuttx/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
+=======
+NXFLATLDFLAGS2   = -r -d -warn-common -T/spresense-build/nuttx/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
+>>>>>>> 752c4cd... Change USERMAIN_STACKSIZE to 2048
 OBJEXT           = .o
 LIBEXT           = .a
 EXEEXT           = 
@@ -27,7 +31,11 @@ HOSTLDFLAGS      =
 HOSTEXEEXT       = 
 DIRLINK          = 
 DIRUNLINK        = 
+<<<<<<< HEAD
 MKDEP            = spresense/nuttx/tools/mkdeps
+=======
+MKDEP            = /spresense-build/nuttx/tools/mkdeps
+>>>>>>> 752c4cd... Change USERMAIN_STACKSIZE to 2048
 LDSCRIPT         = ramconfig.ld
 LDFLAGS      = 
 HEAD_OBJ     = 

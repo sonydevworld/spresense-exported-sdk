@@ -18,7 +18,7 @@ Prepared and exported Spresense SDK. To reproduce this, follow the steps below.
 
 ## Step 4 - Extract Spresense SDK and change the name of the folder
 
-    $ unzip sdk-export.zip
+    $ tar xvzf sdk-export.tar.gz
     $ mv sdk-export spresense-exported-sdk
 
 ## Step 5 - Modify Spresense SDK

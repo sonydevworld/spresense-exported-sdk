@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/video/isx012.h
+ * mpcomm/helper/helper.h
  *
- *   Copyright 2018 Sony Semiconductor Solutions Corporation
+ *   Copyright 2021 Sony Semiconductor Solutions Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,42 +33,100 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_VIDEO_ISX012_H
-#define __INCLUDE_NUTTX_VIDEO_ISX012_H
+/**
+ * @file helper.h
+ */
+
+#ifndef __MODULES_INCLUDE_MPCOMM_HELPER_H
+#define __MODULES_INCLUDE_MPCOMM_HELPER_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
+#include <asmp/types.h>
+#include <asmp/mpmq.h>
+
+#include <mpcomm/common.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/** Convert address from virtual to physical */
+
+#define MEM_V2P(addr) helper_memory_virt_to_phys(addr)
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-/****************************************************************************
- * Public Data
- ****************************************************************************/
+/** Definition of callback function.
+ *
+ *  User-defined callback that is called by helper_main()
+ *  after receiving data from the controller.
+ *
+ * @param[in] data : User data received from the controller.
+ */
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+typedef void (*helper_user_func_t)(void *data);
+
+/**
+ * @struct helper_context
+ *
+ * Structure of information needed by a helper in the MPCOMM framework.
+ *
+ * @typedef helper_context_t
+ * See @ref helper_context
+ */
+
+typedef struct helper_context
 {
-#else
-#define EXTERN extern
-#endif
+  /** MP message queue to supervisor. See @ref mpmq_t */
+
+  mpmq_t mq_2_supervisor;
+
+  /** MP message queue to controller. See @ref mpmq_t */
+
+  mpmq_t mq_2_controller;
+
+  /** User-defined callback. See @ref helper_user_func_t */
+
+  helper_user_func_t user_func;
+
+  /** Helper load address. */
+
+  uintptr_t loadaddr;
+
+  /** If 0, the helper should stay in the loop and if 1 it should quit. */
+
+  uint8_t quit_loop;
+} helper_context_t;
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-FAR struct video_sensctrl_ops_s *isx012_initialize(void);
-int isx012_uninitialize(void);
 
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
+/**
+ * Start the MPCOMM framework on the helper. The user can register a callback
+ * that will handle the data received from the controller.
+ *
+ * @param [in] user_func: User-defined callback.
+ *
+ * @return On success, 0 is returned. On failure,
+ * negative value is returned according to <errno.h>.
+ */
 
-#endif /* __INCLUDE_NUTTX_VIDEO_ISX012_H */
+int helper_main(helper_user_func_t user_func);
+
+/**
+ * Convert address from virtual to physical.
+ *
+ * @param [in] addr: Virtual address.
+ *
+ * @return Physical address.
+ */
+
+void *helper_memory_virt_to_phys(void *addr);
+
+#endif /* __MODULES_INCLUDE_MPCOMM_HELPER_H */

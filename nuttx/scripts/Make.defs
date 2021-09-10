@@ -4,7 +4,7 @@ ARCHCXXFLAGS     = -fno-builtin -fno-exceptions -fno-rtti -std=c++11
 ARCHPICFLAGS     = -fpic -msingle-pic-base -mpic-register=r10
 ARCHWARNINGS     = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHWARNINGSXX   = -Wall -Wshadow -Wundef
-ARCHOPTIMIZATION = -g -Os -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
+ARCHOPTIMIZATION = -Os -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
 CROSSDEV         = arm-none-eabi-
 CC               = arm-none-eabi-gcc
 CXX              = arm-none-eabi-g++
@@ -26,10 +26,10 @@ HOSTCFLAGS       = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe
 HOSTLDFLAGS      = 
 HOSTEXEEXT       = 
 LDNAME           = ramconfig-new.ld
-EXTRA_LIBS       = -lgcc -lm -lmodules -lnnablart -larm_cortexM4lf_math -lcmsis_nn
+EXTRA_LIBS       = -lgcc -lm
 EXTRA_OBJS       = 
 HEAD_OBJ         = 
 LDENDGROUP       = 
-LDFLAGS          = --gc-sections -nostartfiles -nodefaultlibs -g -Map=spresense/nuttx/nuttx.map --cref --defsym=__reserved_ramsize=0xc0000
+LDFLAGS          = --gc-sections -nostartfiles -nodefaultlibs -Map=spresense/nuttx/nuttx.map --cref
 LDSTARTGROUP     = 
-LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lxx -lapps -lnet -lfs -lbinfmt -laudio -lboard 
+LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lapps -lfs -lbinfmt -lboard 

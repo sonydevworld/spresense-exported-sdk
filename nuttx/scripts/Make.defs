@@ -32,4 +32,4 @@ HEAD_OBJ         =
 LDENDGROUP       = 
 LDFLAGS          = --gc-sections -nostartfiles -nodefaultlibs -Map=spresense/nuttx/nuttx.map --cref
 LDSTARTGROUP     = 
-LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lapps -lfs -lbinfmt -lboard 
+LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lapps -lfs -lbinfmt -laudio -lboard 

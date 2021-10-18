@@ -1,0 +1,127 @@
+From 3aaf60879b5aea3ae6ebdd0880033039009af57c Mon Sep 17 00:00:00 2001
+From: Tobias Johansson <tobias.johansson@sony.com>
+Date: Mon, 8 Nov 2021 14:25:42 +0100
+Subject: [PATCH] drivers/audio/cxd56: Audio corrections
+
+CXD56 audio driver corrections:
+- Only support 48kHz without SRC
+- Only turn on amp during playback
+- Close mqueue on SRC deinit
+- Add missing inode_release in mq_unlink
+- Fix malplaced return statement
+---
+ audio/pcm_decode.c        |  6 ++++--
+ drivers/audio/cxd56.c     | 23 +++++++++++++++++------
+ drivers/audio/cxd56_src.c |  2 ++
+ fs/mqueue/mq_unlink.c     |  2 ++
+ 4 files changed, 25 insertions(+), 8 deletions(-)
+
+diff --git a/audio/pcm_decode.c b/audio/pcm_decode.c
+index 3952a649f7..28f051bd02 100644
+--- a/audio/pcm_decode.c
++++ b/audio/pcm_decode.c
+@@ -1169,14 +1169,16 @@ static int pcm_enqueuebuffer(FAR struct audio_lowerhalf_s *dev,
+       priv->export.upper(priv->export.priv, AUDIO_CALLBACK_COMPLETE,
+                          NULL, OK);
+ #endif
+-    }
+ 
+ #ifndef CONFIG_AUDIO_FORMAT_RAW
++    }
++
+   /* This is not a WAV file! */
+ 
+   auderr("ERROR: Invalid PCM WAV file\n");
+-  return -EINVAL;
+ #endif
++
++  return -EINVAL;
+ }
+ 
+ /****************************************************************************
+diff --git a/drivers/audio/cxd56.c b/drivers/audio/cxd56.c
+index 79d11a3772..14e4c5fc67 100644
+--- a/drivers/audio/cxd56.c
++++ b/drivers/audio/cxd56.c
+@@ -75,8 +75,9 @@
+ #define CXD56_IN_CHANNELS_MAX  8
+ #define CXD56_OUT_CHANNELS_MAX 2
+ 
+-/* Samplerates field is split into low and high byte */
++/* Samplerates field is split into low and high byte. */
+ 
++#ifdef CONFIG_AUDIO_CXD56_SRC
+ #define CXD56_SUPP_RATES_L  (AUDIO_SAMP_RATE_8K  | AUDIO_SAMP_RATE_11K | \
+                              AUDIO_SAMP_RATE_16K | AUDIO_SAMP_RATE_22K | \
+                              AUDIO_SAMP_RATE_32K | AUDIO_SAMP_RATE_44K | \
+@@ -84,6 +85,12 @@
+ #define CXD56_SUPP_RATES_H  ((AUDIO_SAMP_RATE_96K  | AUDIO_SAMP_RATE_128K | \
+                               AUDIO_SAMP_RATE_192K) >> 8)
+ #define CXD56_SUPP_RATES    (CXD56_SUPP_RATES_L | CXD56_SUPP_RATES_H)
++#else
++/* No sample rate converter, only support system rate of 48kHz */
++#define CXD56_SUPP_RATES_L  AUDIO_SAMP_RATE_48K
++#define CXD56_SUPP_RATES_H  0x0
++#define CXD56_SUPP_RATES    (CXD56_SUPP_RATES_L | CXD56_SUPP_RATES_H)
++#endif
+ 
+ /* Mic setting definitions */
+ 
+@@ -1383,7 +1390,8 @@ static void _process_audio(cxd56_dmahandle_t hdl, uint16_t err_code)
+     {
+       /* Notify end of data */
+ 
+-      if (dev->state != CXD56_DEV_STATE_PAUSED)
++      if (dev->state != CXD56_DEV_STATE_PAUSED &&
++          dev->state != CXD56_DEV_STATE_STOPPED)
+         {
+           audinfo("DMA_TRANS up_pendq=%d \n",
+                  dq_count(&dev->up_pendq));
+@@ -3257,11 +3265,14 @@ static int cxd56_start_dma(FAR struct cxd56_dev_s *dev)
+ 
+           if (dev->state != CXD56_DEV_STATE_STARTED)
+             {
+-              /* Turn on amplifier */
++              if (dev->dma_handle == CXD56_AUDIO_DMA_I2S0_DOWN)
++                {
++                  /* Turn on amplifier */
+ 
+-              spin_unlock_irqrestore(&dev->lock, flags);
+-              board_external_amp_mute_control(false);
+-              flags = spin_lock_irqsave(&dev->lock);
++                  spin_unlock_irqrestore(&dev->lock, flags);
++                  board_external_amp_mute_control(false);
++                  flags = spin_lock_irqsave(&dev->lock);
++                }
+ 
+               /* Mask interrupts */
+ 
+diff --git a/drivers/audio/cxd56_src.c b/drivers/audio/cxd56_src.c
+index 8f1e8d560f..34ca864c2b 100644
+--- a/drivers/audio/cxd56_src.c
++++ b/drivers/audio/cxd56_src.c
+@@ -530,6 +530,8 @@ int cxd56_src_deinit(void)
+     file_close(&dump_file_post);
+ #endif
+ 
++  file_mq_close(&g_src->mq);
++
+   return OK;
+ }
+ 
+diff --git a/fs/mqueue/mq_unlink.c b/fs/mqueue/mq_unlink.c
+index 679b47e058..a0a5afeae4 100644
+--- a/fs/mqueue/mq_unlink.c
++++ b/fs/mqueue/mq_unlink.c
+@@ -64,6 +64,8 @@ static void mq_inode_release(FAR struct inode *inode)
+           nxmq_free_msgq(msgq);
+           inode->i_private = NULL;
+         }
++
++      inode_release(inode);
+     }
+ }
+ 
+-- 
+2.17.1
+

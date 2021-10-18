@@ -7,7 +7,7 @@
 #define CONFIG_VERSION_MAJOR 10
 #define CONFIG_VERSION_MINOR 1
 #define CONFIG_VERSION_PATCH 0
-#define CONFIG_VERSION_BUILD "2ffe58b6dc"
+#define CONFIG_VERSION_BUILD "2ffe58b6dc-dirty"
 
 #define CONFIG_VERSION ((CONFIG_VERSION_MAJOR << 16) |\
                         (CONFIG_VERSION_MINOR << 8) |\

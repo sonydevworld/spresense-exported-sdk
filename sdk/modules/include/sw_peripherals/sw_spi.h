@@ -1,7 +1,7 @@
 /****************************************************************************
- * modules/include/fwuputils/fwup_client.h
+ * modules/include/sw_peripherals/sw_spi.h
  *
- *   Copyright 2018, 2021 Sony Semiconductor Solutions Corporation
+ *   Copyright 2021 Sony Semiconductor Solutions Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,65 +33,66 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_FWUPUTILS_FWUP_CLIENTS_H
-#define __APPS_INCLUDE_FWUPUTILS_FWUP_CLIENTS_H
+/**
+ * @file sw_spi.h
+ */
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+#ifndef __MODULES_SW_PERIPHERALS_SW_SPI_H__
+#define __MODULES_SW_PERIPHERALS_SW_SPI_H__
 
-#include <nuttx/config.h>
-#include <stdint.h>
+/**
+ * @defgroup sw_spi Software SPI
+ * @{
+ *
+ * Software emulated SPI Driver.
+ */
 
-/****************************************************************************
- * Public Types
- ****************************************************************************/
+#include <nuttx/spi/spi.h>
 
-enum fw_type_e
-{
-  FW_APP,
-  FW_SYS,
-  FW_UPDATER,
-  FW_SBL,
-};
-
-struct fwup_client_s
-{
-  /* operations */
-
-  int (*init)(void);
-  int (*msgsync)(void);
-  int (*download)(enum fw_type_e fwtype, uint32_t fwsize,
-                  void *data, uint32_t size);
-  int (*update)(void);
-  int (*suspend)(void);
-  int (*resume)(void);
-  int (*abort)(void);
-  int (*uninit)(void);
-};
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifdef __cplusplus
-#define EXTERN extern "C"
+#  ifdef __cplusplus
+#    define EXTERN extern "C"
 extern "C"
 {
-#else
-#define EXTERN extern
-#endif
+#  else
+#    define EXTERN extern
+#  endif
 
-/****************************************************************************
+/********************************************************************************
  * Public Function Prototypes
- ****************************************************************************/
+ ********************************************************************************/
 
-struct fwup_client_s *fwup_client_setup(void);
-uint32_t fwup_client_getfreespace(void);
+/**
+ * @defgroup sw_spi_func Functions
+ * @{
+ */
 
-#undef EXTERN
-#ifdef __cplusplus
+/**
+ * Create software emulated SPI driver.
+ *
+ * @param [in] cs_pin: Chip Select pin number.
+ * @param [in] sck_pin: SCK signal pin number.
+ * @param [in] mosi_pin: MOSI signal pin number.
+ * @param [in] miso_pin: MISO signal pin number.
+ */
+
+FAR struct spi_dev_s *create_swspi(int cs_pin, int sck_pin, int mosi_pin,
+    int miso_pin);
+
+/**
+ * Destroy an instance of software emulated SPI driver.
+ *
+ * @param [in] dev: Instance of Software SPI.
+ */
+
+void destroy_swspi(FAR struct spi_dev_s *dev);
+
+/** @} sw_spi_func */
+
+#  undef EXTERN
+#  ifdef __cplusplus
 }
-#endif
+#  endif
 
-#endif /* __APPS_INCLUDE_FWUPUTILS_FWUP_CLIENTS_H */
+/** @} sw_spi */
+
+#endif  /* __MODULES_SW_PERIPHERALS_SW_SPI_H__ */

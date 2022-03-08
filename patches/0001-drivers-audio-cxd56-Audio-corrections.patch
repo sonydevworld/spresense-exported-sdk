@@ -1,25 +1,44 @@
-From 3aaf60879b5aea3ae6ebdd0880033039009af57c Mon Sep 17 00:00:00 2001
+From 5c4ecb5c295506a610db702cffdcd297774cc5ad Mon Sep 17 00:00:00 2001
 From: Tobias Johansson <tobias.johansson@sony.com>
 Date: Mon, 8 Nov 2021 14:25:42 +0100
 Subject: [PATCH] drivers/audio/cxd56: Audio corrections
 
 CXD56 audio driver corrections:
-- Only support 48kHz without SRC
+- Support 48 and 192 kHz without SRC
 - Only turn on amp during playback
 - Close mqueue on SRC deinit
 - Add missing inode_release in mq_unlink
 - Fix malplaced return statement
 ---
- audio/pcm_decode.c        |  6 ++++--
- drivers/audio/cxd56.c     | 23 +++++++++++++++++------
+ audio/pcm_decode.c        | 10 ++++++----
+ drivers/audio/cxd56.c     | 29 ++++++++++++++++++++---------
+ drivers/audio/cxd56.h     |  2 +-
  drivers/audio/cxd56_src.c |  2 ++
  fs/mqueue/mq_unlink.c     |  2 ++
- 4 files changed, 25 insertions(+), 8 deletions(-)
+ 5 files changed, 31 insertions(+), 14 deletions(-)
 
 diff --git a/audio/pcm_decode.c b/audio/pcm_decode.c
-index 3952a649f7..28f051bd02 100644
+index 3952a649f7..dfb9721de0 100644
 --- a/audio/pcm_decode.c
 +++ b/audio/pcm_decode.c
+@@ -1098,15 +1098,15 @@ static int pcm_enqueuebuffer(FAR struct audio_lowerhalf_s *dev,
+        * and sample bitwidth.
+        */
+ 
+-      DEBUGASSERT(priv->samprate < 65535);
++      DEBUGASSERT(priv->samprate < 16777215);  /* Max size using 3 bytes */
+ 
+       caps.ac_len            = sizeof(struct audio_caps_s);
+       caps.ac_type           = AUDIO_TYPE_OUTPUT;
+       caps.ac_channels       = priv->nchannels;
+ 
+       caps.ac_controls.hw[0] = (uint16_t)priv->samprate;
++      caps.ac_controls.b[3] = (uint16_t)(priv->samprate >> 16);
+       caps.ac_controls.b[2]  = priv->bpsamp;
+-
+ #ifdef CONFIG_AUDIO_MULTI_SESSION
+       ret = lower->ops->configure(lower, priv->session, &caps);
+ #else
 @@ -1169,14 +1169,16 @@ static int pcm_enqueuebuffer(FAR struct audio_lowerhalf_s *dev,
        priv->export.upper(priv->export.priv, AUDIO_CALLBACK_COMPLETE,
                           NULL, OK);
@@ -40,7 +59,7 @@ index 3952a649f7..28f051bd02 100644
  
  /****************************************************************************
 diff --git a/drivers/audio/cxd56.c b/drivers/audio/cxd56.c
-index 79d11a3772..14e4c5fc67 100644
+index 79d11a3772..13231392c9 100644
 --- a/drivers/audio/cxd56.c
 +++ b/drivers/audio/cxd56.c
 @@ -75,8 +75,9 @@
@@ -59,9 +78,9 @@ index 79d11a3772..14e4c5fc67 100644
                                AUDIO_SAMP_RATE_192K) >> 8)
  #define CXD56_SUPP_RATES    (CXD56_SUPP_RATES_L | CXD56_SUPP_RATES_H)
 +#else
-+/* No sample rate converter, only support system rate of 48kHz */
++/* No sample rate converter, only support system rates of 48kHz and 192kHz */
 +#define CXD56_SUPP_RATES_L  AUDIO_SAMP_RATE_48K
-+#define CXD56_SUPP_RATES_H  0x0
++#define CXD56_SUPP_RATES_H  (AUDIO_SAMP_RATE_192K >> 8)
 +#define CXD56_SUPP_RATES    (CXD56_SUPP_RATES_L | CXD56_SUPP_RATES_H)
 +#endif
  
@@ -77,6 +96,33 @@ index 79d11a3772..14e4c5fc67 100644
          {
            audinfo("DMA_TRANS up_pendq=%d \n",
                   dq_count(&dev->up_pendq));
+@@ -2790,7 +2798,7 @@ static int cxd56_configure(FAR struct audio_lowerhalf_s *lower,
+         /* Save the configuration */
+ 
+         priv->dma_handle = CXD56_AUDIO_DMA_I2S0_DOWN;
+-        priv->samplerate = caps->ac_controls.hw[0];
++        priv->samplerate = caps->ac_controls.hw[0] | caps->ac_controls.b[3] << 16;
+         priv->channels = caps->ac_channels;
+         priv->bitwidth = caps->ac_controls.b[2];
+ 
+@@ -2808,7 +2816,7 @@ static int cxd56_configure(FAR struct audio_lowerhalf_s *lower,
+ 
+         audinfo("Configured output using %d:\n", priv->dma_handle);
+         audinfo("  Channels:    %d\n", priv->channels);
+-        audinfo("  Samplerate:  %d\n", priv->samplerate);
++        audinfo("  Samplerate:  %ld\n", priv->samplerate);
+         audinfo("  Bit width:   %d\n", priv->bitwidth);
+       }
+       break;
+@@ -2827,7 +2835,7 @@ static int cxd56_configure(FAR struct audio_lowerhalf_s *lower,
+ 
+         audinfo("Configured input using %d:\n", priv->dma_handle);
+         audinfo("  Channels:    %d\n", priv->channels);
+-        audinfo("  Samplerate:  %d\n", priv->samplerate);
++        audinfo("  Samplerate:  %ld\n", priv->samplerate);
+         audinfo("  Bit width:   %d\n", priv->bitwidth);
+       }
+       break;
 @@ -3257,11 +3265,14 @@ static int cxd56_start_dma(FAR struct cxd56_dev_s *dev)
  
            if (dev->state != CXD56_DEV_STATE_STARTED)
@@ -96,6 +142,19 @@ index 79d11a3772..14e4c5fc67 100644
  
                /* Mask interrupts */
  
+diff --git a/drivers/audio/cxd56.h b/drivers/audio/cxd56.h
+index b4b1a7b857..39a743aa5c 100644
+--- a/drivers/audio/cxd56.h
++++ b/drivers/audio/cxd56.h
+@@ -280,7 +280,7 @@ struct cxd56_dev_s
+   struct dq_queue_s       down_doneq;       /* Done SRC buffers to be re-used */
+ #endif
+ 
+-  uint16_t                samplerate;       /* Sample rate */
++  uint32_t                samplerate;       /* Sample rate */
+ #ifndef CONFIG_AUDIO_EXCLUDE_VOLUME
+   int16_t                 volume;           /* Output volume {0..63} */
+ #endif  /* CONFIG_AUDIO_EXCLUDE_VOLUME */
 diff --git a/drivers/audio/cxd56_src.c b/drivers/audio/cxd56_src.c
 index 8f1e8d560f..34ca864c2b 100644
 --- a/drivers/audio/cxd56_src.c

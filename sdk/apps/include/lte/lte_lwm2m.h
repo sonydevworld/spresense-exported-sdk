@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/video/isx012.h
+ * apps/include/lte/lte_lwm2m.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,26 +18,17 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_VIDEO_ISX012_H
-#define __INCLUDE_NUTTX_VIDEO_ISX012_H
+#ifndef __APPS_INCLUDE_LTE_LTE_LWM2M_H
+#define __APPS_INCLUDE_LTE_LTE_LWM2M_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
+#include <stdint.h>
+#include <nuttx/wireless/lte/lte.h>
+#include <nuttx/wireless/lte/lte_lwm2m.h>
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
@@ -51,12 +42,19 @@ extern "C"
  * Public Function Prototypes
  ****************************************************************************/
 
-int isx012_initialize(void);
-int isx012_uninitialize(void);
+int lte_commit_m2msetting(void);
+
+int lte_set_report_m2mwrite(lwm2mstub_write_cb_t cb);
+int lte_set_report_m2mread(lwm2mstub_read_cb_t cb);
+int lte_set_report_m2mexec(lwm2mstub_exec_cb_t cb);
+int lte_set_report_m2movstart(lwm2mstub_ovstart_cb_t cb);
+int lte_set_report_m2movstop(lwm2mstub_ovstop_cb_t cb);
+int lte_set_report_m2mserverop(lwm2mstub_serverop_cb_t cb);
+int lte_set_report_m2mfwupdate(lwm2mstub_fwupstate_cb_t cb);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_VIDEO_ISX012_H */
+#endif  /* __APPS_INCLUDE_LTE_LTE_LWM2M_H */

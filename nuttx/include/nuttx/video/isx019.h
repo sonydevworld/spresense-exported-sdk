@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/video/isx012.h
+ * include/nuttx/video/isx019.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,26 +18,14 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_VIDEO_ISX012_H
-#define __INCLUDE_NUTTX_VIDEO_ISX012_H
+#ifndef __INCLUDE_NUTTX_VIDEO_ISX019_H
+#define __INCLUDE_NUTTX_VIDEO_ISX019_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
@@ -51,12 +39,12 @@ extern "C"
  * Public Function Prototypes
  ****************************************************************************/
 
-int isx012_initialize(void);
-int isx012_uninitialize(void);
+int isx019_initialize(void);
+int isx019_uninitialize(void);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_VIDEO_ISX012_H */
+#endif /* __INCLUDE_NUTTX_VIDEO_ISX019_H */

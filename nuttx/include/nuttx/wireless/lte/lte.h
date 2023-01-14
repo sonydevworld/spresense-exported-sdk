@@ -115,6 +115,9 @@
 #define LTE_IPTYPE_V4         (0) /* Internet protocol type: IPv4 */
 #define LTE_IPTYPE_V6         (1) /* Internet protocol type: IPv6 */
 #define LTE_IPTYPE_V4V6       (2) /* Internet protocol type: IPv4/v6 */
+#define LTE_IPTYPE_NON        (3) /* Internet protocol type:
+                                   * Non-IP Data Delivery
+                                   */
 
 /* Internet protocol type: IP
  * deprecated. Use LTE_IPTYPE_V4 instead.
@@ -635,47 +638,55 @@
 
 /* Not enough space for storage for injection */
 
-#define LTEFW_RESULT_NOT_ENOUGH_INJECTSTORAGE      (0x0001)
+#define LTEFW_RESULT_NOT_ENOUGH_INJECTSTORAGE      (-1)
 
 /* CRC check error in header part of delta image */
 
-#define LTEFW_RESULT_DELTAIMAGE_HDR_CRC_ERROR      (0x0002)
+#define LTEFW_RESULT_DELTAIMAGE_HDR_CRC_ERROR      (-2)
 
 /* Unsupported header type of delta image */
 
-#define LTEFW_RESULT_DELTAIMAGE_HDR_UNSUPPORTED    (0x0003)
+#define LTEFW_RESULT_DELTAIMAGE_HDR_UNSUPPORTED    (-3)
 
 /* Failed to set delta image */
 
-#define LTEFW_RESULT_PRECHK_SET_DELTAIMAGE_FAILED  (0x0004)
+#define LTEFW_RESULT_PRECHK_SET_DELTAIMAGE_FAILED  (-4)
 
 /* Failed to delta update */
 
-#define LTEFW_RESULT_DELTAUPDATE_FAILED            (0x0005)
+#define LTEFW_RESULT_DELTAUPDATE_FAILED            (-5)
 
 /* Not found delta image */
 
-#define LTEFW_RESULT_PRECHK_DELTAIMAGE_MISSING     (0x0006)
+#define LTEFW_RESULT_PRECHK_DELTAIMAGE_MISSING     (-6)
 
 /* Out of memory that prepare for update */
 
-#define LTEFW_RESULT_PRECHK_OOM                    (0x0007)
+#define LTEFW_RESULT_PRECHK_OOM                    (-7)
 
 /* Invalid size of delta image */
 
-#define LTEFW_RESULT_PRECHK_SIZE_ERROR             (0x0008)
+#define LTEFW_RESULT_PRECHK_SIZE_ERROR             (-8)
 
 /* Wrong delta image package */
 
-#define LTEFW_RESULT_PRECHK_PKG_ERROR              (0x0009)
+#define LTEFW_RESULT_PRECHK_PKG_ERROR              (-9)
 
 /* CRC check error in delta image */
 
-#define LTEFW_RESULT_PRECHK_CRC_ERROR              (0x000A)
+#define LTEFW_RESULT_PRECHK_CRC_ERROR              (-10)
 
 /* There is no update result */
 
-#define LTEFW_RESULT_DELTAUPDATE_NORESULT          (0x000B)
+#define LTEFW_RESULT_DELTAUPDATE_NORESULT          (-11)
+
+/* Length of LTE modem log file name */
+
+#define LTE_LOG_NAME_LEN  32
+
+/* Number of LTE modem logs saved */
+
+#define LTE_LOG_LIST_SIZE 3
 
 /****************************************************************************
  * Public Types
@@ -1073,9 +1084,10 @@ typedef struct lte_apn_setting
   char   *apn;
 
   /* Type of IP for APN. Definition is as below.
-   * - LTE_APN_IPTYPE_IP
-   * - LTE_APN_IPTYPE_IPV6
-   * - LTE_APN_IPTYPE_IPV4V6
+   * - LTE_IPTYPE_V4
+   * - LTE_IPTYPE_V6
+   * - LTE_IPTYPE_V4V6
+   * - LTE_IPTYPE_NON
    */
 
   uint8_t  ip_type;

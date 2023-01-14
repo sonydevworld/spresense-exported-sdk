@@ -23,6 +23,6 @@ Prepared and exported Spresense SDK. To reproduce this, follow the steps below.
 
 ## Step 5 - Modify Spresense SDK
 
-In file `spresense-exported-sdk/nuttx/include/nuttx/fs/fs.h` (line 826) comment
+In file `spresense-exported-sdk/nuttx/include/nuttx/fs/fs.h` (line 854) comment
 
     // int file_open(FAR struct file *filep, FAR const char *path, int oflags, ...);

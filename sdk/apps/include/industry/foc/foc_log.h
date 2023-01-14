@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/lib/libvars.h
+ * apps/include/industry/foc/foc_log.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,10 +16,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
+ *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_LIB_LIBVARS_H
-#define __INCLUDE_NUTTX_LIB_LIBVARS_H
+#ifndef __APPS_INCLUDE_INDUSTRY_FOC_FOC_LOG_H
+#define __APPS_INCLUDE_INDUSTRY_FOC_FOC_LOG_H
 
 /****************************************************************************
  * Included Files
@@ -27,50 +28,15 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
-
-#include <nuttx/lib/getopt.h>
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-#ifndef CONFIG_BUILD_KERNEL
-/* This structure encapsulates all task-specific variables needed by the C
- * Library.  This structure is retained at the beginning of the main thread
- * of and is accessed via a reference stored in the TLS of all threads in
- * the task group.
- *
- * NOTE: task-specific variables are not needed in the KERNEL build.  In
- * that build mode, all global variables are inherently process-specific.
- */
-
-struct libvars_s
-{
-  struct getopt_s lv_getopt; /* Globals used by getopt() */
-};
-#endif
+#include <stdio.h>
+#include <inttypes.h>
 
 /****************************************************************************
- * Public Data
+ * Pre-processor Definitions
  ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
+#define FOCLIBLOG(format, ...)  printf(format, ##__VA_ARGS__)
+#define FOCLIBERR(format, ...)  printf(format, ##__VA_ARGS__)
+#define FOCLIBWARN(format, ...) printf(format, ##__VA_ARGS__)
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __INCLUDE_NUTTX_LIB_LIBVARS_H */
+#endif /* __APPS_INCLUDE_INDUSTRY_FOC_FOC_LOG_H */

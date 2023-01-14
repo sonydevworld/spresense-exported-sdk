@@ -51,6 +51,8 @@
 #define PF_IEEE802154 36         /* Low level IEEE 802.15.4 radio frame interface */
 #define PF_PKTRADIO   64         /* Low level packet radio interface */
 #define PF_RPMSG      65         /* Remote core communication */
+#define PF_USRSOCK    70         /* UsrSock API communication */
+#define PF_SMSSOCK    71         /* Short Message Service sockets */
 
 /* Supported Address Families. Opengroup.org requires only AF_UNSPEC,
  * AF_UNIX, AF_INET and AF_INET6.
@@ -69,6 +71,8 @@
 #define AF_IEEE802154  PF_IEEE802154
 #define AF_PKTRADIO    PF_PKTRADIO
 #define AF_RPMSG       PF_RPMSG
+#define AF_USRSOCK     PF_USRSOCK
+#define AF_SMSSOCK     PF_SMSSOCK
 
 /* The socket created by socket() has the indicated type, which specifies
  * the communication semantics.
@@ -260,12 +264,25 @@
    (FAR struct cmsghdr *)NULL)
 #define CMSG_FIRSTHDR(msg) \
   __CMSG_FIRSTHDR((msg)->msg_control, (msg)->msg_controllen)
+#define CMSG_OK(mhdr, cmsg) ((cmsg)->cmsg_len >= sizeof(struct cmsghdr) && \
+                            (cmsg)->cmsg_len <= (unsigned long) \
+                            ((mhdr)->msg_controllen - \
+                             ((char *)(cmsg) - (char *)(mhdr)->msg_control)))
+#define for_each_cmsghdr(cmsg, msg) \
+       for (cmsg = CMSG_FIRSTHDR(msg); \
+            cmsg; \
+            cmsg = CMSG_NXTHDR(msg, cmsg))
 
 /* "Socket"-level control message types: */
 
 #define SCM_RIGHTS      0x01    /* rw: access rights (array of int) */
 #define SCM_CREDENTIALS 0x02    /* rw: struct ucred */
 #define SCM_SECURITY    0x03    /* rw: security label */
+
+/* Network socket control */
+
+#define DENY_INET_SOCK_ENABLE  0x01   /* Deny to create INET socket */
+#define DENY_INET_SOCK_DISABLE 0x02   /* Not deny to create INET socket */
 
 /****************************************************************************
  * Type Definitions

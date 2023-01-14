@@ -30,6 +30,6 @@ EXTRA_LIBS       = -lgcc -lm
 EXTRA_OBJS       = 
 HEAD_OBJ         = 
 LDENDGROUP       = 
-LDFLAGS          = --gc-sections -nostartfiles -nodefaultlibs -Map=spresense/nuttx/nuttx.map --cref
+LDFLAGS          = --gc-sections -Map=spresense/nuttx/nuttx.map --cref
 LDSTARTGROUP     = 
 LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lapps -lfs -lbinfmt -lboard 

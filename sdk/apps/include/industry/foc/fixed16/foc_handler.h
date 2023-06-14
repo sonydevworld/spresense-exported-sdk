@@ -44,9 +44,9 @@ struct foc_handler_input_b16_s
   FAR b16_t          *current;  /* Phase current samples */
   FAR dq_frame_b16_t *dq_ref;   /* DQ reference frame */
   FAR dq_frame_b16_t *vdq_comp; /* DQ voltage compensation */
-  FAR b16_t           angle;    /* Phase angle */
-  FAR b16_t           vbus;     /* Bus voltage */
-  FAR int             mode;     /* Controller mode (enum foc_handler_mode_e) */
+  b16_t               angle;    /* Phase angle */
+  b16_t               vbus;     /* Bus voltage */
+  int                 mode;     /* Controller mode (enum foc_handler_mode_e) */
 };
 
 /* Output from FOC controller */
@@ -66,6 +66,7 @@ struct foc_state_b16_s
   ab_frame_b16_t  vab;
   dq_frame_b16_t  vdq;
   dq_frame_b16_t  idq;
+  b16_t           mod_scale;
 };
 
 /* Forward declaration */

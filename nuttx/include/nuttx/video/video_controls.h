@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_VIDEO_CONTROLS_H
-#define __INCLUDE_NUTTX_VIDEO_CONTROLS_H
+#ifndef __INCLUDE_NUTTX_VIDEO_VIDEO_CONTROLS_H
+#define __INCLUDE_NUTTX_VIDEO_VIDEO_CONTROLS_H
 
 /****************************************************************************
  * Included Files
@@ -162,6 +162,10 @@ enum v4l2_exposure_metering
   V4L2_EXPOSURE_METERING_MATRIX          = 3, /**< Matrix */
 };
 
+/** Spot position in spot exposure metering */
+
+#define V4L2_CID_EXPOSURE_METERING_SPOT_POSITION (22)
+
 #define V4L2_CID_SCENE_MODE     (16)   /**< Scene selection */
 
 /** enumeration for V4L2_CID_SCENE_MODE */
@@ -219,4 +223,4 @@ enum v4l2_flash_led_mode
 
 #define	V4L2_CID_JPEG_COMPRESSION_QUALITY (0) /**< JPEG quality */
 
-#endif /* __INCLUDE_NUTTX_VIDEO_CONTROLS_H */
+#endif /* __INCLUDE_NUTTX_VIDEO_VIDEO_CONTROLS_H */

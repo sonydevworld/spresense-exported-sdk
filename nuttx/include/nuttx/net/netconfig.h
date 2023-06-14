@@ -57,11 +57,7 @@
 #include <nuttx/net/ethernet.h>
 
 /****************************************************************************
- * Public Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Type Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 #ifndef MAX
@@ -70,6 +66,67 @@
 
 #ifndef MIN
 #  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+/* Using the following definitions, the following socket() arguments should
+ * provide a valid socket in all configurations:
+ *
+ *   ret = socket(NET_SOCK_FAMILY, NET_SOCK_TYPE,
+ *                NET_SOCK_PROTOCOL);
+ */
+
+/* The address family that we used to create the socket really does not
+ * matter.  It should, however, be valid in the current configuration.
+ */
+
+#if defined(CONFIG_NET_IPv4)
+#  define NET_SOCK_FAMILY  AF_INET
+#elif defined(CONFIG_NET_IPv6)
+#  define NET_SOCK_FAMILY  AF_INET6
+#elif defined(CONFIG_NET_LOCAL)
+#  define NET_SOCK_FAMILY  AF_LOCAL
+#elif defined(CONFIG_NET_PKT)
+#  define NET_SOCK_FAMILY  AF_PACKET
+#elif defined(CONFIG_NET_CAN)
+#  define NET_SOCK_FAMILY  AF_CAN
+#elif defined(CONFIG_NET_IEEE802154)
+#  define NET_SOCK_FAMILY  AF_IEEE802154
+#elif defined(CONFIG_WIRELESS_PKTRADIO)
+#  define NET_SOCK_FAMILY  AF_PKTRADIO
+#elif defined(CONFIG_NET_BLUETOOTH)
+#  define NET_SOCK_FAMILY  AF_BLUETOOTH
+#elif defined(CONFIG_NET_USRSOCK)
+#  define NET_SOCK_FAMILY  AF_INET
+#elif defined(CONFIG_NET_NETLINK)
+#  define NET_SOCK_FAMILY  AF_NETLINK
+#elif defined(CONFIG_NET_RPMSG)
+#  define NET_SOCK_FAMILY  AF_RPMSG
+#else
+#  define NET_SOCK_FAMILY  AF_UNSPEC
+#endif
+
+/* Socket protocol of zero normally works */
+
+#define NET_SOCK_PROTOCOL  0
+
+/* SOCK_CTRL is the preferred socket type to use when we just want a
+ * socket for performing driver ioctls.
+ */
+
+#define NET_SOCK_TYPE SOCK_CTRL
+
+#if NET_SOCK_FAMILY == AF_INET
+#  if !defined(CONFIG_NET_UDP) && !defined(CONFIG_NET_TCP) && \
+      defined(CONFIG_NET_ICMP_SOCKET)
+#   undef NET_SOCK_PROTOCOL
+#   define NET_SOCK_PROTOCOL IPPROTO_ICMP
+#  endif
+#elif NET_SOCK_FAMILY == AF_INET6
+#  if !defined(CONFIG_NET_UDP) && !defined(CONFIG_NET_TCP) && \
+      defined(CONFIG_NET_ICMPv6_SOCKET)
+#   undef NET_SOCK_PROTOCOL
+#   define NET_SOCK_PROTOCOL IPPROTO_ICMP6
+#  endif
 #endif
 
 /* Eliminate dependencies on other header files.  This should not harm
@@ -272,7 +329,14 @@
 #  define TUN_UDP_MSS(h)           (CONFIG_NET_TUN_PKTSIZE - __UDP_HDRLEN - (h))
 #endif
 
+#ifdef CONFIG_NET_USRSOCK
+#  define __MIN_UDP_MSS(h)         INT_MAX
+#  define __MAX_UDP_MSS(h)         0
+#endif
+
 #ifdef CONFIG_NET_ETHERNET
+#  undef  __MIN_UDP_MSS
+#  undef  __MAX_UDP_MSS
 #  define __MIN_UDP_MSS(h)         ETH_UDP_MSS(h)
 #  define __MAX_UDP_MSS(h)         ETH_UDP_MSS(h)
 #  define __ETH_MIN_UDP_MSS(h)     ETH_UDP_MSS(h)
@@ -452,7 +516,14 @@
 #  define TUN_TCP_MSS(h)        (CONFIG_NET_TUN_PKTSIZE - __TCP_HDRLEN - (h))
 #endif
 
+#ifdef CONFIG_NET_USRSOCK
+#  define __MIN_TCP_MSS(h)         INT_MAX
+#  define __MAX_TCP_MSS(h)         0
+#endif
+
 #ifdef CONFIG_NET_ETHERNET
+#  undef  __MIN_TCP_MSS
+#  undef  __MAX_TCP_MSS
 #  define __MIN_TCP_MSS(h)         ETH_TCP_MSS(h)
 #  define __MAX_TCP_MSS(h)         ETH_TCP_MSS(h)
 #  define __ETH_MIN_TCP_MSS(h)     ETH_TCP_MSS(h)

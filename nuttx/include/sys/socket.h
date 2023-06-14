@@ -51,8 +51,6 @@
 #define PF_IEEE802154 36         /* Low level IEEE 802.15.4 radio frame interface */
 #define PF_PKTRADIO   64         /* Low level packet radio interface */
 #define PF_RPMSG      65         /* Remote core communication */
-#define PF_USRSOCK    70         /* UsrSock API communication */
-#define PF_SMSSOCK    71         /* Short Message Service sockets */
 
 /* Supported Address Families. Opengroup.org requires only AF_UNSPEC,
  * AF_UNIX, AF_INET and AF_INET6.
@@ -71,8 +69,6 @@
 #define AF_IEEE802154  PF_IEEE802154
 #define AF_PKTRADIO    PF_PKTRADIO
 #define AF_RPMSG       PF_RPMSG
-#define AF_USRSOCK     PF_USRSOCK
-#define AF_SMSSOCK     PF_SMSSOCK
 
 /* The socket created by socket() has the indicated type, which specifies
  * the communication semantics.
@@ -95,6 +91,13 @@
                                  * datagrams of fixed maximum length; a consumer is
                                  * required to read an entire packet with each read
                                  * system call.
+                                 */
+#define SOCK_CTRL      6        /* SOCK_CTRL is the preferred socket type to use
+                                 * when we just want a socket for performing driver
+                                 * ioctls. This definition is not POSIX compliant.
+                                 */
+#define SOCK_SMS       7        /* Support SMS(Short Message Service) socket.
+                                 * This definition is not POSIX compliant.
                                  */
 #define SOCK_PACKET   10        /* Obsolete and should not be used in new programs */
 
@@ -243,7 +246,7 @@
 #ifdef CONFIG_NET_TCPBACKLOG_CONNS
 #  define SOMAXCONN CONFIG_NET_TCPBACKLOG_CONNS
 #else
-#  define SOMAXCONN 0
+#  define SOMAXCONN 8
 #endif
 
 /* Definitions associated with sendmsg/recvmsg */
@@ -293,23 +296,13 @@
  * aligned at an appropriate boundary so that pointers to it can be cast
  * as pointers to protocol-specific address structures and used to access
  * the fields of those structures without alignment problems.
- *
- * REVISIT: sizeof(struct sockaddr_storge) should be 128 bytes.
  */
 
-#ifdef CONFIG_NET_IPv6
 struct sockaddr_storage
 {
   sa_family_t ss_family;       /* Address family */
-  char        ss_data[26];     /* 26-bytes of address data */
+  char        ss_data[126];    /* 126-bytes of address data */
 };
-#else
-struct sockaddr_storage
-{
-  sa_family_t ss_family;       /* Address family */
-  char        ss_data[14];     /* 14-bytes of address data */
-};
-#endif
 
 /* The sockaddr structure is used to define a socket address which is used
  * in the bind(), connect(), getpeername(), getsockname(), recvfrom(), and

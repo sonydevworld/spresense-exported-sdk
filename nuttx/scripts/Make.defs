@@ -1,10 +1,10 @@
-ARCHCFLAGS       = -fno-builtin -mabi=aapcs -ffunction-sections -fdata-sections
-ARCHCPUFLAGS     = -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-ARCHCXXFLAGS     = -fno-builtin -fno-exceptions -fno-rtti -std=c++11
+ARCHCFLAGS       = -fno-common -Wall -Wstrict-prototypes -Wshadow -Wundef -mabi=aapcs
+ARCHCPUFLAGS     = -march=armv7e-m -mtune=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+ARCHCXXFLAGS     = -fno-common -Wall -Wshadow -Wundef -fno-exceptions -fcheck-new -fno-rtti
 ARCHPICFLAGS     = -fpic -msingle-pic-base -mpic-register=r10
-ARCHWARNINGS     = -Wall -Wstrict-prototypes -Wshadow -Wundef
-ARCHWARNINGSXX   = -Wall -Wshadow -Wundef
-ARCHOPTIMIZATION = -Os -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
+ARCHWARNINGS     = 
+ARCHWARNINGSXX   = 
+ARCHOPTIMIZATION = -Os -fno-strict-aliasing -fomit-frame-pointer -ffunction-sections -fdata-sections
 CROSSDEV         = arm-none-eabi-
 CC               = arm-none-eabi-gcc
 CXX              = arm-none-eabi-g++
@@ -26,10 +26,10 @@ HOSTCFLAGS       = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe
 HOSTLDFLAGS      = 
 HOSTEXEEXT       = 
 LDNAME           = ramconfig-new.ld
-EXTRA_LIBS       = -lgcc -lm
+EXTRA_LIBS       = ~/spresenseenv/usr/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v7e-m+fp/hard/libgcc.a ~/spresenseenv/usr/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a
 EXTRA_OBJS       = 
 HEAD_OBJ         = 
 LDENDGROUP       = 
-LDFLAGS          = --gc-sections -Map=spresense/nuttx/nuttx.map --cref
+LDFLAGS          = -nostdlib --gc-sections --cref -Map=spresense/nuttx/nuttx.map
 LDSTARTGROUP     = 
-LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lapps -lfs -lbinfmt -lboard 
+LDLIBS           = -lsched -ldrivers -lboards -lc -lmm -larch -lapps -lfs -lbinfmt -lboard -lboard 

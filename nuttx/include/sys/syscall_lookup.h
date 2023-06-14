@@ -25,7 +25,6 @@
  */
 
 SYSCALL_LOOKUP1(_exit,                     1)
-SYSCALL_LOOKUP(exit,                       1)
 SYSCALL_LOOKUP(getpid,                     0)
 SYSCALL_LOOKUP(gettid,                     0)
 
@@ -45,7 +44,7 @@ SYSCALL_LOOKUP(sched_yield,                0)
 SYSCALL_LOOKUP(nxsched_get_stackinfo,      2)
 
 #ifdef CONFIG_SCHED_BACKTRACE
-  SYSCALL_LOOKUP(sched_backtrace,          3)
+  SYSCALL_LOOKUP(sched_backtrace,          4)
 #endif
 
 #ifdef CONFIG_SMP
@@ -53,6 +52,8 @@ SYSCALL_LOOKUP(nxsched_get_stackinfo,      2)
   SYSCALL_LOOKUP(sched_getcpu,             0)
   SYSCALL_LOOKUP(sched_setaffinity,        3)
 #endif
+
+SYSCALL_LOOKUP(sysinfo,                    1)
 
 SYSCALL_LOOKUP(gethostname,                2)
 SYSCALL_LOOKUP(sethostname,                2)
@@ -90,11 +91,12 @@ SYSCALL_LOOKUP(sem_wait,                   1)
 #ifndef CONFIG_BUILD_KERNEL
   SYSCALL_LOOKUP(task_create,              5)
   SYSCALL_LOOKUP(task_spawn,               6)
+  SYSCALL_LOOKUP(task_delete,              1)
+  SYSCALL_LOOKUP(task_restart,             1)
 #else
   SYSCALL_LOOKUP(pgalloc,                  2)
 #endif
-SYSCALL_LOOKUP(task_delete,                1)
-SYSCALL_LOOKUP(task_restart,               1)
+
 SYSCALL_LOOKUP(task_setcancelstate,        2)
 SYSCALL_LOOKUP(up_assert,                  2)
 
@@ -103,18 +105,14 @@ SYSCALL_LOOKUP(up_assert,                  2)
   SYSCALL_LOOKUP(task_testcancel,          0)
 #endif
 
+#if CONFIG_TLS_TASK_NELEM > 0
+  SYSCALL_LOOKUP(task_tls_alloc,           1)
+#endif
+
 /* The following can be individually enabled */
 
 #if defined(CONFIG_SCHED_WAITPID) && defined(CONFIG_ARCH_HAVE_VFORK)
   SYSCALL_LOOKUP(vfork,                    0)
-#endif
-
-#ifdef CONFIG_SCHED_ATEXIT
-  SYSCALL_LOOKUP(atexit,                   1)
-#endif
-
-#ifdef CONFIG_SCHED_ONEXIT
-  SYSCALL_LOOKUP(on_exit,                  2)
 #endif
 
 #ifdef CONFIG_SCHED_WAITPID
@@ -144,12 +142,8 @@ SYSCALL_LOOKUP(up_assert,                  2)
   SYSCALL_LOOKUP(exec,                     4)
 #endif
 #ifdef CONFIG_LIBC_EXECFUNCS
-#ifdef CONFIG_LIBC_ENVPATH
-  SYSCALL_LOOKUP(posix_spawnp,             6)
-#else
   SYSCALL_LOOKUP(posix_spawn,              6)
-#endif
-  SYSCALL_LOOKUP(execv,                    2)
+  SYSCALL_LOOKUP(execve,                   3)
 #endif
 #endif
 
@@ -218,12 +212,10 @@ SYSCALL_LOOKUP(pwrite,                     4)
 #ifdef CONFIG_EVENT_FD
   SYSCALL_LOOKUP(eventfd,                  2)
 #endif
-#ifdef CONFIG_NETDEV_IFINDEX
-  SYSCALL_LOOKUP(if_indextoname,           2)
-  SYSCALL_LOOKUP(if_nametoindex,           1)
-#endif
-#ifdef CONFIG_SERIAL_TERMIOS
-  SYSCALL_LOOKUP(tcdrain,                  1)
+#ifdef CONFIG_TIMER_FD
+  SYSCALL_LOOKUP(timerfd_create,           2)
+  SYSCALL_LOOKUP(timerfd_settime,          4)
+  SYSCALL_LOOKUP(timerfd_gettime,          2)
 #endif
 
 /* Board support */
@@ -311,7 +303,7 @@ SYSCALL_LOOKUP(futimens,                   2)
   SYSCALL_LOOKUP(pthread_cond_broadcast,   1)
   SYSCALL_LOOKUP(pthread_cond_signal,      1)
   SYSCALL_LOOKUP(pthread_cond_wait,        2)
-  SYSCALL_LOOKUP(nx_pthread_create,        6)
+  SYSCALL_LOOKUP(nx_pthread_create,        5)
   SYSCALL_LOOKUP(pthread_detach,           1)
   SYSCALL_LOOKUP(nx_pthread_exit,          1)
   SYSCALL_LOOKUP(pthread_getschedparam,    3)
@@ -353,6 +345,7 @@ SYSCALL_LOOKUP(futimens,                   2)
 /* The following are defined only if environment variables are supported */
 
 #ifndef CONFIG_DISABLE_ENVIRON
+  SYSCALL_LOOKUP(get_environ_ptr,          0)
   SYSCALL_LOOKUP(clearenv,                 0)
   SYSCALL_LOOKUP(getenv,                   1)
   SYSCALL_LOOKUP(putenv,                   1)
@@ -378,6 +371,7 @@ SYSCALL_LOOKUP(futimens,                   2)
   SYSCALL_LOOKUP(sendmsg,                  3)
   SYSCALL_LOOKUP(setsockopt,               5)
   SYSCALL_LOOKUP(socket,                   3)
+  SYSCALL_LOOKUP(socketpair,               4)
 #endif
 
 /* The following is defined only if CONFIG_TASK_NAME_SIZE > 0 */

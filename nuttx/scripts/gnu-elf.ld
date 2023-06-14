@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/cxd56xx/spresense/scripts/gnu-elf.ld
+ * binfmt/libelf/gnu-elf.ld
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -41,16 +41,6 @@ SECTIONS
       _etext = . ;
     }
 
-  .ARM.extab :
-    {
-      *(.ARM.extab*)
-    }
-
-  .ARM.exidx :
-    {
-      *(.ARM.exidx*)
-    }
-
   .rodata :
     {
       _srodata = . ;
@@ -85,7 +75,7 @@ SECTIONS
       _sctors = . ;
       *(.ctors)       /* Old ABI:  Unallocated */
       *(.init_array)  /* New ABI:  Allocated */
-      _edtors = . ;
+      _ectors = . ;
     }
 
   .dtors :

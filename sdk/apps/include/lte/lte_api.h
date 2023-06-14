@@ -127,55 +127,57 @@
  *  The correspondence table of API is as follows.
  *
  *
- * | Synchronous API              | Asynchronous API           |
- * | ---------------------------- | -------------------------- |
- * | lte_initialize               |                            |
- * | lte_finalize                 |                            |
- * | lte_set_report_restart       |                            |
- * | lte_power_on                 |                            |
- * | lte_power_off                |                            |
- * | lte_set_report_netinfo       |                            |
- * | lte_set_report_simstat       |                            |
- * | lte_set_report_localtime     |                            |
- * | lte_set_report_quality       |                            |
- * | lte_set_report_cellinfo      |                            |
- * | lte_get_errinfo              |                            |
- * | lte_activate_pdn_cancel      |                            |
- * | lte_radio_on_sync            | lte_radio_on               |
- * | lte_radio_off_sync           | lte_radio_off              |
- * | lte_activate_pdn_sync        | lte_activate_pdn           |
- * | lte_deactivate_pdn_sync      | lte_deactivate_pdn         |
- * | lte_data_allow_sync          | lte_data_allow             |
- * | lte_get_netinfo_sync         | lte_get_netinfo            |
- * | lte_get_imscap_sync          | lte_get_imscap             |
- * | lte_get_version_sync         | lte_get_version            |
- * | lte_get_phoneno_sync         | lte_get_phoneno            |
- * | lte_get_imsi_sync            | lte_get_imsi               |
- * | lte_get_imei_sync            | lte_get_imei               |
- * | lte_get_pinset_sync          | lte_get_pinset             |
- * | lte_set_pinenable_sync       | lte_set_pinenable          |
- * | lte_change_pin_sync          | lte_change_pin             |
- * | lte_enter_pin_sync           | lte_enter_pin              |
- * | lte_get_localtime_sync       | lte_get_localtime          |
- * | lte_get_operator_sync        | lte_get_operator           |
- * | lte_get_edrx_sync            | lte_get_edrx               |
- * | lte_set_edrx_sync            | lte_set_edrx               |
- * | lte_get_psm_sync             | lte_get_psm                |
- * | lte_set_psm_sync             | lte_set_psm                |
- * | lte_get_ce_sync              | lte_get_ce                 |
- * | lte_set_ce_sync              | lte_set_ce                 |
- * | lte_get_siminfo_sync         | lte_get_siminfo            |
- * | lte_get_current_edrx_sync    | lte_get_current_edrx       |
- * | lte_get_current_psm_sync     | lte_get_current_psm        |
- * | lte_get_quality_sync         | lte_get_quality            |
- * | lte_get_cellinfo_sync        |                            |
- * | lte_get_rat_sync             |                            |
- * | lte_set_rat_sync             |                            |
- * | lte_get_ratinfo_sync         |                            |
- * | lte_acquire_wakelock         |                            |
- * | lte_release_wakelock         |                            |
- * | lte_send_atcmd_sync          |                            |
- * | lte_factory_reset_sync       |                            |
+ * | Synchronous API              | Asynchronous API                  |
+ * | ---------------------------- | --------------------------------- |
+ * | lte_initialize               |                                   |
+ * | lte_finalize                 |                                   |
+ * | lte_set_report_restart       |                                   |
+ * | lte_power_on                 |                                   |
+ * | lte_power_off                |                                   |
+ * | lte_set_report_netinfo       |                                   |
+ * | lte_set_report_simstat       |                                   |
+ * | lte_set_report_localtime     |                                   |
+ * | lte_set_report_quality       |                                   |
+ * | lte_set_report_cellinfo      |                                   |
+ * | lte_get_errinfo              |                                   |
+ * | lte_activate_pdn_cancel      |                                   |
+ * | lte_radio_on_sync            | lte_radio_on (deprecated)         |
+ * | lte_radio_off_sync           | lte_radio_off (deprecated)        |
+ * | lte_activate_pdn_sync        | lte_activate_pdn                  |
+ * | lte_deactivate_pdn_sync      | lte_deactivate_pdn (deprecated)   |
+ * | lte_data_allow_sync          | lte_data_allow (deprecated)       |
+ * | lte_get_netinfo_sync         | lte_get_netinfo (deprecated)      |
+ * | lte_get_imscap_sync          | lte_get_imscap (deprecated)       |
+ * | lte_get_version_sync         | lte_get_version (deprecated)      |
+ * | lte_get_phoneno_sync         | lte_get_phoneno (deprecated)      |
+ * | lte_get_imsi_sync            | lte_get_imsi (deprecated)         |
+ * | lte_get_imei_sync            | lte_get_imei (deprecated)         |
+ * | lte_get_pinset_sync          | lte_get_pinset (deprecated)       |
+ * | lte_set_pinenable_sync       | lte_set_pinenable (deprecated)    |
+ * | lte_change_pin_sync          | lte_change_pin (deprecated)       |
+ * | lte_enter_pin_sync           | lte_enter_pin (deprecated)        |
+ * | lte_get_localtime_sync       | lte_get_localtime (deprecated)    |
+ * | lte_get_operator_sync        | lte_get_operator (deprecated)     |
+ * | lte_get_edrx_sync            | lte_get_edrx (deprecated)         |
+ * | lte_set_edrx_sync            | lte_set_edrx (deprecated)         |
+ * | lte_get_psm_sync             | lte_get_psm (deprecated)          |
+ * | lte_set_psm_sync             | lte_set_psm (deprecated)          |
+ * | lte_get_ce_sync              | lte_get_ce (deprecated)           |
+ * | lte_set_ce_sync              | lte_set_ce (deprecated)           |
+ * | lte_get_siminfo_sync         | lte_get_siminfo (deprecated)      |
+ * | lte_get_current_edrx_sync    | lte_get_current_edrx (deprecated) |
+ * | lte_get_current_psm_sync     | lte_get_current_psm (deprecated)  |
+ * | lte_get_quality_sync         | lte_get_quality (deprecated)      |
+ * | lte_get_cellinfo_sync        |                                   |
+ * | lte_get_rat_sync             |                                   |
+ * | lte_set_rat_sync             |                                   |
+ * | lte_get_ratinfo_sync         |                                   |
+ * | lte_acquire_wakelock         |                                   |
+ * | lte_release_wakelock         |                                   |
+ * | lte_send_atcmd_sync          |                                   |
+ * | lte_factory_reset_sync       |                                   |
+ * | lte_set_context_save_cb      |                                   |
+ * | lte_hibernation_resume       |                                   |
  */
 
 /****************************************************************************
@@ -289,7 +291,11 @@ int lte_power_off(void);
 
 int lte_radio_on_sync(void);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* With the radio on, to start the LTE network search.
+ * The use of this API is deprecated.
+ * Use lte_radio_on_sync() instead.
  *
  * Attention to the following when this API calling.
  * - If SIM is PIN locked, the result will be an error.
@@ -303,6 +309,8 @@ int lte_radio_on_sync(void);
 
 int lte_radio_on(radio_on_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Exit LTE network searches with the radio off.
  *
  * If this function is called when a PDN has already been constructed,
@@ -314,7 +322,11 @@ int lte_radio_on(radio_on_cb_t callback);
 
 int lte_radio_off_sync(void);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Exit LTE network searches with the radio off.
+ * The use of this API is deprecated.
+ * Use lte_radio_off_sync() instead.
  *
  * If this function is called when a PDN has already been constructed,
  * the PDN is discarded.
@@ -327,6 +339,8 @@ int lte_radio_off_sync(void);
  */
 
 int lte_radio_off(radio_off_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get LTE network information.
  *
@@ -353,7 +367,11 @@ int lte_radio_off(radio_off_cb_t callback);
 
 int lte_get_netinfo_sync(uint8_t pdn_num, lte_netinfo_t *info);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get LTE network information.
+ * The use of this API is deprecated.
+ * Use lte_get_netinfo_sync() instead.
  *
  * [in] callback: Callback function to notify that
  *                get network information completed.
@@ -370,6 +388,8 @@ int lte_get_netinfo_sync(uint8_t pdn_num, lte_netinfo_t *info);
  */
 
 int lte_get_netinfo(get_netinfo_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Constructs a PDN with the specified APN settings.
  *
@@ -450,7 +470,11 @@ int lte_activate_pdn_cancel(void);
 
 int lte_deactivate_pdn_sync(uint8_t session_id);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Discard the constructed PDN.
+ * The use of this API is deprecated.
+ * Use lte_deactivate_pdn_sync() instead.
  *
  * Discards the PDN corresponding to the session ID
  * obtained by lte_activate_pdn.
@@ -469,6 +493,8 @@ int lte_deactivate_pdn_sync(uint8_t session_id);
  */
 
 int lte_deactivate_pdn(uint8_t session_id, deactivate_pdn_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Allow or disallow to data communication for specified PDN.
  *
@@ -493,7 +519,10 @@ int lte_deactivate_pdn(uint8_t session_id, deactivate_pdn_cb_t callback);
 int lte_data_allow_sync(uint8_t session_id, uint8_t allow,
                         uint8_t roaming_allow);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Allow or disallow to data communication for specified PDN.
+ * The use of this API is deprecated.
  *
  * attention This function is not supported.
  *
@@ -519,6 +548,8 @@ int lte_data_allow_sync(uint8_t session_id, uint8_t allow,
 int lte_data_allow(uint8_t session_id, uint8_t allow,
                    uint8_t roaming_allow, data_allow_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get whether the modem supports IMS or not.
  *
  * [out] imscap: The IMS capability.
@@ -532,7 +563,11 @@ int lte_data_allow(uint8_t session_id, uint8_t allow,
 
 int lte_get_imscap_sync(bool *imscap);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get whether the modem supports IMS or not.
+ * The use of this API is deprecated.
+ * Use lte_get_imscap_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting IMS capability is completed.
@@ -542,6 +577,8 @@ int lte_get_imscap_sync(bool *imscap);
  */
 
 int lte_get_imscap(get_imscap_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Acquires the FW version information of the modem.
  *
@@ -554,7 +591,11 @@ int lte_get_imscap(get_imscap_cb_t callback);
 
 int lte_get_version_sync(lte_version_t *version);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Acquires the FW version information of the modem.
+ * The use of this API is deprecated.
+ * Use lte_get_version_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting the version is completed.
@@ -564,6 +605,8 @@ int lte_get_version_sync(lte_version_t *version);
  */
 
 int lte_get_version(get_ver_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get phone number from SIM.
  *
@@ -583,7 +626,11 @@ int lte_get_phoneno_sync(char *phoneno);
 int lte_get_phoneno_sync(char *phoneno, size_t len);
 #endif
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get phone number from SIM.
+ * The use of this API is deprecated.
+ * Use lte_get_phoneno_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting the phone number is completed.
@@ -593,6 +640,8 @@ int lte_get_phoneno_sync(char *phoneno, size_t len);
  */
 
 int lte_get_phoneno(get_phoneno_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get International Mobile Subscriber Identity from SIM.
  *
@@ -612,7 +661,11 @@ int lte_get_imsi_sync(char *imsi);
 int lte_get_imsi_sync(char *imsi, size_t len);
 #endif
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get International Mobile Subscriber Identity from SIM.
+ * The use of this API is deprecated.
+ * Use lte_get_imsi_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting IMSI is completed.
@@ -622,6 +675,8 @@ int lte_get_imsi_sync(char *imsi, size_t len);
  */
 
 int lte_get_imsi(get_imsi_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get International Mobile Equipment Identifier from the modem.
  *
@@ -641,7 +696,11 @@ int lte_get_imei_sync(char *imei);
 int lte_get_imei_sync(char *imei, size_t len);
 #endif
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get International Mobile Equipment Identifier from the modem.
+ * The use of this API is deprecated.
+ * Use lte_get_imei_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting IMEI is completed
@@ -651,6 +710,8 @@ int lte_get_imei_sync(char *imei, size_t len);
  */
 
 int lte_get_imei(get_imei_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get Personal Identification Number settings.
  *
@@ -663,7 +724,11 @@ int lte_get_imei(get_imei_cb_t callback);
 
 int lte_get_pinset_sync(lte_getpin_t *pinset);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get Personal Identification Number settings.
+ * The use of this API is deprecated.
+ * Use lte_get_pinset_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting the PIN setting is completed.
@@ -673,6 +738,8 @@ int lte_get_pinset_sync(lte_getpin_t *pinset);
  */
 
 int lte_get_pinset(get_pinset_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Set Personal Identification Number enable.
  *
@@ -695,7 +762,11 @@ int lte_get_pinset(get_pinset_cb_t callback);
 int lte_set_pinenable_sync(bool enable, char *pincode,
                            uint8_t *attemptsleft);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Set Personal Identification Number enable.
+ * The use of this API is deprecated.
+ * Use lte_set_pinenable_sync() instead.
  *
  * [in] enable: "Enable" or "Disable".
  *              Definition is as below.
@@ -715,6 +786,8 @@ int lte_set_pinenable_sync(bool enable, char *pincode,
 
 int lte_set_pinenable(bool enable, char *pincode,
                       set_pinenable_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Change Personal Identification Number.
  *
@@ -743,7 +816,11 @@ int lte_set_pinenable(bool enable, char *pincode,
 int lte_change_pin_sync(int8_t target_pin, char *pincode,
                         char *new_pincode, uint8_t *attemptsleft);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Change Personal Identification Number.
+ * The use of this API is deprecated.
+ * Use lte_change_pin_sync() instead.
  *
  * It can be changed only when PIN is enable.
  *
@@ -769,6 +846,8 @@ int lte_change_pin_sync(int8_t target_pin, char *pincode,
 
 int lte_change_pin(int8_t target_pin, char *pincode,
                    char *new_pincode, change_pin_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Enter Personal Identification Number.
  *
@@ -817,7 +896,11 @@ int lte_change_pin(int8_t target_pin, char *pincode,
 int lte_enter_pin_sync(char *pincode, char *new_pincode,
                        uint8_t *simstat, uint8_t *attemptsleft);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Enter Personal Identification Number.
+ * The use of this API is deprecated.
+ * Use lte_enter_pin_sync() instead.
  *
  * [in] pincode: Current PIN code. Minimum number of digits is 4.
  *               Maximum number of digits is 8, end with '\0'.
@@ -843,6 +926,8 @@ int lte_enter_pin_sync(char *pincode, char *new_pincode,
 int lte_enter_pin(char *pincode, char *new_pincode,
                   enter_pin_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get local time.
  *
  * [out] localtime: Local time. See lte_localtime_t.
@@ -853,7 +938,11 @@ int lte_enter_pin(char *pincode, char *new_pincode,
 
 int lte_get_localtime_sync(lte_localtime_t *localtime);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get local time.
+ * The use of this API is deprecated.
+ * Use lte_get_localtime_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting local time is completed.
@@ -863,6 +952,8 @@ int lte_get_localtime_sync(lte_localtime_t *localtime);
  */
 
 int lte_get_localtime(get_localtime_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get connected network operator information.
  *
@@ -883,7 +974,11 @@ int lte_get_operator_sync(char *oper);
 int lte_get_operator_sync(char *oper, size_t len);
 #endif
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get connected network operator information.
+ * The use of this API is deprecated.
+ * Use lte_get_operator_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting network operator information is completed.
@@ -893,6 +988,8 @@ int lte_get_operator_sync(char *oper, size_t len);
  */
 
 int lte_get_operator(get_operator_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get eDRX settings.
  *
@@ -904,7 +1001,11 @@ int lte_get_operator(get_operator_cb_t callback);
 
 int lte_get_edrx_sync(lte_edrx_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get eDRX settings.
+ * The use of this API is deprecated.
+ * Use lte_get_edrx_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting eDRX settings are completed.
@@ -914,6 +1015,8 @@ int lte_get_edrx_sync(lte_edrx_setting_t *settings);
  */
 
 int lte_get_edrx(get_edrx_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Set eDRX settings.
  *
@@ -925,7 +1028,11 @@ int lte_get_edrx(get_edrx_cb_t callback);
 
 int lte_set_edrx_sync(lte_edrx_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Set eDRX settings.
+ * The use of this API is deprecated.
+ * Use lte_set_edrx_sync() instead.
  *
  * [in] settings: eDRX settings.
  *
@@ -938,6 +1045,8 @@ int lte_set_edrx_sync(lte_edrx_setting_t *settings);
 
 int lte_set_edrx(lte_edrx_setting_t *settings, set_edrx_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get PSM settings.
  *
  * [out] settings: PSM settings. See lte_psm_setting_t.
@@ -948,7 +1057,12 @@ int lte_set_edrx(lte_edrx_setting_t *settings, set_edrx_cb_t callback);
 
 int lte_get_psm_sync(lte_psm_setting_t *settings);
 
+
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get PSM settings.
+ * The use of this API is deprecated.
+ * Use lte_get_psm_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting PSM settings are completed.
@@ -958,6 +1072,8 @@ int lte_get_psm_sync(lte_psm_setting_t *settings);
  */
 
 int lte_get_psm(get_psm_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Set PSM settings.
  *
@@ -969,7 +1085,11 @@ int lte_get_psm(get_psm_cb_t callback);
 
 int lte_set_psm_sync(lte_psm_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Set PSM settings.
+ * The use of this API is deprecated.
+ * Use lte_set_psm_sync() instead.
  *
  * [in] settings: PSM settings.
  *
@@ -982,6 +1102,8 @@ int lte_set_psm_sync(lte_psm_setting_t *settings);
 
 int lte_set_psm(lte_psm_setting_t *settings, set_psm_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get CE settings.
  *
  * [out] settings: CE settings. See lte_ce_setting_t.
@@ -992,7 +1114,11 @@ int lte_set_psm(lte_psm_setting_t *settings, set_psm_cb_t callback);
 
 int lte_get_ce_sync(lte_ce_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get CE settings.
+ * The use of this API is deprecated.
+ * Use lte_get_ce_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting CE settings are completed.
@@ -1002,6 +1128,8 @@ int lte_get_ce_sync(lte_ce_setting_t *settings);
  */
 
 int lte_get_ce(get_ce_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Set CE settings.
  *
@@ -1013,7 +1141,11 @@ int lte_get_ce(get_ce_cb_t callback);
 
 int lte_set_ce_sync(lte_ce_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Set CE settings.
+ * The use of this API is deprecated.
+ * Use lte_set_ce_sync() instead.
  *
  * [in] settings: CE settings
  *
@@ -1025,6 +1157,8 @@ int lte_set_ce_sync(lte_ce_setting_t *settings);
  */
 
 int lte_set_ce(lte_ce_setting_t *settings, set_ce_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Notifies the SIM status to the application.
  *
@@ -1142,7 +1276,11 @@ int lte_get_errinfo(lte_errinfo_t *info);
 
 int lte_get_siminfo_sync(uint32_t option, lte_siminfo_t *siminfo);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get SIM information such as Mobile Country Code/Mobile Network Code.
+ * The use of this API is deprecated.
+ * Use lte_get_siminfo_sync() instead.
  *
  * [in] option:   Indicates which parameter to get.
  *                Bit setting definition is as below.
@@ -1178,6 +1316,8 @@ int lte_get_siminfo(uint32_t option, get_siminfo_cb_t callback);
 
 int lte_get_dynamic_edrx_param(get_dynamic_edrx_param_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get current eDRX settings.
  *
  * This API can be issued after connect to the LTE network
@@ -1194,7 +1334,11 @@ int lte_get_dynamic_edrx_param(get_dynamic_edrx_param_cb_t callback);
 
 int lte_get_current_edrx_sync(lte_edrx_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get current eDRX settings.
+ * The use of this API is deprecated.
+ * Use lte_get_current_edrx_sync() instead.
  *
  * This API can be issued after connect to the LTE network
  * with lte_activate_pdn().
@@ -1226,6 +1370,8 @@ int lte_get_current_edrx(get_current_edrx_cb_t callback);
 
 int lte_get_dynamic_psm_param(get_dynamic_psm_param_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get current PSM settings.
  *
  * This API can be issued after connect to the LTE network
@@ -1242,7 +1388,11 @@ int lte_get_dynamic_psm_param(get_dynamic_psm_param_cb_t callback);
 
 int lte_get_current_psm_sync(lte_psm_setting_t *settings);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get current PSM settings.
+ * The use of this API is deprecated.
+ * Use lte_get_current_psm_sync() instead.
  *
  * This API can be issued after connect to the LTE network
  * with lte_activate_pdn().
@@ -1258,6 +1408,8 @@ int lte_get_current_psm_sync(lte_psm_setting_t *settings);
 
 int lte_get_current_psm(get_current_psm_cb_t callback);
 
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
+
 /* Get communication quality information.
  *
  * [out] quality: Quality information. See lte_quality_t
@@ -1268,7 +1420,11 @@ int lte_get_current_psm(get_current_psm_cb_t callback);
 
 int lte_get_quality_sync(lte_quality_t *quality);
 
+#ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
+
 /* Get communication quality information.
+ * The use of this API is deprecated.
+ * Use lte_get_quality_sync() instead.
  *
  * [in] callback: Callback function to notify when
  *                getting quality information is completed.
@@ -1278,6 +1434,8 @@ int lte_get_quality_sync(lte_quality_t *quality);
  */
 
 int lte_get_quality(get_quality_cb_t callback);
+
+#endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
 /* Get LTE network cell information.
  *
@@ -1355,6 +1513,16 @@ int lte_acquire_wakelock(void);
 
 int lte_release_wakelock(void);
 
+/* Get the number of wakelock counts acquired.
+ * Please call this API after calling lte_initialize().
+ * Otherwise this API will result in an error.
+ *
+ * On success, return the count of the current modem wakelock. On failure,
+ * negative value is returned according to <errno.h>.
+ */
+
+int lte_get_wakelock_count(void);
+
 /* Send AT command to the modem.
  *
  * [in] cmd: The AT command data.
@@ -1380,6 +1548,29 @@ int lte_send_atcmd_sync(const char *cmd, int cmdlen,
  */
 
 int lte_factory_reset_sync(void);
+
+/* Set callback function for context save.
+ *
+ * [in] callback: Callback function to notify a context data
+ *                when modem entering hibernation mode.
+ *
+ * On success, 0 is returned. On failure,
+ * negative value is returned according to <errno.h>.
+ */
+
+int lte_set_context_save_cb(context_save_cb_t callback);
+
+/* Resume LTE status from hibernation mode.
+ *
+ * [in] res_ctx: Context data for resume daemon.
+ *
+ * [in] len    : Context data size.
+ *
+ * On success, 0 is returned. On failure,
+ * negative value is returned according to <errno.h>.
+ */
+
+int lte_hibernation_resume(FAR const uint8_t *res_ctx, int len);
 
 #undef EXTERN
 #ifdef __cplusplus

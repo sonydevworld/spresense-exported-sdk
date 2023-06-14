@@ -90,7 +90,7 @@ extern "C"
  * Name: wd_start
  *
  * Description:
- *   This function adds a watchdog timer to the actuve timer queue.  The
+ *   This function adds a watchdog timer to the active timer queue.  The
  *   specified watchdog function at 'wdentry' will be called from the
  *   interrupt level after the specified number of ticks has elapsed.
  *   Watchdog timers may be started from the interrupt level.
@@ -160,7 +160,7 @@ int wd_cancel(FAR struct wdog_s *wdog);
  *
  ****************************************************************************/
 
-int wd_gettime(FAR struct wdog_s *wdog);
+sclock_t wd_gettime(FAR struct wdog_s *wdog);
 
 #undef EXTERN
 #ifdef __cplusplus

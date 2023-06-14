@@ -250,6 +250,24 @@
 #  define pwrinfo      _none
 #endif
 
+#ifdef CONFIG_DEBUG_BATTERY_ERROR
+#  define baterr       _err
+#else
+#  define baterr       _none
+#endif
+
+#ifdef CONFIG_DEBUG_BATTERY_WARN
+#  define batwarn      _warn
+#else
+#  define batwarn      _none
+#endif
+
+#ifdef CONFIG_DEBUG_BATTERY_INFO
+#  define batinfo      _info
+#else
+#  define batinfo      _none
+#endif
+
 #ifdef CONFIG_DEBUG_WIRELESS_ERROR
 #  define wlerr       _err
 #else
@@ -1074,19 +1092,19 @@ void lib_dumpvbuffer(FAR const char *msg, FAR const struct iovec *iov,
 
 #ifndef CONFIG_CPP_HAVE_VARARGS
 #ifdef CONFIG_DEBUG_ALERT
-void _alert(const char *format, ...);
+void _alert(const char *format, ...) sysloglike(1, 2);
 #endif
 
 #ifdef CONFIG_DEBUG_ERROR
-void _err(const char *format, ...);
+void _err(const char *format, ...) sysloglike(1, 2);
 #endif
 
 #ifdef CONFIG_DEBUG_WARN
-void _warn(const char *format, ...);
+void _warn(const char *format, ...) sysloglike(1, 2);
 #endif
 
 #ifdef CONFIG_DEBUG_INFO
-void _info(const char *format, ...);
+void _info(const char *format, ...) sysloglike(1, 2);
 #endif
 #endif /* CONFIG_CPP_HAVE_VARARGS */
 

@@ -44,9 +44,9 @@ struct foc_handler_input_f32_s
   FAR float          *current;  /* Phase current samples */
   FAR dq_frame_f32_t *dq_ref;   /* DQ reference frame */
   FAR dq_frame_f32_t *vdq_comp; /* DQ voltage compensation */
-  FAR float           angle;    /* Phase angle */
-  FAR float           vbus;     /* Bus voltage */
-  FAR int             mode;     /* Controller mode (enum foc_handler_mode_e) */
+  float               angle;    /* Phase angle */
+  float               vbus;     /* Bus voltage */
+  int                 mode;     /* Controller mode (enum foc_handler_mode_e) */
 };
 
 /* Output from FOC controller */
@@ -66,6 +66,7 @@ struct foc_state_f32_s
   ab_frame_f32_t  vab;
   dq_frame_f32_t  vdq;
   dq_frame_f32_t  idq;
+  float           mod_scale;
 };
 
 /* Forward declaration */

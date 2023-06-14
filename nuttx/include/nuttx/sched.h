@@ -79,7 +79,7 @@
 
 /* Special task IDS.  Any negative PID is invalid. */
 
-#define NULL_TASK_PROCESS_ID       (pid_t)0
+#define IDLE_PROCESS_ID            (pid_t)0
 #define INVALID_PROCESS_ID         (pid_t)-1
 
 /* This is the maximum number of times that a lock can be set */
@@ -96,8 +96,7 @@
 #define TCB_FLAG_NONCANCELABLE     (1 << 2)                      /* Bit 2: Pthread is non-cancelable */
 #define TCB_FLAG_CANCEL_DEFERRED   (1 << 3)                      /* Bit 3: Deferred (vs asynch) cancellation type */
 #define TCB_FLAG_CANCEL_PENDING    (1 << 4)                      /* Bit 4: Pthread cancel is pending */
-#define TCB_FLAG_CANCEL_DOING      (1 << 5)                      /* Bit 4: Pthread cancel/exit is doing */
-#define TCB_FLAG_POLICY_SHIFT      (6)                           /* Bit 5-6: Scheduling policy */
+#define TCB_FLAG_POLICY_SHIFT      (5)                           /* Bit 5-6: Scheduling policy */
 #define TCB_FLAG_POLICY_MASK       (3 << TCB_FLAG_POLICY_SHIFT)
 #  define TCB_FLAG_SCHED_FIFO      (0 << TCB_FLAG_POLICY_SHIFT)  /* FIFO scheding policy */
 #  define TCB_FLAG_SCHED_RR        (1 << TCB_FLAG_POLICY_SHIFT)  /* Round robin scheding policy */
@@ -108,7 +107,8 @@
 #define TCB_FLAG_SYSCALL           (1 << 10)                     /* Bit 9: In a system call */
 #define TCB_FLAG_EXIT_PROCESSING   (1 << 11)                     /* Bit 10: Exitting */
 #define TCB_FLAG_FREE_STACK        (1 << 12)                     /* Bit 12: Free stack after exit */
-                                                                 /* Bits 13-15: Available */
+#define TCB_FLAG_HEAPCHECK         (1 << 13)                     /* Bit 13: Heap check */
+                                                                 /* Bits 14-15: Available */
 
 /* Values for struct task_group tg_flags */
 
@@ -172,16 +172,17 @@
 #  define _SCHED_ERRVAL(r)           (-errno)
 #endif
 
-/* The number of callback can be saved */
-
-#if defined(CONFIG_SCHED_ONEXIT_MAX)
-#  define CONFIG_SCHED_EXIT_MAX CONFIG_SCHED_ONEXIT_MAX
-#elif defined(CONFIG_SCHED_ATEXIT_MAX)
-#  define CONFIG_SCHED_EXIT_MAX CONFIG_SCHED_ATEXIT_MAX
+#ifdef CONFIG_DEBUG_TCBINFO
+#  define TCB_PID_OFF                offsetof(struct tcb_s, pid)
+#  define TCB_STATE_OFF              offsetof(struct tcb_s, task_state)
+#  define TCB_PRI_OFF                offsetof(struct tcb_s, sched_priority)
+#if CONFIG_TASK_NAME_SIZE > 0
+#  define TCB_NAME_OFF               offsetof(struct tcb_s, name)
+#else
+#  define TCB_NAME_OFF               0
 #endif
-
-#if defined(CONFIG_SCHED_EXIT_MAX) && CONFIG_SCHED_EXIT_MAX < 1
-#  error "CONFIG_SCHED_EXIT_MAX < 1"
+#  define TCB_REGS_OFF               offsetof(struct tcb_s, xcp.regs)
+#  define TCB_REG_OFF(reg)           (reg * sizeof(uint32_t))
 #endif
 
 /****************************************************************************
@@ -260,18 +261,6 @@ typedef union entry_u entry_t;
 typedef CODE void (*starthook_t)(FAR void *arg);
 #endif
 
-/* These are the types of the functions that are executed with exit() is
- * called (if registered via atexit() on on_exit()).
- */
-
-#ifdef CONFIG_SCHED_ATEXIT
-typedef CODE void (*atexitfunc_t)(void);
-#endif
-
-#ifdef CONFIG_SCHED_ONEXIT
-typedef CODE void (*onexitfunc_t)(int exitcode, FAR void *arg);
-#endif
-
 /* struct sporadic_s ********************************************************/
 
 #ifdef CONFIG_SCHED_SPORADIC
@@ -336,18 +325,6 @@ struct child_status_s
 };
 #endif
 
-/* struct pthread_cleanup_s *************************************************/
-
-/* This structure describes one element of the pthread cleanup stack */
-
-#ifdef CONFIG_PTHREAD_CLEANUP
-struct pthread_cleanup_s
-{
-  pthread_cleanup_t pc_cleaner;     /* Cleanup callback address */
-  FAR void *pc_arg;                 /* Argument that accompanies the callback */
-};
-#endif
-
 /* struct dspace_s **********************************************************/
 
 /* This structure describes a reference counted D-Space region.
@@ -391,26 +368,6 @@ struct stackinfo_s
                                          /* from the stack.                     */
 };
 
-/* struct exitinfo_s ********************************************************/
-
-struct exitinfo_s
-{
-  union
-  {
-#ifdef CONFIG_SCHED_ATEXIT
-    atexitfunc_t at;
-#endif
-#ifdef CONFIG_SCHED_ONEXIT
-    onexitfunc_t on;
-#endif
-  } func;
-#ifdef CONFIG_SCHED_ONEXIT
-  FAR void *arg;
-#endif
-};
-
-struct task_info_s;
-
 /* struct task_group_s ******************************************************/
 
 /* All threads created by pthread_create belong in the same task group (along
@@ -435,6 +392,8 @@ struct task_info_s;
  * leaving the group.  When the reference count decrements to zero,
  * the struct task_group_s is free.
  */
+
+struct task_info_s;
 
 #ifndef CONFIG_DISABLE_PTHREAD
 struct join_s;                      /* Forward reference                        */
@@ -467,12 +426,6 @@ struct task_group_s
 #ifdef HAVE_GROUP_MEMBERS
   uint8_t    tg_mxmembers;          /* Number of members in allocation          */
   FAR pid_t *tg_members;            /* Members of the group                     */
-#endif
-
-  /* [at|on]exit support ****************************************************/
-
-#ifdef CONFIG_SCHED_EXIT_MAX
-  struct exitinfo_s tg_exit[CONFIG_SCHED_EXIT_MAX];
 #endif
 
 #ifdef CONFIG_BINFMT_LOADABLE
@@ -527,8 +480,7 @@ struct task_group_s
 #ifndef CONFIG_DISABLE_ENVIRON
   /* Environment variables **************************************************/
 
-  size_t     tg_envsize;            /* Size of environment string allocation    */
-  FAR char  *tg_envp;               /* Allocated environment strings            */
+  FAR char **tg_envp;               /* Allocated environment strings            */
 #endif
 
 #ifndef CONFIG_DISABLE_POSIX_TIMERS
@@ -612,6 +564,7 @@ struct tcb_s
   uint8_t  pend_reprios[CONFIG_SEM_NNESTPRIO];
 #endif
   uint8_t  base_priority;                /* "Normal" priority of the thread */
+  FAR struct semholder_s *holdsem;       /* List of held semaphores         */
 #endif
 
 #ifdef CONFIG_SMP
@@ -679,6 +632,12 @@ struct tcb_s
   FAR struct pthread_mutex_s *mhead;     /* List of mutexes held by thread  */
 #endif
 
+  /* CPU load monitoring support ********************************************/
+
+#ifdef CONFIG_SCHED_CPULOAD
+  uint32_t ticks;                        /* Number of ticks on this thread */
+#endif
+
   /* Pre-emption monitor support ********************************************/
 
 #ifdef CONFIG_SCHED_CRITMONITOR
@@ -725,10 +684,6 @@ struct task_tcb_s
   starthook_t starthook;                 /* Task startup function               */
   FAR void *starthookarg;                /* The argument passed to the function */
 #endif
-
-  /* [Re-]start name + start-up parameters **********************************/
-
-  FAR char **argv;                       /* Name+start-up parameters        */
 };
 
 /* struct pthread_tcb_s *****************************************************/
@@ -753,10 +708,44 @@ struct pthread_tcb_s
 
   pthread_trampoline_t trampoline;       /* User-space pthread startup function */
   pthread_addr_t arg;                    /* Startup argument                    */
-  pthread_exitroutine_t exit;            /* User-space pthread exit function    */
   FAR void *joininfo;                    /* Detach-able info to support join    */
 };
 #endif /* !CONFIG_DISABLE_PTHREAD */
+
+/* struct tcbinfo_s *********************************************************/
+
+/* The structure save key filed offset of tcb_s while can be used by
+ * debuggers to parse the tcb information
+ */
+
+#ifdef CONFIG_DEBUG_TCBINFO
+begin_packed_struct struct tcbinfo_s
+{
+  uint16_t pid_off;                      /* Offset of tcb.pid               */
+  uint16_t state_off;                    /* Offset of tcb.task_state        */
+  uint16_t pri_off;                      /* Offset of tcb.sched_priority    */
+  uint16_t name_off;                     /* Offset of tcb.name              */
+  uint16_t regs_off;                     /* Offset of tcb.regs              */
+  uint16_t basic_num;                    /* Num of genernal regs            */
+  uint16_t total_num;                    /* Num of regs in tcbinfo.reg_offs */
+
+  /* Offset pointer of xcp.regs, order in GDB org.gnu.gdb.xxx feature.
+   * Please refer:
+   * https://sourceware.org/gdb/current/onlinedocs/gdb/ARM-Features.html
+   * https://sourceware.org/gdb/current/onlinedocs/gdb/RISC_002dV-Features
+   * -.html
+   * value UINT16_MAX: This regsiter was not priovided by NuttX
+   */
+
+  begin_packed_struct
+  union
+  {
+    uint8_t             u[8];
+    FAR const uint16_t *p;
+  }
+  end_packed_struct reg_off;
+} end_packed_struct;
+#endif
 
 /* This is the callback type used by nxsched_foreach() */
 
@@ -781,14 +770,13 @@ extern "C"
 #ifdef CONFIG_SCHED_CRITMONITOR
 /* Maximum time with pre-emption disabled or within critical section. */
 
-#ifdef CONFIG_SMP_NCPUS
 EXTERN uint32_t g_premp_max[CONFIG_SMP_NCPUS];
 EXTERN uint32_t g_crit_max[CONFIG_SMP_NCPUS];
-#else
-EXTERN uint32_t g_premp_max[1];
-EXTERN uint32_t g_crit_max[1];
-#endif
 #endif /* CONFIG_SCHED_CRITMONITOR */
+
+#ifdef CONFIG_DEBUG_TCBINFO
+EXTERN const struct tcbinfo_s g_tcbinfo;
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -899,6 +887,7 @@ FAR struct streamlist *nxsched_get_streams(void);
  *   argv       - A pointer to an array of input parameters.  The array
  *                should be terminated with a NULL argv[] value. If no
  *                parameters are required, argv may be NULL.
+ *   envp       - A pointer to the program's environment, envp may be NULL
  *
  * Returned Value:
  *   OK on success; negative error value on failure appropriately.  (See
@@ -911,7 +900,7 @@ FAR struct streamlist *nxsched_get_streams(void);
 
 int nxtask_init(FAR struct task_tcb_s *tcb, const char *name, int priority,
                 FAR void *stack, uint32_t stack_size, main_t entry,
-                FAR char * const argv[]);
+                FAR char * const argv[], FAR char * const envp[]);
 
 /****************************************************************************
  * Name: nxtask_uninit
@@ -933,6 +922,74 @@ int nxtask_init(FAR struct task_tcb_s *tcb, const char *name, int priority,
  ****************************************************************************/
 
 void nxtask_uninit(FAR struct task_tcb_s *tcb);
+
+/****************************************************************************
+ * Name: nxtask_create
+ *
+ * Description:
+ *   This function creates and activates a new user task with a specified
+ *   priority and returns its system-assigned ID.
+ *
+ *   The entry address entry is the address of the "main" function of the
+ *   task.  This function will be called once the C environment has been
+ *   set up.  The specified function will be called with four arguments.
+ *   Should the specified routine return, a call to exit() will
+ *   automatically be made.
+ *
+ *   Note that four (and only four) arguments must be passed for the spawned
+ *   functions.
+ *
+ *   nxtask_create() is identical to the function task_create(), differing
+ *   only in its return value:  This function does not modify the errno
+ *   variable.  This is a non-standard, internal OS function and is not
+ *   intended for use by application logic.  Applications should use
+ *   task_create().
+ *
+ * Input Parameters:
+ *   name       - Name of the new task
+ *   priority   - Priority of the new task
+ *   stack_size - size (in bytes) of the stack needed
+ *   entry      - Entry point of a new task
+ *   arg        - A pointer to an array of input parameters.  The array
+ *                should be terminated with a NULL argv[] value. If no
+ *                parameters are required, argv may be NULL.
+ *
+ * Returned Value:
+ *   Returns the positive, non-zero process ID of the new task or a negated
+ *   errno value to indicate the nature of any failure.  If memory is
+ *   insufficient or the task cannot be created -ENOMEM will be returned.
+ *
+ ****************************************************************************/
+
+int nxtask_create(FAR const char *name, int priority,
+                  int stack_size, main_t entry, FAR char * const argv[]);
+
+/****************************************************************************
+ * Name: nxtask_delete
+ *
+ * Description:
+ *   This function causes a specified task to cease to exist.  Its stack and
+ *   TCB will be deallocated.
+ *
+ *   The logic in this function only deletes non-running tasks.  If the
+ *   'pid' parameter refers to the currently running task, then processing
+ *   is redirected to exit(). This can only happen if a task calls
+ *   nxtask_delete() in order to delete itself.
+ *
+ *   This function obeys the semantics of pthread cancellation:  task
+ *   deletion is deferred if cancellation is disabled or if deferred
+ *   cancellation is supported (with cancellation points enabled).
+ *
+ * Input Parameters:
+ *   pid - The task ID of the task to delete.  A pid of zero
+ *         signifies the calling task.
+ *
+ * Returned Value:
+ *   OK on success; or negated errno on failure
+ *
+ ****************************************************************************/
+
+int nxtask_delete(pid_t pid);
 
 /****************************************************************************
  * Name: nxtask_activate

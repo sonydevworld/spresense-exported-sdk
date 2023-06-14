@@ -73,6 +73,13 @@
  *   (SoC).  The returned value is a fixed precision percentage of the
  *   batteries full capacity.
  *   Input value:  A pointer to type b16_t.
+ * BATIOC_CURRENT - Return the current of the battery . The returned value
+ *   is a fixed precision number in units of ma.
+ *   Input value:  A pointer to type b16_t.
+ * BATIOC_TEMPERATURE- Return the current temperature of the battery.
+ *   Input value:  A pointer to type b8_t.
+ * BATIOC_CHIPID- Return the chip id of the gauge.
+ *   Input value:  A pointer to type unsigned int.
  */
 
 /****************************************************************************
@@ -99,6 +106,18 @@ struct battery_gauge_operations_s
   /* Battery capacity */
 
   int (*capacity)(struct battery_gauge_dev_s *dev, b16_t *value);
+
+  /* Battery current */
+
+  int (*current)(struct battery_gauge_dev_s *dev, b16_t *value);
+
+  /* Battery temp */
+
+  int (*temp)(struct battery_gauge_dev_s *dev, b8_t *value);
+
+  /* Battery chipid */
+
+  int (*chipid)(struct battery_gauge_dev_s *dev, unsigned int *value);
 };
 
 /* This structure defines the battery driver state structure */
@@ -111,6 +130,8 @@ struct battery_gauge_dev_s
   sem_t batsem;                                     /* Enforce mutually exclusive access */
 
   struct list_node flist;
+
+  uint32_t mask;  /* record drive support features */
 
   /* Data fields specific to the lower-half driver may follow */
 };

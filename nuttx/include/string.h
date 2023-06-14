@@ -26,14 +26,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <stddef.h>
-
-/* Non-standard support for cases where CHAR_BIT != 8 carried in strings.h
- * only for convenience.  See include/nuttx/b2c.h.
- */
-
-#include <nuttx/b2c.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -58,11 +53,12 @@ extern "C"
 
 FAR char  *strdup(FAR const char *s);
 FAR char  *strndup(FAR const char *s, size_t size);
-FAR const char *strerror(int);
+FAR char  *strerror(int);
 int        strerror_r(int, FAR char *, size_t);
 size_t     strlen(FAR const char *);
 size_t     strnlen(FAR const char *, size_t);
 FAR char  *strcat(FAR char *, FAR const char *);
+size_t     strlcat(FAR char *, FAR const char *, size_t);
 FAR char  *strncat(FAR char *, FAR const char *, size_t);
 int        strcmp(FAR const char *, FAR const char *);
 int        strncmp(FAR const char *, FAR const char *, size_t);
@@ -93,6 +89,8 @@ int        memcmp(FAR const void *s1, FAR const void *s2, size_t n);
 FAR void  *memcpy(FAR void *dest, FAR const void *src, size_t n);
 FAR void  *memmove(FAR void *dest, FAR const void *src, size_t count);
 FAR void  *memset(FAR void *s, int c, size_t n);
+FAR void  *memmem(FAR const void *haystack, size_t haystacklen,
+                  FAR const void *needle, size_t needlelen);
 
 void explicit_bzero(FAR void *s, size_t n);
 

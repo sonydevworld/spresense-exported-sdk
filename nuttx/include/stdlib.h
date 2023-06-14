@@ -56,13 +56,15 @@
  * character specified by the current locale.
  */
 
-#define MB_CUR_MAX 1
+#define MB_CUR_MAX 4
 
 /* The environ variable, normally 'char **environ;' is not implemented as a
  * function call.  However, get_environ_ptr() can be used in its place.
  */
 
-#ifndef CONFIG_DISABLE_ENVIRON
+#ifdef CONFIG_DISABLE_ENVIRON
+#  define environ NULL
+#else
 #  define environ get_environ_ptr()
 #endif
 
@@ -202,13 +204,11 @@ FAR char *itoa(int val, FAR char *str, int base);
 
 /* Wide character operations */
 
-#ifdef CONFIG_LIBC_WCHAR
 int       mblen(FAR const char *s, size_t n);
 int       mbtowc(FAR wchar_t *pwc, FAR const char *s, size_t n);
 size_t    mbstowcs(FAR wchar_t *dst, FAR const char *src, size_t len);
 int       wctomb(FAR char *s, wchar_t wchar);
 size_t    wcstombs(FAR char *dst, FAR const wchar_t *src, size_t len);
-#endif
 
 /* Memory Management */
 
@@ -225,6 +225,7 @@ int       posix_memalign(FAR void **, size_t, size_t);
 /* Pseudo-Terminals */
 
 #ifdef CONFIG_PSEUDOTERM
+int       posix_openpt(int oflag);
 FAR char *ptsname(int fd);
 int       ptsname_r(int fd, FAR char *buf, size_t buflen);
 int       unlockpt(int fd);
@@ -264,6 +265,10 @@ void      qsort(FAR void *base, size_t nel, size_t width,
 FAR void  *bsearch(FAR const void *key, FAR const void *base, size_t nel,
                    size_t width, CODE int (*compar)(FAR const void *,
                    FAR const void *));
+
+/* Current program name manipulation */
+
+FAR const char *getprogname(void);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_FS_DRIVERS_H
-#define __INCLUDE_NUTTX_FS_DRIVERS_H
+#ifndef __INCLUDE_NUTTX_DRIVERS_DRIVERS_H
+#define __INCLUDE_NUTTX_DRIVERS_DRIVERS_H
 
 /****************************************************************************
  * Included Files
@@ -42,6 +42,16 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Name: drivers_initialize
+ *
+ * Description:
+ *   Initialize chip and board independent general driver
+ *
+ ****************************************************************************/
+
+void drivers_initialize(void);
 
 /****************************************************************************
  * Name: devnull_register
@@ -217,9 +227,19 @@ ssize_t bchlib_write(FAR void *handle, FAR const char *buffer, size_t offset,
 
 void lwlconsole_init(void);
 
+/****************************************************************************
+ * Name: rpmsg_serialinit
+ *
+ * Description:
+ *   Register rpmsg serial driver
+ *
+ ****************************************************************************/
+
+void rpmsg_serialinit(void);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_FS_DRIVERS_H */
+#endif /* __INCLUDE_NUTTX_DRIVERS_DRIVERS_H */

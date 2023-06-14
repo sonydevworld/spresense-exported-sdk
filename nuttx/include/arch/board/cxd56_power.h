@@ -30,20 +30,6 @@
 #include <stdbool.h>
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define PMIC_NONE           (0)
-#define PMIC_TYPE_LSW       (1u << 8)
-#define PMIC_TYPE_GPO       (1u << 9)
-#define PMIC_TYPE_DDCLDO    (1u << 10)
-#define PMIC_GET_TYPE(v)    ((v) & 0xff00)
-#define PMIC_GET_CH(v)      ((v) & 0x00ff)
-#define PMIC_LSW(n)         (PMIC_TYPE_LSW | (1u << (n)))
-#define PMIC_GPO(n)         (PMIC_TYPE_GPO | (1u << (n)))
-#define PMIC_DDCLDO(n)      (PMIC_TYPE_DDCLDO | (1u << (n)))
-
-/****************************************************************************
  * Public Types
  ****************************************************************************/
 
@@ -61,6 +47,10 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: board_pmic_read
@@ -211,6 +201,26 @@ bool board_xtal_power_monitor(void);
  ****************************************************************************/
 
 int board_lna_power_control(bool en);
+
+/****************************************************************************
+ * Name: board_set_reset_gpo
+ *
+ * Description:
+ *   Set gpo to off when power off the board.
+ *
+ ****************************************************************************/
+
+int board_set_reset_gpo(int target);
+
+/****************************************************************************
+ * Name: board_unset_reset_gpo
+ *
+ * Description:
+ *   Keep gpo status when power off the board.
+ *
+ ****************************************************************************/
+
+int board_unset_reset_gpo(int target);
 
 #undef EXTERN
 #if defined(__cplusplus)

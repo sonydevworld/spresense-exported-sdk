@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef _INCLUDE_NUTTX_MM_IOB_H
-#define _INCLUDE_NUTTX_MM_IOB_H
+#ifndef __INCLUDE_NUTTX_MM_IOB_H
+#define __INCLUDE_NUTTX_MM_IOB_H
 
 /****************************************************************************
  * Included Files
@@ -234,6 +234,23 @@ struct iob_userstats_s
 void iob_initialize(void);
 
 /****************************************************************************
+ * Name: iob_timedalloc
+ *
+ * Description:
+ *  Allocate an I/O buffer by taking the buffer at the head of the free list.
+ *  This wait will be terminated when the specified timeout expires.
+ *
+ * Input Parameters:
+ *   throttled  - An indication of the IOB allocation is "throttled"
+ *   timeout    - Timeout value in milliseconds.
+ *   consumerid - id representing who is consuming the IOB
+ *
+ ****************************************************************************/
+
+FAR struct iob_s *iob_timedalloc(bool throttled, unsigned int timeout,
+                                 enum iob_user_e consumerid);
+
+/****************************************************************************
  * Name: iob_alloc
  *
  * Description:
@@ -332,13 +349,12 @@ int iob_notifier_setup(int qid, worker_t worker, FAR void *arg);
  *         iob_notifier_setup().
  *
  * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure.
+ *   None.
  *
  ****************************************************************************/
 
 #ifdef CONFIG_IOB_NOTIFIER
-int iob_notifier_teardown(int key);
+void iob_notifier_teardown(int key);
 #endif
 
 /****************************************************************************
@@ -630,4 +646,4 @@ FAR struct iob_userstats_s * iob_getuserstats(enum iob_user_e userid);
 #endif
 
 #endif /* CONFIG_MM_IOB */
-#endif /* _INCLUDE_NUTTX_MM_IOB_H */
+#endif /* __INCLUDE_NUTTX_MM_IOB_H */

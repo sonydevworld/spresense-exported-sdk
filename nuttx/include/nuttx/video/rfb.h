@@ -356,7 +356,7 @@ struct rfb_setencodings_s
 };
 
 #define SIZEOF_RFB_SETENCODINGS_S(n) \
-  (sizeof(struct rfb_setencodings_s) + (((n) - 1) << 2))
+  (sizeof(struct rfb_setencodings_s) + ((n) == 0 ? -4 : ((n) - 1) << 2))
 
 /* 6.4.3 FramebufferUpdateRequest
  *
@@ -411,7 +411,7 @@ struct rfb_keyevent_s
   uint8_t msgtype;               /* U8  Message type */
   uint8_t down;                  /* U8  Down flag */
   uint8_t padding[2];
-  uint8_t key[2];                /* U16 Key */
+  uint8_t key[4];                /* U16 Key */
 };
 
 /* "The interpretation of keysyms is a complex area. In order to be as

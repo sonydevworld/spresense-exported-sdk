@@ -41,7 +41,7 @@
  * then only the first mode is supported.
  */
 
-#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
+#if defined(__KERNEL__)
 
   /* Domain-specific allocations */
 
@@ -100,10 +100,6 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-
-/* Hook for library initialization.  No is needed now, however */
-
-#define lib_initialize()
 
 /* Functions contained in lib_streams.c *************************************/
 

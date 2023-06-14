@@ -32,19 +32,13 @@
 #  include <stdint.h>
 #endif
 
+#include <arch/syscall.h>
+
 #ifdef CONFIG_LIB_SYSCALL
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Reserve the first system calls for platform-specific usage if so
- * configured.
- */
-
-#ifndef CONFIG_SYS_RESERVED
-#  define CONFIG_SYS_RESERVED          (0)
-#endif
 
 /* Note that the reported number of system calls does *NOT* include the
  * architecture-specific system calls.  If the "real" total is required,
@@ -95,15 +89,11 @@ EXTERN const uintptr_t g_stublookup[SYS_nsyscalls];
 
 #endif
 
-#ifdef CONFIG_SCHED_INSTRUMENTATION_SYSCALL
-
 /* Given the system call number, the corresponding entry in this table
  * provides the name of the function.
  */
 
 EXTERN const char *g_funcnames[SYS_nsyscalls];
-
-#endif
 
 /****************************************************************************
  * Public Function Prototypes

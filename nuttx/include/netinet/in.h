@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdint.h>
+#include <endian.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -132,9 +133,31 @@
 #define MCAST_EXCLUDE         0
 #define MCAST_INCLUDE         1
 
+/* Definitions of the bits in an Internet address integer.
+ * On subnets, host and network parts are found according to
+ * the subnet mask, not these masks.
+ */
+
+#define IN_CLASSA(a)          ((((in_addr_t)(a)) & 0x80000000) == 0)
+#define IN_CLASSA_NET         0xff000000
+#define IN_CLASSA_NSHIFT      24
+#define IN_CLASSA_HOST        (0xffffffff & ~IN_CLASSA_NET)
+#define IN_CLASSA_MAX         128
+
+#define IN_CLASSB(a)          ((((in_addr_t)(a)) & 0xc0000000) == 0x80000000)
+#define IN_CLASSB_NET         0xffff0000
+#define IN_CLASSB_NSHIFT      16
+#define IN_CLASSB_HOST        (0xffffffff & ~IN_CLASSB_NET)
+#define IN_CLASSB_MAX         65536
+
+#define IN_CLASSC(a)          ((((in_addr_t)(a)) & 0xe0000000) == 0xc0000000)
+#define IN_CLASSC_NET         0xffffff00
+#define IN_CLASSC_NSHIFT      8
+#define IN_CLASSC_HOST        (0xffffffff & ~IN_CLASSC_NET)
+
 /* Test if an IPv4 address is a multicast address */
 
-#define IN_CLASSD(i)          (((uint32_t)(i) & 0xf0000000) == 0xe0000000)
+#define IN_CLASSD(i)          (((in_addr_t)(i) & 0xf0000000) == 0xe0000000)
 #define IN_MULTICAST(i)       IN_CLASSD(i)
 
 /* Special values of in_addr_t */
@@ -195,26 +218,14 @@
 /* This macro to convert a 16/32-bit constant values quantity from host byte
  * order to network byte order.  The 16-bit version of this macro is required
  * for uIP:
- *
- *   Author Adam Dunkels <adam@dunkels.com>
- *   Copyright (c) 2001-2003, Adam Dunkels.
- *   All rights reserved.
  */
 
 #ifdef CONFIG_ENDIAN_BIG
-# define HTONS(ns) (ns)
-# define HTONL(nl) (nl)
+#  define HTONS(ns) (ns)
+#  define HTONL(nl) (nl)
 #else
-# define HTONS(ns) \
-  (unsigned short) \
-    (((((unsigned short)(ns)) & 0x00ff) << 8) | \
-     ((((unsigned short)(ns)) >> 8) & 0x00ff))
-# define HTONL(nl) \
-  (unsigned long) \
-    (((((unsigned long)(nl)) & 0x000000ffUL) << 24) | \
-     ((((unsigned long)(nl)) & 0x0000ff00UL) <<  8) | \
-     ((((unsigned long)(nl)) & 0x00ff0000UL) >>  8) | \
-     ((((unsigned long)(nl)) & 0xff000000UL) >> 24))
+#  define HTONS __swap_uint16
+#  define HTONL __swap_uint32
 #endif
 
 #define NTOHS(hs) HTONS(hs)

@@ -52,14 +52,14 @@ extern FAR struct task_group_s *g_grouphead;
 #endif
 
 #ifdef CONFIG_ARCH_ADDRENV
-/* This variable holds the PID of the current task group.  This ID is
- * zero if the current task is a kernel thread that has no address
- * environment (other than the kernel context).
+/* This variable holds the current task group.  This pointer is NULL
+ * if the current task is a kernel thread that has no address environment
+ * (other than the kernel context).
  *
  * This must only be accessed with interrupts disabled.
  */
 
-extern pid_t g_pid_current;
+extern FAR struct task_group_s *g_group_current[CONFIG_SMP_NCPUS];
 #endif
 
 /****************************************************************************
@@ -73,8 +73,7 @@ void weak_function task_initialize(void);
 /* Task group data structure management */
 
 int  group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype);
-void group_deallocate(FAR struct task_group_s *group);
-int  group_initialize(FAR struct task_tcb_s *tcb);
+void group_initialize(FAR struct task_tcb_s *tcb);
 #ifndef CONFIG_DISABLE_PTHREAD
 int  group_bind(FAR struct pthread_tcb_s *tcb);
 int  group_join(FAR struct pthread_tcb_s *tcb);

@@ -68,6 +68,7 @@
 #define IMGSENSOR_ID_ISO_SENSITIVITY      (0x0001000d)
 #define IMGSENSOR_ID_ISO_SENSITIVITY_AUTO (0x0001000e)
 #define IMGSENSOR_ID_EXPOSURE_METERING    (0x0001000f)
+#define IMGSENSOR_ID_SPOT_POSITION        (0x00010016)
 #define IMGSENSOR_ID_3A_LOCK              (0x00010011)
 #define IMGSENSOR_ID_AUTO_FOCUS_START     (0x00010012)
 #define IMGSENSOR_ID_AUTO_FOCUS_STOP      (0x00010013)
@@ -359,7 +360,7 @@ extern "C"
 
 /* Register image sensor operations. */
 
-int imgsensor_register(const FAR struct imgsensor_ops_s *ops);
+int imgsensor_register(FAR const struct imgsensor_ops_s *ops);
 
 #undef EXTERN
 #ifdef __cplusplus

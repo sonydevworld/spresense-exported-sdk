@@ -76,6 +76,32 @@ struct fs_fatdir_s
 #endif /* CONFIG_FS_FAT */
 
 #ifdef CONFIG_FS_ROMFS
+#ifdef CONFIG_FS_ROMFS_CACHE_NODE
+
+/* This structure represents one entry node in the romfs file system */
+
+struct romfs_nodeinfo_s
+{
+  FAR struct romfs_nodeinfo_s **rn_child;  /* The node array for link to lower level */
+  uint16_t rn_count;                       /* The count of node in rn_child level */
+  uint32_t rn_offset;                      /* The offset to real file header of the current entry */
+  uint32_t rn_next;                        /* The offset of the next file header+flags */
+  uint32_t rn_size;                        /* The size to the entry (if file) */
+  uint8_t  rn_namesize;                    /* The length of name of the entry */
+  char rn_name[1];                         /* The name to the entry */
+};
+
+/* For ROMFS, we need to return the node to the current and start node
+ * of the directory entry being read
+ */
+
+struct fs_romfsdir_s
+{
+  FAR struct romfs_nodeinfo_s **fr_firstnode; /* The address of first node in the directory */
+  FAR struct romfs_nodeinfo_s **fr_currnode;  /* The address of current node into the directory */
+};
+#else
+
 /* For ROMFS, we need to return the offset to the current and start positions
  * of the directory entry being read
  */
@@ -85,6 +111,7 @@ struct fs_romfsdir_s
   off_t        fr_firstoffset;         /* Offset to the first entry in the directory */
   off_t        fr_curroffset;          /* Current offset into the directory contents */
 };
+#endif
 #endif /* CONFIG_FS_ROMFS */
 
 #ifdef CONFIG_FS_CROMFS
@@ -207,6 +234,17 @@ struct fs_hostfsdir_s
 };
 #endif
 
+#ifdef CONFIG_FS_RPMSGFS
+/* RPMSGFS provides mapping to directories on the host machine in the
+ * sim environment.
+ */
+
+struct fs_rpmsgfsdir_s
+{
+  FAR void *fs_dir;                           /* Opaque pointer to remote DIR */
+};
+#endif
+
 #endif /* CONFIG_DISABLE_MOUNTPOINT */
 
 struct fs_dirent_s
@@ -287,6 +325,9 @@ struct fs_dirent_s
 #endif
 #ifdef CONFIG_FS_HOSTFS
       struct fs_hostfsdir_s  hostfs;
+#endif
+#ifdef CONFIG_FS_RPMSGFS
+      struct fs_rpmsgfsdir_s rpmsgfs;
 #endif
 #endif /* !CONFIG_DISABLE_MOUNTPOINT */
   } u;

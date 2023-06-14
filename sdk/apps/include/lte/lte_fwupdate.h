@@ -126,6 +126,7 @@ int ltefwupdate_injected_datasize(void);
  * - LTEFW_RESULT_PRECHK_SIZE_ERROR
  * - LTEFW_RESULT_PRECHK_PKG_ERROR
  * - LTEFW_RESULT_PRECHK_CRC_ERROR
+ * - -EPERM
  *
  */
 

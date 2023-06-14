@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTT_SENSORS_SCD41_H
-#define __INCLUDE_NUTT_SENSORS_SCD41_H
+#ifndef __INCLUDE_NUTTX_SENSORS_SCD41_H
+#define __INCLUDE_NUTTX_SENSORS_SCD41_H
 
 /****************************************************************************
  * Included Files
@@ -72,4 +72,4 @@ int scd41_register_i2c(FAR const char *devpath,
 
 #endif
 
-#endif /* __INCLUDE_NUTT_SENSORS_SCD41_H */
+#endif /* __INCLUDE_NUTTX_SENSORS_SCD41_H */

@@ -41,6 +41,7 @@
 #define OSINIT_MM_READY()        (g_nx_initstate >= OSINIT_MEMORY)
 #define OSINIT_HW_READY()        (g_nx_initstate >= OSINIT_HARDWARE)
 #define OSINIT_OS_READY()        (g_nx_initstate >= OSINIT_OSREADY)
+#define OSINIT_IDLELOOP()        (g_nx_initstate >= OSINIT_IDLELOOP)
 #define OSINIT_OS_INITIALIZING() (g_nx_initstate  < OSINIT_OSREADY)
 
 /****************************************************************************
@@ -65,8 +66,9 @@ enum nx_initstate_e
                           * to support the hardware are also available but
                           * the OS has not yet completed its full
                           * initialization. */
-  OSINIT_OSREADY   = 5   /* The OS is fully initialized and multi-tasking is
+  OSINIT_OSREADY   = 5,  /* The OS is fully initialized and multi-tasking is
                           * active. */
+  OSINIT_IDLELOOP  = 6   /* The OS enter idle loop */
 };
 
 /****************************************************************************
@@ -94,7 +96,7 @@ EXTERN uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
 
 /* This entry point must be supplied by the application */
 
-int CONFIG_USER_ENTRYPOINT(int argc, char *argv[]);
+int CONFIG_INIT_ENTRYPOINT(int argc, char *argv[]);
 
 /* Functions contained in nx_task.c *****************************************/
 

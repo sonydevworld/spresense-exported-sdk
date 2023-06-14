@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_DRIVERS_PWM_H
-#define __INCLUDE_NUTTX_DRIVERS_PWM_H
+#ifndef __INCLUDE_NUTTX_TIMERS_PWM_H
+#define __INCLUDE_NUTTX_TIMERS_PWM_H
 
 /* For the purposes of this driver, a PWM device is any device that generates
  * periodic output pulses s of controlled frequency and pulse width.  Such a
@@ -119,7 +119,7 @@
 #ifdef CONFIG_PWM_MULTICHAN
 struct pwm_chan_s
 {
-  ub16_t  duty;
+  ub16_t duty;
   int8_t channel;
 };
 #endif
@@ -314,4 +314,4 @@ void pwm_expired(FAR void *handle);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_DRIVERS_PWM_H */
+#endif /* __INCLUDE_NUTTX_TIMERS_PWM_H */

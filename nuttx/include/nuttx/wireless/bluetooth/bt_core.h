@@ -1,31 +1,25 @@
 /****************************************************************************
- * wireless/bluetooth/bt_core.h
- * Bluetooth subsystem core APIs.
- *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Ported from the Intel/Zephyr arduino101_firmware_source-v1.tar package
- * where the code was released with a compatible 3-clause BSD license:
+ * include/nuttx/wireless/bluetooth/bt_core.h
  *
  *   Copyright (c) 2016, Intel Corporation
  *   All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS AS IS
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -40,7 +34,7 @@
  ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_CORE_H
-#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_CORE_H 1
+#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_CORE_H
 
 /****************************************************************************
  * Included Files
@@ -100,24 +94,24 @@
 
 #ifdef CONFIG_ENDIAN_BIG
 #  define BT_GETUINT16(p) \
-     ((((uint16_t)(((FAR uint8_t *)(p))[1]) >> 8) & 0xff) | \
-      (((uint16_t)(((FAR uint8_t *)(p))[0]) & 0xff) << 8))
+     (((uint16_t)(((FAR uint8_t *)(p))[1])) | \
+      (((uint16_t)(((FAR uint8_t *)(p))[0])) << 8))
 #  define BT_PUTUINT16(p,v) \
      do \
        { \
-         ((FAR uint8_t *)(p))[0] = ((uint16_t)(v) >> 8) & 0xff; \
-         ((FAR uint8_t *)(p))[1] = ((uint16_t)(v) & 0xff) >> 8; \
+         ((FAR uint8_t *)(p))[0] = ((uint16_t)(v)) >> 8; \
+         ((FAR uint8_t *)(p))[1] = ((uint16_t)(v)) & 0xff; \
        } \
      while (0)
 #else
 #  define BT_GETUINT16(p) \
-     ((((uint16_t)(((FAR uint8_t *)(p))[0]) >> 8) & 0xff) | \
-      (((uint16_t)(((FAR uint8_t *)(p))[1]) & 0xff) << 8))
+     (((uint16_t)(((FAR uint8_t *)(p))[0])) | \
+      (((uint16_t)(((FAR uint8_t *)(p))[1])) << 8))
 #  define BT_PUTUINT16(p,v) \
      do \
        { \
-         ((FAR uint8_t *)(p))[0] = ((uint16_t)(v) & 0xff) >> 8; \
-         ((FAR uint8_t *)(p))[1] = ((uint16_t)(v) >> 8) & 0xff; \
+         ((FAR uint8_t *)(p))[0] = ((uint16_t)(v)) & 0xff; \
+         ((FAR uint8_t *)(p))[1] = ((uint16_t)(v)) >> 8; \
        } \
      while (0)
 #endif
@@ -195,22 +189,22 @@ static inline int bt_addr_to_str(FAR const bt_addr_t *addr, FAR char *str,
  ****************************************************************************/
 
 static inline int bt_addr_le_to_str(FAR const bt_addr_le_t *addr, char *str,
-            size_t len)
+                                    size_t len)
 {
   char type[7];
 
   switch (addr->type)
   {
     case BT_ADDR_LE_PUBLIC:
-      strcpy(type, "public");
+      strlcpy(type, "public", sizeof(type));
       break;
 
     case BT_ADDR_LE_RANDOM:
-      strcpy(type, "random");
+      strlcpy(type, "random", sizeof(type));
       break;
 
     default:
-      sprintf(type, "0x%02x", addr->type);
+      snprintf(type, sizeof(type), "0x%02x", addr->type);
       break;
   }
 
@@ -222,5 +216,21 @@ static inline int bt_addr_le_to_str(FAR const bt_addr_le_t *addr, char *str,
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: bt_add_services
+ *
+ * Description:
+ *   Register services and start advertising.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Zero in case of success or negative value in case of error.
+ *
+ ****************************************************************************/
+
+int bt_add_services(void);
 
 #endif /* __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_CORE_H */

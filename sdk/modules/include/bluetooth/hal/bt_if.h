@@ -142,9 +142,14 @@ struct ble_hal_common_ops_s
   int (*setAppearance)(BLE_APPEARANCE appearance); /**< Set BLE appearance ID @ref BLE_APPEARANCE */
   int (*setPPCP)(BLE_CONN_PARAMS ppcp);            /**< Set PPCP connection parameter */
   int (*advertise)(bool enable);                   /**< Advertisement start/stop */
-  int (*scan)(bool enable);                        /**< Scan start/stop */
-  int (*connect)(const BT_ADDR *addr);             /**< Create a connection */
+  int (*startScan)(bool duplicate_filter);         /**< Start scan */
+  int (*stopScan)(void);                           /**< Stop scan */
+  int (*connect)(uint8_t addr_type, const BT_ADDR *addr); /**< Create a connection */
   int (*disconnect)(const uint16_t conn_handle);   /**< Destroy a connection */
+  int (*pairing)(uint16_t conn_handle);            /**< Execute pairing */
+  uint16_t (*setMtuSize)(uint16_t sz);             /**< Set MTU size */
+  uint16_t (*getMtuSize)(void);                    /**< Get MTU size */
+  int (*getNegotiatedMtuSize)(uint16_t handle);    /**< Get negotiated MTU size */
 };
 
 /**
@@ -166,10 +171,47 @@ struct ble_hal_gatts_ops_s
  */
 struct ble_hal_gattc_ops_s
 {
-  int (*startDbDiscovery)(uint16_t conn_handle);                           /**< GATT client start attribute database discovery */
-  int (*continueDbDiscovery)(uint16_t start_handle, uint16_t conn_handle); /**< GATT client start attribute database discovery */
-  int (*write)(struct ble_gatt_char_s *ble_gatt_char, uint16_t handle);    /**< Write characteristic request(Central)/response(Peripheral) */
-  int (*read)(struct ble_gatt_char_s *ble_gatt_char, uint16_t handle);     /**< Read characteristic request(Central)/response(Peripheral) */
+  /** GATT client start attribute database discovery */
+
+  int (*startDbDiscovery)(uint16_t conn_handle);
+
+  /** GATT client start attribute database discovery */
+
+  int (*continueDbDiscovery)(uint16_t start_handle, uint16_t conn_handle);
+
+  /** GATT client specific UUID discovery */
+
+  int (*discoverUuid)(uint16_t conn_handle,
+                      BLE_UUID *srv_uuid,
+                      BLE_UUID *char_uuid);
+
+  /** Send confirm for indicate */
+
+  int (*send_confirm)(uint16_t conn_handle, uint16_t char_handle);
+
+  /** Write characteristic request(Central)/response(Peripheral) */
+
+  int (*write)(uint16_t conn_handle,
+               uint16_t char_handle,
+               uint8_t  *data,
+               int      len,
+               bool     rsp);
+
+  /** Read characteristic request(Central)/response(Peripheral) */
+
+  int (*read)(uint16_t conn_handle, uint16_t char_handle);
+
+  /** Write descriptor request */
+
+  int (*descriptor_write)(uint16_t conn_handle,
+                          uint16_t handle,
+                          uint8_t  *data,
+                          uint16_t len);
+
+  /** Read descriptor request */
+
+  int (*descriptor_read)(uint16_t conn_handle,
+                         uint16_t handle);
 };
 
 /**
@@ -181,6 +223,14 @@ struct ble_hal_gatt_ops_s
   struct ble_hal_gatts_ops_s gatts; /**< GATT server HAL */
   struct ble_hal_gattc_ops_s gattc; /**< GATT client HAL */
 };
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -343,5 +393,10 @@ int ble_gatt_event_handler(struct bt_event_t *bt_event);
  */
 
 int ble_register_gatt_central_cb(struct ble_gatt_central_ops_s *central_ops);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __MODULES_INCLUDE_BLUETOOTH_HAL_BT_IF_H */

@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/sys/boardctl.h
  *
- *   Copyright (C) 2015-2019 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -57,7 +42,7 @@
 #  include <nuttx/nx/nxterm.h>
 #endif
 
-#ifdef CONFIG_LIB_BOARDCTL
+#ifdef CONFIG_BOARDCTL
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -72,13 +57,13 @@
  *                The argument has no meaning to NuttX; the meaning of the
  *                argument is a contract between the board-specific
  *                initialization logic and the matching application logic.
- *                The value cold be such things as a mode enumeration value,
+ *                The value could be such things as a mode enumeration value,
  *                a set of DIP switch switch settings, a pointer to
  *                configuration data read from a file or serial FLASH, or
  *                whatever you would like to do with it.  Every
  *                implementation should accept zero/NULL as a default
  *                configuration.
- * CONFIGURATION: CONFIG_LIB_BOARDCTL
+ * CONFIGURATION: CONFIG_BOARDCTL
  * DEPENDENCIES:  Board logic must provide board_app_initialize()
  *
  * CMD:           BOARDIOC_POWEROFF
@@ -113,7 +98,7 @@
  * DEPENDENCIES:  None
  *
  * CMD:           BOARDIOC_ROMDISK
- * DESCRIPTION:   Reigster
+ * DESCRIPTION:   Register a ROM disk
  * ARG:           Pointer to read-only instance of struct boardioc_romdisk_s.
  * CONFIGURATION: CONFIG_BOARDCTL_ROMDISK
  * DEPENDENCIES:  None
@@ -149,14 +134,13 @@
  * ARG:           A pointer to an instance of struct boardioc_builtin_s
  * CONFIGURATION: This BOARDIOC command is always available when
  *                CONFIG_BUILTIN is enabled, but does nothing unless
- *                CONFIG_BUILD_PROTECTED and CONFIG_FS_BINFS are also
- *                selected.
+ *                CONFIG_BUILD_PROTECTED is also selected.
  * DEPENDENCIES:  None
  *
  * CMD:           BOARDIOC_USBDEV_CONTROL
  * DESCRIPTION:   Manage USB device classes
  * ARG:           A pointer to an instance of struct boardioc_usbdev_ctrl_s
- * CONFIGURATION: CONFIG_LIB_BOARDCTL && CONFIG_BOARDCTL_USBDEVCTRL
+ * CONFIGURATION: CONFIG_BOARDCTL && CONFIG_BOARDCTL_USBDEVCTRL
  * DEPENDENCIES:  Board logic must provide board_<usbdev>_initialize()
  *
  * CMD:           BOARDIOC_NX_START
@@ -170,7 +154,7 @@
  * ARG:           A reference readable instance of struct
  *                boardioc_vncstart_s
  * CONFIGURATION: CONFIG_VNCSERVER
- * DEPENDENCIES:  VNC server provides vnc_default_fbinitialize()
+ * DEPENDENCIES:  VNC server provides nx_vnc_fbinitialize()
  *
  * CMD:           BOARDIOC_NXTERM
  * DESCRIPTION:   Create an NX terminal device
@@ -196,6 +180,12 @@
  *                1=locked.
  * CONFIGURATION: CONFIG_BOARDCTL_TESTSET
  * DEPENDENCIES:  Architecture-specific logic provides up_testset()
+ *
+ * CMD:           BOARDIOC_RESET_CAUSE
+ * DESCRIPTION:   Get the cause of last-time board reset
+ * ARG:           A pointer to an instance of struct boardioc_reset_cause_s
+ * CONFIGURATION: CONFIG_BOARDCTL_RESET_CAUSE
+ * DEPENDENCIES:  Board logic must provide the board_reset_cause() interface.
  */
 
 #define BOARDIOC_INIT              _BOARDIOC(0x0001)
@@ -215,6 +205,10 @@
 #define BOARDIOC_NXTERM            _BOARDIOC(0x000f)
 #define BOARDIOC_NXTERM_IOCTL      _BOARDIOC(0x0010)
 #define BOARDIOC_TESTSET           _BOARDIOC(0x0011)
+#define BOARDIOC_UNIQUEKEY         _BOARDIOC(0x0012)
+#define BOARDIOC_SWITCH_BOOT       _BOARDIOC(0x0013)
+#define BOARDIOC_BOOT_IMAGE        _BOARDIOC(0x0014)
+#define BOARDIOC_RESET_CAUSE       _BOARDIOC(0x0015)
 
 /* If CONFIG_BOARDCTL_IOCTL=y, then board-specific commands will be support.
  * In this case, all commands not recognized by boardctl() will be forwarded
@@ -223,7 +217,7 @@
  * User defined board commands may begin with this value:
  */
 
-#define BOARDIOC_USER              _BOARDIOC(0x0012)
+#define BOARDIOC_USER              _BOARDIOC(0x0016)
 
 /****************************************************************************
  * Public Type Definitions
@@ -240,7 +234,9 @@ enum boardioc_action_e
   BOARDIOC_PM_STAY,
   BOARDIOC_PM_RELAX,
   BOARDIOC_PM_STAYCOUNT,
-  BOARDIOC_PM_QUERYSTATE
+  BOARDIOC_PM_QUERYSTATE,
+  BOARDIOC_PM_CHANGESTATE,
+  BOARDIOC_PM_CHECKSTATE
 };
 
 struct boardioc_pm_ctrl_s
@@ -291,7 +287,7 @@ struct boardioc_romdisk_s
 struct symtab_s;  /* Forward reference */
 struct boardioc_symtab_s
 {
-  FAR struct symtab_s *symtab;
+  FAR const struct symtab_s *symtab;
   int nsymbols;
 };
 
@@ -335,6 +331,9 @@ struct boardioc_builtin_s
 enum boardioc_usbdev_identifier_e
 {
   BOARDIOC_USBDEV_NONE = 0        /* Not valid */
+#ifdef CONFIG_USBADB
+  , BOARDIOC_USBDEV_ADB           /* ADB */
+#endif
 #ifdef CONFIG_CDCACM
   , BOARDIOC_USBDEV_CDCACM        /* CDC/ACM */
 #endif
@@ -403,6 +402,57 @@ struct boardioc_nxterm_ioctl_s
 };
 #endif /* CONFIG_NXTERM */
 
+#ifdef CONFIG_BOARDCTL_BOOT_IMAGE
+
+/* Structure containing the arguments to the BOARDIOC_BOOT_IMAGE command */
+
+struct boardioc_boot_info_s
+{
+  FAR const char *path;           /* Path to application firmware image */
+  uint32_t        header_size;    /* Size of the image header in bytes */
+};
+#endif
+
+#if defined(CONFIG_BOARDCTL_RESET) || defined(CONFIG_BOARDCTL_RESET_CAUSE)
+/* Describes the reason of last reset */
+
+enum boardioc_reset_cause_e
+{
+  BOARDIOC_RESETCAUSE_NONE = 0,
+  BOARDIOC_RESETCAUSE_SYS_CHIPPOR,      /* chip power on */
+  BOARDIOC_RESETCAUSE_SYS_RWDT,         /* RTC watchdog system reset */
+  BOARDIOC_RESETCAUSE_SYS_BOR,          /* brown-out system reset */
+  BOARDIOC_RESETCAUSE_CORE_SOFT,        /* software core reset */
+  BOARDIOC_RESETCAUSE_CORE_DPSP,        /* deep-sleep core reset */
+  BOARDIOC_RESETCAUSE_CORE_MWDT,        /* main watchdog core reset */
+  BOARDIOC_RESETCAUSE_CORE_RWDT,        /* RTC watchdog core reset */
+  BOARDIOC_RESETCAUSE_CPU_MWDT,         /* main watchdog cpu reset */
+  BOARDIOC_RESETCAUSE_CPU_SOFT,         /* software cpu reset */
+  BOARDIOC_RESETCAUSE_CPU_RWDT,         /* RTC watchdog cpu reset */
+  BOARDIOC_RESETCAUSE_PIN,              /* Pin reset */
+  BOARDIOC_RESETCAUSE_LOWPOWER,         /* Low power reset */
+  BOARDIOC_RESETCAUSE_UNKOWN            /* Unknown reset cause */
+};
+
+enum boardioc_softreset_subreason_e
+{
+  BOARDIOC_SOFTRESETCAUSE_USER_REBOOT = 0,
+  BOARDIOC_SOFTRESETCAUSE_ASSERT,
+  BOARDIOC_SOFTRESETCAUSE_PANIC,
+  BOARDIOC_SOFTRESETCAUSE_ENTER_BOOTLOADER,
+  BOARDIOC_SOFTRESETCAUSE_ENTER_RECOVERY,
+  BOARDIOC_SOFTRESETCAUSE_RESTORE_FACTORY,
+  BOARDIOC_SOFTRESETCAUSE_RESTORE_FACTORY_INQUIRY
+};
+
+struct boardioc_reset_cause_s
+{
+  enum boardioc_reset_cause_e cause;  /* The reason of last reset */
+  uint32_t flag;                      /* watchdog number when watchdog reset,
+                                       * or soft-reset subreason */
+};
+#endif
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -431,11 +481,12 @@ extern "C"
  *   calls.  This, however, may not be practical in many cases and will lead
  *   to "correct" but awkward implementations.
  *
- *   boardctl() is non-standard OS interface to alleviate the problem.  It
- *   basically circumvents the normal device driver ioctl interlace and allows
- *   the application to perform direct IOCTL-like calls to the board-specific
- *   logic.  It is especially useful for setting up board operational and
- *   test configurations.
+ *   boardctl() is non-standard OS interface to alleviate the problem.
+ *   It basically circumvents the normal device driver ioctl interlace and
+ *   allows the application to perform direct IOCTL-like calls to the
+ *   board-specific logic.
+ *   It is especially useful for setting up board operational and test
+ *   configurations.
  *
  * Input Parameters:
  *   cmd - Identifies the board command to be executed
@@ -455,5 +506,5 @@ int boardctl(unsigned int cmd, uintptr_t arg);
 }
 #endif
 
-#endif /* CONFIG_LIB_BOARDCTL */
+#endif /* CONFIG_BOARDCTL */
 #endif /* __INCLUDE_SYS_BOARDCTL_H */

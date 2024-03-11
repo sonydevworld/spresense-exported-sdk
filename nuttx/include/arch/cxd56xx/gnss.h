@@ -1,35 +1,20 @@
 /****************************************************************************
  * arch/arm/include/cxd56xx/gnss.h
  *
- *   Copyright 2018,2019 Sony Semiconductor Solutions Corporation
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of Sony Semiconductor Solutions Corporation nor
- *    the names of its contributors may be used to endorse or promote
- *    products derived from this software without specific prior written
- *    permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -45,7 +30,7 @@ extern "C"
 #endif
 
 /****************************************************************************
- * include files
+ * Included Files
  ****************************************************************************/
 
 #include <arch/chip/gnss_type.h>
@@ -55,7 +40,9 @@ extern "C"
  *
  * param arg
  * Start mode value of uint32_t. Not address pointer.
- * One of #CXD56_GNSS_STMOD_COLD, #CXD56_GNSS_STMOD_WARM, #CXD56_GNSS_STMOD_HOT
+ * One of #CXD56_GNSS_STMOD_COLD,
+ *        #CXD56_GNSS_STMOD_WARM,
+ *        #CXD56_GNSS_STMOD_HOT
  */
 
 #define CXD56_GNSS_IOCTL_START 1
@@ -177,8 +164,8 @@ extern "C"
 #define CXD56_GNSS_IOCTL_GET_TCXO_OFFSET 10
 
 /* Set receiver time to GNSS.
- * The UTC time standard is used for the receiver time stored in a argument of
- * cxd56_gnss_datetime type.
+ * The UTC time standard is used for the receiver time stored in a argument
+ * of cxd56_gnss_datetime type.
  * The receiver position, current time and TCXO offset value, ephemeris data
  * are required in order to initiate a hot start.
  * Set the time with this command before hot start if GPS time is not counted
@@ -560,12 +547,48 @@ extern "C"
 
 #define CXD56_GNSS_IOCTL_GET_1PPS_OUTPUT 53
 
+/**
+ * Get the firmware version
+ *
+ * param[in] arg
+ * string array of CXD56_GNSS_VERSION_MAXLEN
+ */
+
+#define CXD56_GNSS_IOCTL_GET_VERSION 54
+
+/**
+ * Sleep the firmware
+ *
+ * param[in] arg
+ * CXD56_GNSS_SLEEP(0) or CXD56_GNSS_DEEPSLEEP(1)
+ */
+
+#define CXD56_GNSS_IOCTL_SLEEP 55
+
+/**
+ * Wake up the firmware
+ *
+ * param arg
+ * Parameter is Unnecessary. Set Zero.
+ */
+
+#define CXD56_GNSS_IOCTL_WAKEUP 56
+
+/**
+ * Reset the firmware
+ *
+ * param arg
+ * Parameter is Unnecessary. Set Zero.
+ */
+
+#define CXD56_GNSS_IOCTL_RESET 57
+
 /* check macros for GNSS commands */
 
 #define CXD56_GNSS_IOCTL_INVAL 0
-#define CXD56_GNSS_IOCTL_MAX   54
+#define CXD56_GNSS_IOCTL_MAX   58
 
-/* Same value to GD Start mode CXD56_GNSS_STMOD_XXXX for GD_Start */
+/* Same value to GD Start mode CXD56_GNSS_STMOD_XXXX for fw_gd_start */
 
 #define CXD56_GNSS_STMOD_COLD       0 /* Cold Start */
 #define CXD56_GNSS_STMOD_WARM       1 /* Warm Start */
@@ -712,11 +735,11 @@ struct cxd56_gnss_ope_mode_param_s
 
 struct cxd56_gnss_orbital_param_s
 {
-  uint32_t      type; /* One of #CXD56_GNSS_DATA_GPS,
-                       *   #CXD56_GNSS_DATA_GLONASS or
-                       *   #CXD56_GNSS_DATA_QZSSL1CA.
-                       */
-  FAR uint32_t *data; /* Address pointing to almanac or ephemeris data buffer */
+  uint32_t  type; /* One of #CXD56_GNSS_DATA_GPS,
+                   *   #CXD56_GNSS_DATA_GLONASS or
+                   *   #CXD56_GNSS_DATA_QZSSL1CA.
+                   */
+  uint32_t *data; /* Address pointing to almanac or ephemeris data buffer */
 };
 
 /* date and time */
@@ -749,9 +772,9 @@ struct cxd56_gnss_orthogonal_position_s
 
 struct cxd56_gnss_cep_data_s
 {
-  FAR uint32_t *data;
-  uint32_t      size;
-  uint32_t      counter;
+  uint32_t *data;
+  uint32_t  size;
+  uint32_t  counter;
 };
 
 /* CEP age info */
@@ -766,24 +789,24 @@ struct cxd56_gnss_cep_age_s
 
 struct cxd56_gnss_agps_acquist_s
 {
-  FAR uint8_t *data; /* Address pointing to aquist data buffer */
-  uint16_t     size; /* Aquist data size */
+  uint8_t *data; /* Address pointing to aquist data buffer */
+  uint16_t size; /* Aquist data size */
 };
 
 /* tow assist data and size for AGPS */
 
 struct cxd56_gnss_agps_tow_assist_s
 {
-  FAR uint8_t *data; /* Address pointing to tow assist data buffer */
-  uint16_t     size; /* assist data size */
+  uint8_t *data; /* Address pointing to tow assist data buffer */
+  uint16_t size; /* assist data size */
 };
 
 /* utc model data and size for AGPS */
 
 struct cxd56_gnss_agps_utc_model_s
 {
-  FAR uint8_t *data; /* Address pointing to utc model data buffer */
-  uint16_t     size; /* utc model data size */
+  uint8_t *data; /* Address pointing to utc model data buffer */
+  uint16_t size; /* utc model data size */
 };
 
 /* Time from frame start[sec]. */
@@ -846,21 +869,21 @@ struct cxd56_gnss_test_result_s
 
 struct cxd56_gnss_signal_setting_s
 {
-  int       fd;      /* The descriptor for signal handler */
-  uint8_t   enable;  /* 1 when set this setting, 0 is clear */
-  uint8_t   gnsssig; /* GNSS signal as CXD56_GNSS_SIG_GNSS, _AGPS, etc. */
-  int       signo;   /* system signal number to notify read completion */
-  FAR void *data;    /* user data */
+  int     fd;      /* The descriptor for signal handler */
+  uint8_t enable;  /* 1 when set this setting, 0 is clear */
+  uint8_t gnsssig; /* GNSS signal as CXD56_GNSS_SIG_GNSS, _AGPS, etc. */
+  int     signo;   /* system signal number to notify read completion */
+  void   *data;    /* user data */
 };
 
 /* Information for use after being signaled to read data asynchronously */
 
 struct cxd56_gnss_signal_info_s
 {
-  int       fd;      /* The file descriptor to use in signal handler */
-  uint8_t   gnsssig; /* GNSS signal as CXD56_GNSS_SIG_GNSS, _AGPS, etc. */
-  int       signo;   /* system signal number to notify read completion */
-  FAR void *data;    /* user data */
+  int     fd;      /* The file descriptor to use in signal handler */
+  uint8_t gnsssig; /* GNSS signal as CXD56_GNSS_SIG_GNSS, _AGPS, etc. */
+  int     signo;   /* system signal number to notify read completion */
+  void   *data;    /* user data */
 };
 
 /* PVTLOG setting Parameter.

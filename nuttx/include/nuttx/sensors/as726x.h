@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/input/as726x.h
+ * include/nuttx/sensors/as726x.h
  *
  *   Copyright (C) 2019 Fabian Justi. All rights reserved.
  *   Author: Fabian Justi <Fabian.Justi@gmx.de> and
@@ -66,12 +66,12 @@
 
 /* Register addresses */
 
-#define AS726x_DEVICE_TYPE      0x00
-#define AS726x_HW_VERSION       0x01
-#define AS726x_CONTROL_SETUP    0x04
-#define AS726x_INT_T            0x05
-#define AS726x_DEVICE_TEMP      0x06
-#define AS726x_LED_CONTROL      0x07
+#define AS726X_DEVICE_TYPE      0x00
+#define AS726X_HW_VERSION       0x01
+#define AS726X_CONTROL_SETUP    0x04
+#define AS726X_INT_T            0x05
+#define AS726X_DEVICE_TEMP      0x06
+#define AS726X_LED_CONTROL      0x07
 
 #define AS72XX_SLAVE_STATUS_REG 0x00
 #define AS72XX_SLAVE_WRITE_REG  0x01
@@ -111,7 +111,7 @@
 #define AS726X_CMD_IT_1T        0x04 /* IT1=0 : IT0=1 */
 #define AS726X_CMD_IT_2T        0x08 /* IT1=1 : IT0=0 */
 #define AS726X_CMD_IT_4T        0x0c /* IT1=1 : IT0=1 */
-#define AS726X_CMD_ACK_THD      0x10 /* Acknowledge thresold:
+#define AS726X_CMD_ACK_THD      0x10 /* Acknowledge threshold:
                                       *   0 = 102 steps
                                       *   1 = 145 steps */
 #define AS726X_CMD_ACK          0x20 /* Acknowledge activity */

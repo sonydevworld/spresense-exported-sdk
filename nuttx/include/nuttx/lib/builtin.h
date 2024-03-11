@@ -1,42 +1,20 @@
 /****************************************************************************
  * include/nuttx/lib/builtin.h
  *
- * Originally by:
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Author: Uros Platise <uros.platise@isotel.eu>
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * With subsequent updates, modifications, and general maintenance by:
- *
- *   Copyright (C) 2012-2013, 2019 Gregory Nutt.  All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -53,25 +31,20 @@
 #ifdef CONFIG_BUILTIN
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/* This logic is not usable in the KERNEL build from within the kernel. */
-
-#if !defined(CONFIG_BUILD_KERNEL) || !defined(__KERNEL__)
-#  define HAVE_BUILTIN_CONTEXT
-#endif
-
-/****************************************************************************
  * Public Types
  ****************************************************************************/
 
 struct builtin_s
 {
-  const char *name;         /* Invocation name and as seen under /sbin/ */
+  FAR const char *name;     /* Invocation name and as seen under /sbin/ */
   int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
   int         stacksize;    /* Desired stack size */
   main_t      main;         /* Entry point: main(int argc, char *argv[]) */
+#ifdef CONFIG_SCHED_USER_IDENTITY
+  uid_t       uid;          /* File owner user identity */
+  gid_t       gid;          /* File owner group identity */
+  int         mode;         /* File mode added to */
+#endif
 };
 
 /****************************************************************************
@@ -86,8 +59,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-#if defined(CONFIG_BUILD_PROTECTED) && defined(CONFIG_FS_BINFS) && \
-    defined(__KERNEL__)
+#if defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)
 /* In the PROTECTED build, the builtin arrays are only needed by BINFS.
  * in this case, the user-space globals are not accessible and must be
  * provided to the OS via the boardctl(BOARDIOC_BUILTINS) call.  In this
@@ -107,12 +79,12 @@ EXTERN int g_builtin_count;
  * address space.  These globals must be provided the application layer.
  */
 
-EXTERN FAR const struct builtin_s g_builtins[];
+EXTERN const struct builtin_s g_builtins[];
 EXTERN const int g_builtin_count;
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
@@ -140,8 +112,7 @@ EXTERN const int g_builtin_count;
  *
  ****************************************************************************/
 
-#if defined(CONFIG_BUILD_PROTECTED) && defined(CONFIG_FS_BINFS) && \
-    defined(__KERNEL__)
+#if defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)
 void builtin_setlist(FAR const struct builtin_s *builtins, int count);
 #endif
 
@@ -204,6 +175,64 @@ FAR const char *builtin_getname(int index);
  ****************************************************************************/
 
 FAR const struct builtin_s *builtin_for_index(int index);
+
+#ifdef CONFIG_SCHED_USER_IDENTITY
+
+/****************************************************************************
+ * Name: builtin_getuid
+ *
+ * Description:
+ *   Returns file uid of the application at 'index' in the table
+ *   of built-in applications.
+ *
+ * Input Parameters:
+ *   index - From 0 and on ...
+ *
+ * Returned Value:
+ *   Returns valid uid for app if index is valid.
+ *   Otherwise 0 is returned.
+ *
+ ****************************************************************************/
+
+uid_t builtin_getuid(int index);
+
+/****************************************************************************
+ * Name: builtin_getgid
+ *
+ * Description:
+ *   Returns file gid of the application at 'index' in the table
+ *   of built-in applications.
+ *
+ * Input Parameters:
+ *   index - From 0 and on ...
+ *
+ * Returned Value:
+ *   Returns valid gid for app if index is valid.
+ *   Otherwise 0 is returned.
+ *
+ ****************************************************************************/
+
+gid_t builtin_getgid(int index);
+
+/****************************************************************************
+ * Name: builtin_getmode
+ *
+ * Description:
+ *   Returns file mode of the application at 'index' in the table
+ *   of built-in applications.
+ *
+ * Input Parameters:
+ *   index - From 0 and on ...
+ *
+ * Returned Value:
+ *   Returns valid mode for app if index is valid.
+ *   Otherwise 0 is returned.
+ *
+ ****************************************************************************/
+
+int builtin_getmode(int index);
+
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

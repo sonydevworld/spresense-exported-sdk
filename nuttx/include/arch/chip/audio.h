@@ -1,35 +1,20 @@
-/***************************************************************************
+/****************************************************************************
  * arch/arm/include/cxd56xx/audio.h
  *
- *   Copyright 2018 Sony Semiconductor Solutions Corporation
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of Sony Semiconductor Solutions Corporation nor
- *    the names of its contributors may be used to endorse or promote
- *    products derived from this software without specific prior written
- *    permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -37,6 +22,8 @@
 
 #ifndef __ARCH_ARM_INCLUDE_CXD56XX_AUDIO_H
 #define __ARCH_ARM_INCLUDE_CXD56XX_AUDIO_H
+
+/* API Documents created with Doxygen */
 
 /* cxd56_audio_api Audio Driver API
  *
@@ -46,17 +33,29 @@
  * CXD5602 Audio SW Team
  */
 
-/***************************************************************************
+/****************************************************************************
  * Included Files
- ***************************************************************************/
+ ****************************************************************************/
 
+#include <nuttx/config.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-/***************************************************************************
- * Pre-processor Definitions
- ***************************************************************************/
+#include "arch/chip/cxd56_audio_lower.h"
+
+/****************************************************************************
+ * Pre-processor Prototypes
+ ****************************************************************************/
+
+/* NuttX based Audio Driver Vendor Specific ioctl commands */
+
+#define CXD56AUD_SET_SYSVOLUME  (0x01)
+#define CXD56AUD_SET_AUDIOPATH  (0x02)
+#define CXD56AUD_SET_I2SMODE    (0x03)
+#define CXD56AUD_GET_SYSPARAM   (0x04)
+#define CXD56AUD_SET_SAMPLERATE (0x05)
+#define CXD56AUD_SET_BWCH       (0x06)
 
 /* Mic channel max. */
 
@@ -70,10 +69,6 @@
 /* DEQ band number. */
 
 #define CXD56_AUDIO_DEQ_BAND_NUM     6
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
 
 /* cxd56_audio common return code. */
 
@@ -175,6 +170,29 @@
 #define CXD56_AUDIO_ECODE_REG_AC_SEL_INV   (CXD56_AUDIO_ECODE_REG_AC | 0x08)
 #define CXD56_AUDIO_ECODE_REG_AC_CSTE_VOL  (CXD56_AUDIO_ECODE_REG_AC | 0x09)
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* NuttX based Audio Driver Vendor Specific ioctl command arguments */
+
+struct cxd56_audio_ioctl_s
+{
+  unsigned int  cmd;
+  union
+    {
+      unsigned long arg;
+      unsigned short argh[2];
+    };
+};
+
+struct beep_ctl_s
+{
+  bool en;
+  uint32_t freq;
+  uint32_t vol;
+};
+
 /* Error code of config */
 
 #define CXD56_AUDIO_ECODE_CFG_CLK_MODE     (CXD56_AUDIO_ECODE_CFG | 0x01)
@@ -245,6 +263,14 @@ enum cxd56_audio_dma_path_e
 
   CXD56_AUDIO_DMA_PATH_MIC_TO_MEM = 0,
 
+  /* I2S0 to memory */
+
+  CXD56_AUDIO_DMA_PATH_I2S0_TO_MEM,
+
+  /* I2S1 to memory */
+
+  CXD56_AUDIO_DMA_PATH_I2S1_TO_MEM,
+
   /* Memory to BUS I/F1 */
 
   CXD56_AUDIO_DMA_PATH_MEM_TO_BUSIF1,
@@ -307,11 +333,19 @@ enum cxd56_audio_dma_e
 
   CXD56_AUDIO_DMAC_MIC = 0,
 
-  /* I2S_OUT */
+  /* I2S1 Input */
+
+  CXD56_AUDIO_DMAC_I2S0_UP,
+
+  /* I2S1 Output */
 
   CXD56_AUDIO_DMAC_I2S0_DOWN,
 
-  /* I2S2_OUT */
+  /* I2S2 Input */
+
+  CXD56_AUDIO_DMAC_I2S1_UP,
+
+  /* I2S2 Output */
 
   CXD56_AUDIO_DMAC_I2S1_DOWN
 };
@@ -498,6 +532,14 @@ extern "C"
  * Public Function Prototypes
  ****************************************************************************/
 
+/* NuttX based Audio Driver Initialzation functions */
+
+int cxd56_audsystem_initialize(FAR cxd56_audio_lower_t *low);
+struct audio_lowerhalf_s *cxd56_aud_miclower(void);
+struct audio_lowerhalf_s *cxd56_aud_spk0out(void);
+struct audio_lowerhalf_s *cxd56_aud_spk1out(void);
+struct audio_lowerhalf_s *cxd56_aud_i2sin(void);
+
 /* Power on Audio driver
  *
  * CXD56_AUDIO_ECODE return code
@@ -552,7 +594,7 @@ CXD56_AUDIO_ECODE cxd56_audio_poweroff_dnc(void);
  */
 
 CXD56_AUDIO_ECODE cxd56_audio_en_dnc(cxd56_audio_dnc_id_t id,
-                                     FAR cxd56_audio_dnc_bin_t *bin);
+                                     cxd56_audio_dnc_bin_t *bin);
 
 /* Disable DNC
  *
@@ -570,7 +612,7 @@ CXD56_AUDIO_ECODE cxd56_audio_dis_dnc(cxd56_audio_dnc_id_t id);
  * CXD56_AUDIO_ECODE return code
  */
 
-CXD56_AUDIO_ECODE cxd56_audio_en_deq(FAR cxd56_audio_deq_coef_t *coef);
+CXD56_AUDIO_ECODE cxd56_audio_en_deq(cxd56_audio_deq_coef_t *coef);
 
 /* Disable DEQ
  *
@@ -705,7 +747,7 @@ CXD56_AUDIO_ECODE cxd56_audio_stop_beep(void);
  * CXD56_AUDIO_ECODE return code
  */
 
-CXD56_AUDIO_ECODE cxd56_audio_set_micgain(FAR cxd56_audio_mic_gain_t *gain);
+CXD56_AUDIO_ECODE cxd56_audio_set_micgain(cxd56_audio_mic_gain_t *gain);
 
 /* Set DEQ table
  *
@@ -716,7 +758,7 @@ CXD56_AUDIO_ECODE cxd56_audio_set_micgain(FAR cxd56_audio_mic_gain_t *gain);
  */
 
 CXD56_AUDIO_ECODE cxd56_audio_set_deq(bool en,
-                                      FAR cxd56_audio_deq_coef_t *deq);
+                                      cxd56_audio_deq_coef_t *deq);
 
 /* Get dma handle
  *
@@ -727,7 +769,7 @@ CXD56_AUDIO_ECODE cxd56_audio_set_deq(bool en,
  */
 
 CXD56_AUDIO_ECODE cxd56_audio_get_dmahandle(cxd56_audio_dma_path_t path,
-                                            FAR cxd56_audio_dma_t *handle);
+                                            cxd56_audio_dma_t *handle);
 
 /* Free dma handle
  *
@@ -736,7 +778,7 @@ CXD56_AUDIO_ECODE cxd56_audio_get_dmahandle(cxd56_audio_dma_path_t path,
  * CXD56_AUDIO_ECODE return code
  */
 
-CXD56_AUDIO_ECODE cxd56_audio_free_dmahandle(FAR cxd56_audio_dma_t handle);
+CXD56_AUDIO_ECODE cxd56_audio_free_dmahandle(cxd56_audio_dma_t handle);
 
 /* Set internal data path
  *
@@ -760,7 +802,7 @@ CXD56_AUDIO_ECODE cxd56_audio_set_datapath(cxd56_audio_signal_t sig,
 
 CXD56_AUDIO_ECODE cxd56_audio_init_dma(cxd56_audio_dma_t handle,
                                        cxd56_audio_samp_fmt_t fmt,
-                                       FAR uint8_t *ch_num);
+                                       uint8_t *ch_num);
 
 /* Initialize dma transfer function
  *
@@ -771,7 +813,7 @@ CXD56_AUDIO_ECODE cxd56_audio_init_dma(cxd56_audio_dma_t handle,
  */
 
 CXD56_AUDIO_ECODE cxd56_audio_set_dmacb(cxd56_audio_dma_t handle,
-                                        FAR cxd56_audio_dma_cb_t cb);
+                                        cxd56_audio_dma_cb_t cb);
 
 /* Enable dma interrupt
  *

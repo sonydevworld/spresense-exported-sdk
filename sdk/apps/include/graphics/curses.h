@@ -1,42 +1,29 @@
 /****************************************************************************
  * apps/include/graphics/curses.h
- * Public Domain Curses
- * $Id: curses.h,v 1.295 2008/07/15 17:13:25 wmcbrine Exp $
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
+/* Public Domain Curses
+ * $Id: curses.h,v 1.295 2008/07/15 17:13:25 wmcbrine Exp $
+ */
+
 #ifndef __APPS_INCLUDE_GRAPHICS_CURSES_H
-#define __APPS_INCLUDE_GRAPHICS_CURSES_H 1
+#define __APPS_INCLUDE_GRAPHICS_CURSES_H
 
 /* PDCurses definitions list:  (Only define those needed)
  *
@@ -58,7 +45,7 @@
 #define PDC_RGB   1
 
 #ifdef CONFIG_PDCURSES_WIDE
-# include <wchar.h>
+#  include <wchar.h>
 #endif
 
 /****************************************************************************
@@ -80,9 +67,9 @@
 #endif
 
 #ifdef CONFIG_PDCURSES_CHTYPE_LONG
-# define PDC_COLOR_PAIRS 256
+#  define PDC_COLOR_PAIRS 256
 #else
-# define PDC_COLOR_PAIRS  32
+#  define PDC_COLOR_PAIRS  32
 #endif
 
 #define BUTTON_RELEASED         0x0000
@@ -102,8 +89,7 @@
 #define MOUSE_X_POS             (Mouse_status.x)
 #define MOUSE_Y_POS             (Mouse_status.y)
 
-/*
- * Bits associated with the .changes field:
+/* Bits associated with the .changes field:
  *   3         2         1         0
  * 210987654321098765432109876543210
  *                                 1 <- button 1 has changed
@@ -152,8 +138,9 @@
 #define BUTTON3_MOVED           0x00004000L /* PDCurses */
 
 /* For the ncurses-compatible functions only, BUTTON4_PRESSED and
-   BUTTON5_PRESSED are returned for mouse scroll wheel up and down;
-   otherwise PDCurses doesn't support buttons 4 and 5 */
+ * BUTTON5_PRESSED are returned for mouse scroll wheel up and down;
+ * otherwise PDCurses doesn't support buttons 4 and 5
+ */
 
 #define BUTTON4_RELEASED        0x00008000L
 #define BUTTON4_PRESSED         0x00010000L
@@ -176,14 +163,14 @@
 #define REPORT_MOUSE_POSITION   0x20000000L
 
 #ifdef NCURSES_MOUSE_VERSION
-# define BUTTON_SHIFT   BUTTON_MODIFIER_SHIFT
-# define BUTTON_CONTROL BUTTON_MODIFIER_CONTROL
-# define BUTTON_CTRL    BUTTON_MODIFIER_CONTROL
-# define BUTTON_ALT     BUTTON_MODIFIER_ALT
+#  define BUTTON_SHIFT   BUTTON_MODIFIER_SHIFT
+#  define BUTTON_CONTROL BUTTON_MODIFIER_CONTROL
+#  define BUTTON_CTRL    BUTTON_MODIFIER_CONTROL
+#  define BUTTON_ALT     BUTTON_MODIFIER_ALT
 #else
-# define BUTTON_SHIFT   PDC_BUTTON_SHIFT
-# define BUTTON_CONTROL PDC_BUTTON_CONTROL
-# define BUTTON_ALT     PDC_BUTTON_ALT
+#  define BUTTON_SHIFT   PDC_BUTTON_SHIFT
+#  define BUTTON_CONTROL PDC_BUTTON_CONTROL
+#  define BUTTON_ALT     PDC_BUTTON_ALT
 #endif
 
 /* PDCurses Text Attributes
@@ -213,9 +200,9 @@
  *
  * long form:
  *
- * ----------------------------------------------------------------------------
- * |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|..| 3| 2| 1| 0|
- * ----------------------------------------------------------------------------
+ * -------------------------------------------------------------------------
+ * |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|..| 3| 2| 1| 0|
+ * -------------------------------------------------------------------------
  *       color number      |     modifiers         |      character eg 'a'
  *
  * The available non-color attributes are bold, underline, invisible,
@@ -358,8 +345,7 @@
 #define ACS_LANTERN   ACS_PICK('i', '*')
 #define ACS_BLOCK     ACS_PICK('0', '#')
 
-/* That goes double for these -- undocumented SysV symbols. Don't use
-   them. */
+/* That goes double for these -- undocumented SysV symbols. Don't use them. */
 
 #define ACS_S3        ACS_PICK('p', '-')
 #define ACS_S7        ACS_PICK('r', '-')
@@ -812,9 +798,12 @@ typedef unsigned long mmask_t;
 typedef struct
 {
   short id;             /* unused, always 0 */
-  int x, y, z;          /* x, y same as MOUSE_STATUS; z unused */
+  int x;                /* x, y same as MOUSE_STATUS; z unused */
+  int y;
+  int z;
   mmask_t bstate;       /* equivalent to changes + button[], but
-                         * in the same format as used for mousemask() */
+                         * in the same format as used for mousemask()
+                         */
 } MEVENT;
 
 /* PDCurses Structure Definitions */
@@ -843,7 +832,8 @@ typedef struct _win     /* definition of a window */
   int   _tmarg;         /* top of scrolling region */
   int   _bmarg;         /* bottom of scrolling region */
   int   _delayms;       /* milliseconds of delay for getch() */
-  int   _parx, _pary;   /* coords relative to parent (0,0) */
+  int   _parx;          /* coords relative to parent (0,0) */
+  int   _pary;
   struct _win *_parent; /* subwin's pointer to parent win */
 } WINDOW;
 
@@ -871,6 +861,7 @@ typedef struct
   int   orig_cursor;    /* original cursor size */
   int   lines;          /* new value for LINES */
   int   cols;           /* new value for COLS */
+
   unsigned long _trap_mbe;       /* trap these mouse button events */
   unsigned long _map_mbe_to_key; /* map mouse buttons to slk */
   int   mouse_wait;              /* time to wait (in ms) for a
@@ -955,9 +946,9 @@ struct pdc_context_s
   short         COLOR_PAIRS;
   short         TABSIZE;
   short         first_col;
-  short         c_pindex;        /* putter index */
-  short         c_gindex;        /* getter index */
-  short         c_ungind;        /* ungetch() push index */
+  short         c_pindex;            /* putter index */
+  short         c_gindex;            /* getter index */
+  short         c_ungind;            /* ungetch() push index */
   short         c_ungch[NUNGETCH];   /* array of ungotten chars */
   short         c_buffer[_INBUFSIZ]; /* character buffer */
   RIPPEDOFFLINE linesripped[5];
@@ -1039,8 +1030,8 @@ void                       PDC_ctx_free(void);
 #define graphic_screen     ctx->graphic_screen
 #endif
 
-void* pdc_alloc_panel_ctx(void);
-void* pdc_alloc_term_ctx(void);
+void *pdc_alloc_panel_ctx(void);
+void *pdc_alloc_term_ctx(void);
 
 #else
 
@@ -1085,7 +1076,8 @@ int     baudrate(void);
 int     beep(void);
 int     bkgd(chtype);
 void    bkgdset(chtype);
-int     border(chtype, chtype, chtype, chtype, chtype, chtype, chtype, chtype);
+int     border(chtype, chtype, chtype, chtype,
+               chtype, chtype, chtype, chtype);
 int     box(WINDOW *, chtype, chtype);
 bool    can_change_color(void);
 int     cbreak(void);
@@ -1173,8 +1165,8 @@ int     mvinsch(int, int, chtype);
 int     mvinsnstr(int, int, const char *, int);
 int     mvinsstr(int, int, const char *);
 int     mvinstr(int, int, char *);
-int     mvprintw(int, int, const char *, ...);
-int     mvscanw(int, int, const char *, ...);
+int     mvprintw(int, int, const char *, ...) printf_like(3, 4);
+int     mvscanw(int, int, const char *, ...) scanf_like(3, 4);
 int     mvvline(int, int, chtype, int);
 int     mvwaddchnstr(WINDOW *, int, int, const chtype *, int);
 int     mvwaddchstr(WINDOW *, int, int, const chtype *);
@@ -1196,8 +1188,8 @@ int     mvwinsnstr(WINDOW *, int, int, const char *, int);
 int     mvwinsstr(WINDOW *, int, int, const char *);
 int     mvwinstr(WINDOW *, int, int, char *);
 int     mvwin(WINDOW *, int, int);
-int     mvwprintw(WINDOW *, int, int, const char *, ...);
-int     mvwscanw(WINDOW *, int, int, const char *, ...);
+int     mvwprintw(WINDOW *, int, int, const char *, ...) printf_like(4, 5);
+int     mvwscanw(WINDOW *, int, int, const char *, ...) scanf_like(4, 5);
 int     mvwvline(WINDOW *, int, int, chtype, int);
 int     napms(int);
 WINDOW *newpad(int, int);
@@ -1217,7 +1209,7 @@ int     pair_content(short, short *, short *);
 int     pechochar(WINDOW *, chtype);
 int     pnoutrefresh(WINDOW *, int, int, int, int, int, int);
 int     prefresh(WINDOW *, int, int, int, int, int, int);
-int     printw(const char *, ...);
+int     printw(const char *, ...) printf_like(1, 2);
 int     putwin(WINDOW *, FILE *);
 void    qiflush(void);
 int     raw(void);
@@ -1228,7 +1220,7 @@ int     reset_shell_mode(void);
 int     resetty(void);
 int     ripoffline(int, int (*)(WINDOW *, int));
 int     savetty(void);
-int     scanw(const char *, ...);
+int     scanw(const char *, ...) scanf_like(1, 2);
 int     scr_dump(const char *);
 int     scr_init(const char *);
 int     scr_restore(const char *);
@@ -1273,10 +1265,10 @@ int     vid_attr(attr_t, short, void *);
 int     vidputs(chtype, int (*)(int));
 int     vid_puts(attr_t, short, void *, int (*)(int));
 int     vline(chtype, int);
-int     vw_printw(WINDOW *, const char *, va_list);
-int     vwprintw(WINDOW *, const char *, va_list);
-int     vw_scanw(WINDOW *, const char *, va_list);
-int     vwscanw(WINDOW *, const char *, va_list);
+int     vw_printw(WINDOW *, const char *, va_list) printf_like(2, 0);
+int     vwprintw(WINDOW *, const char *, va_list) printf_like(2, 0);
+int     vw_scanw(WINDOW *, const char *, va_list) scanf_like(2, 0);
+int     vwscanw(WINDOW *, const char *, va_list) scanf_like(2, 0);
 int     waddchnstr(WINDOW *, const chtype *, int);
 int     waddchstr(WINDOW *, const chtype *);
 int     waddch(WINDOW *, const chtype);
@@ -1319,10 +1311,10 @@ int     winsstr(WINDOW *, const char *);
 int     winstr(WINDOW *, char *);
 int     wmove(WINDOW *, int, int);
 int     wnoutrefresh(WINDOW *);
-int     wprintw(WINDOW *, const char *, ...);
+int     wprintw(WINDOW *, const char *, ...) printf_like(2, 3);
 int     wredrawln(WINDOW *, int, int);
 int     wrefresh(WINDOW *);
-int     wscanw(WINDOW *, const char *, ...);
+int     wscanw(WINDOW *, const char *, ...) scanf_like(2, 3);
 int     wscrl(WINDOW *, int);
 int     wsetscrreg(WINDOW *, int, int);
 int     wstandend(WINDOW *);
@@ -1399,8 +1391,9 @@ int     mvwin_wchnstr(WINDOW *, int, int, cchar_t *, int);
 int     mvwin_wchstr(WINDOW *, int, int, cchar_t *);
 int     mvwinwstr(WINDOW *, int, int, wchar_t *);
 int     mvwvline_set(WINDOW *, int, int, const cchar_t *, int);
-int     pecho_wchar(WINDOW *, const cchar_t*);
-int     setcchar(cchar_t*, const wchar_t*, const attr_t, short, const void*);
+int     pecho_wchar(WINDOW *, const cchar_t *);
+int     setcchar(cchar_t *, const wchar_t *, const attr_t,
+                 short, const void *);
 int     slk_wset(int, const wchar_t *, int);
 int     unget_wch(const wchar_t);
 int     vline_set(const cchar_t *, int);
@@ -1504,7 +1497,7 @@ char    wordchar(void);
 wchar_t *slk_wlabel(int);
 #endif
 
-void    PDC_debug(const char *, ...);
+void    PDC_debug(const char *, ...) printf_like(1, 2);
 int     PDC_ungetch(int);
 int     PDC_set_blink(bool);
 int     PDC_set_line_color(short);
@@ -1525,4 +1518,4 @@ int     PDC_save_key_modifiers(bool);
 }
 #endif
 
-#endif  /* __APPS_INCLUDE_GRAPHICS_CURSES_H */
+#endif /* __APPS_INCLUDE_GRAPHICS_CURSES_H */

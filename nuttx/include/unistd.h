@@ -1,36 +1,20 @@
 /****************************************************************************
  * include/unistd.h
  *
- *   Copyright (C) 2007-2009, 2013-2014, 2016-2019 Gregory Nutt. All rights
- *     reserved.
- *   Author:  Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -43,22 +27,11 @@
 
 #include <sys/types.h>
 #include <nuttx/compiler.h>
+#include <limits.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* The number of functions that may be registered to be called
- * at program exit.
- */
-
-#define ATEXIT_MAX 1
-
-/* Values for seeking */
-
-#define SEEK_SET    0  /* From the start of the file */
-#define SEEK_CUR    1  /* From the current file offset */
-#define SEEK_END    2  /* From the end of the file */
 
 /* Bit values for the second argument to access */
 
@@ -72,31 +45,41 @@
 #define POSIX_VERSION
 #undef  _POSIX_SAVED_IDS
 #undef  _POSIX_JOB_CONTROL
-#define _POSIX_REALTIME_SIGNALS 1
 #define _POSIX_MESSAGE_PASSING 1
 #undef  _POSIX_MAPPED_FILES
 #undef  _POSIX_SHARED_MEMORY_OBJECTS
 #define _POSIX_PRIORITY_SCHEDULING 1
-#define _POSIX_TIMERS 1
+#ifndef CONFIG_DISABLE_POSIX_TIMERS
+#  define _POSIX_TIMERS 1
+#endif
+#if !defined(CONFIG_DISABLE_MQUEUE) && !defined(CONFIG_DISABLE_PTHREAD)
+#  define _POSIX_TIMEOUTS 1
+#endif
 #undef  _POSIX_MEMLOCK
 #undef  _POSIX_MEMLOCK_RANGE
 #undef  _POSIX_FSYNC
 #define _POSIX_SYNCHRONIZED_IO 1
 
+#define _POSIX_VERSION 201712L
+#define _POSIX_PRIORITIZED_IO _POSIX_VERSION
+#define _POSIX_CPUTIME _POSIX_VERSION
+#define _POSIX_THREAD_CPUTIME _POSIX_VERSION
+#define _POSIX_REALTIME_SIGNALS _POSIX_VERSION
+#define _POSIX_THREAD_PRIORITY_SCHEDULING _POSIX_VERSION
+#define _POSIX_SEMAPHORES _POSIX_VERSION
+
 #ifdef CONFIG_FS_AIO
-#  define _POSIX_ASYNCHRONOUS_IO 1
+#  define _POSIX_ASYNCHRONOUS_IO _POSIX_VERSION
 #else
 #  undef  _POSIX_ASYNCHRONOUS_IO
 #endif
-
-#undef  _POSIX_PRIORITIZED_IO
 
 #ifdef CONFIG_SCHED_SPORADIC
 #  define _POSIX_SPORADIC_SERVER 1
 #  define _POSIX_THREAD_SPORADIC_SERVER 1
 #else
-#  undef  _POSIX_SPORADIC_SERVER
-#  undef  _POSIX_THREAD_SPORADIC_SERVER
+#  define _POSIX_SPORADIC_SERVER -1
+#  define _POSIX_THREAD_SPORADIC_SERVER -1
 #endif
 
 /* Execution time constants (not supported) */
@@ -109,7 +92,31 @@
 #undef  _POSIX_ASYNC_IO
 #undef  _POSIX_PRIO_IO
 
-/* Constants used with POSIX sysconf().  sysconf() will return -2 and set
+/* Constants used with POSIX pathconf().  pathconf() will return -1 and set
+ * errno to ENOSYS for most of these.
+ */
+
+#define _PC_2_SYMLINKS                   0x0001
+#define _PC_ALLOC_SIZE_MIN               0x0002
+#define _PC_ASYNC_IO                     0x0003
+#define _PC_CHOWN_RESTRICTED             0x0004
+#define _PC_FILESIZEBITS                 0x0005
+#define _PC_LINK_MAX                     0x0006
+#define _PC_MAX_CANON                    0x0007
+#define _PC_MAX_INPUT                    0x0008
+#define _PC_NAME_MAX                     0x0009
+#define _PC_NO_TRUNC                     0x000a
+#define _PC_PATH_MAX                     0x000b
+#define _PC_PIPE_BUF                     0x000c
+#define _PC_PRIO_IO                      0x000d
+#define _PC_REC_INCR_XFER_SIZE           0x000e
+#define _PC_REC_MIN_XFER_SIZE            0x000f
+#define _PC_REC_XFER_ALIGN               0x0010
+#define _PC_SYMLINK_MAX                  0x0011
+#define _PC_SYNC_IO                      0x0012
+#define _PC_VDISABLE                     0x0013
+
+/* Constants used with POSIX sysconf().  sysconf() will return -1 and set
  * errno to ENOSYS for most of these.
  */
 
@@ -237,18 +244,50 @@
 #define _SC_XOPEN_UNIX                   0x0079
 #define _SC_XOPEN_VERSION                0x007a
 
+#define _SC_PHYS_PAGES                   0x007b
+#define _SC_AVPHYS_PAGES                 0x007c
+
+#define _SC_NPROCESSORS_CONF             0x007d
+#define _SC_NPROCESSORS_ONLN             0x007e
+
 /* The following symbolic constants must be defined for file streams: */
 
 #define STDERR_FILENO                    2       /* File number of stderr */
 #define STDIN_FILENO                     0       /* File number of stdin */
 #define STDOUT_FILENO                    1       /* File number of stdout */
 
-#define HOST_NAME_MAX                    32
-
 /* Helpers and legacy compatibility definitions */
 
 #define fdatasync(f)                     fsync(f)
 #define getdtablesize(f)                 ((int)sysconf(_SC_OPEN_MAX))
+#define getpagesize(f)                   ((int)sysconf(_SC_PAGESIZE))
+
+/* Accessor functions associated with getopt(). */
+
+#define optarg                           (*(getoptargp()))
+#define opterr                           (*(getopterrp()))
+#define optind                           (*(getoptindp()))
+#define optopt                           (*(getoptoptp()))
+
+#if defined(CONFIG_FS_LARGEFILE)
+#  define lseek64                        lseek
+#  define pread64                        pread
+#  define pwrite64                       pwrite
+#  define truncate64                     truncate
+#  define ftruncate64                    ftruncate
+#  define lockf64                        lockf
+#endif
+
+/* NOTE: NuttX provides only one implementation:  If
+ * CONFIG_LIBC_ENVPATH is defined, then only execvp/execlp/execvpe behavior
+ * is supported; otherwise, only execv/execl/execve behavior is supported.
+ */
+
+#ifdef CONFIG_LIBC_EXECFUNCS
+#  define execvp                         execv
+#  define execlp                         execl
+#  define execvpe                        execve
+#endif
 
 /****************************************************************************
  * Public Data
@@ -263,33 +302,25 @@ extern "C"
 #define EXTERN extern
 #endif
 
-/* Used by getopt (obviously NOT thread safe!).  These variables cannot be
- * accessed directly by an external NXFLAT module.  In that case, accessor
- * functions must be used.
- */
-
-#ifndef __NXFLAT__
-EXTERN FAR char *optarg; /* Optional argument following option */
-EXTERN int       optind; /* Index into argv */
-EXTERN int       optopt; /* Unrecognized option character */
-#else
-#  define optarg  (*(getoptargp()))
-#  define optind  (*(getoptindp()))
-#  define optopt  (*(getoptoptp()))
-#endif
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 /* Task Control Interfaces */
 
+pid_t   fork(void);
 pid_t   vfork(void);
 pid_t   getpid(void);
+pid_t   getpgid(pid_t pid);
+pid_t   getpgrp(void);
+pid_t   gettid(void);
+pid_t   getppid(void);
 void    _exit(int status) noreturn_function;
 unsigned int sleep(unsigned int seconds);
 int     usleep(useconds_t usec);
 int     pause(void);
+int     nice(int inc);
+
 int     daemon(int nochdir, int noclose);
 
 /* File descriptor operations */
@@ -304,10 +335,14 @@ ssize_t write(int fd, FAR const void *buf, size_t nbytes);
 ssize_t pread(int fd, FAR void *buf, size_t nbytes, off_t offset);
 ssize_t pwrite(int fd, FAR const void *buf, size_t nbytes, off_t offset);
 int     ftruncate(int fd, off_t length);
+int     fchown(int fd, uid_t owner, gid_t group);
 
 /* Check if a file descriptor corresponds to a terminal I/O file */
 
 int     isatty(int fd);
+
+FAR char *ttyname(int fd);
+int       ttyname_r(int fd, FAR char *buf, size_t buflen);
 
 /* Memory management */
 
@@ -318,7 +353,8 @@ FAR void *sbrk(intptr_t incr);
 
 /* Special devices */
 
-int     pipe(int fd[2]);
+#define pipe(fd) pipe2(fd, 0)
+int     pipe2(int pipefd[2], int flags);
 
 /* Schedule an alarm */
 
@@ -327,25 +363,39 @@ unsigned int alarm(unsigned int seconds);
 /* Working directory operations */
 
 int     chdir(FAR const char *path);
+int     fchdir(int fd);
 FAR char *getcwd(FAR char *buf, size_t size);
 
 /* File path operations */
 
 int     access(FAR const char *path, int amode);
+int     faccessat(int dirfd, FAR const char *path, int mode, int flags);
 int     rmdir(FAR const char *pathname);
 int     unlink(FAR const char *pathname);
+int     unlinkat(int dirfd, FAR const char *pathname, int flags);
 int     truncate(FAR const char *path, off_t length);
-
-#ifdef CONFIG_PSEUDOFS_SOFTLINKS
 int     link(FAR const char *path1, FAR const char *path2);
+int     linkat(int olddirfd, FAR const char *path1,
+               int newdirfd, FAR const char *path2, int flags);
+int     symlink(FAR const char *path1, FAR const char *path2);
+int     symlinkat(FAR const char *path1, int dirfd,
+                  FAR const char *path2);
 ssize_t readlink(FAR const char *path, FAR char *buf, size_t bufsize);
-#endif
+ssize_t readlinkat(int dirfd, FAR const char *path, FAR char *buf,
+                   size_t bufsize);
+int     chown(FAR const char *path, uid_t owner, gid_t group);
+int     lchown(FAR const char *path, uid_t owner, gid_t group);
+int     fchownat(int dirfd, FAR const char *path, uid_t owner,
+                 gid_t group, int flags);
 
 /* Execution of programs from files */
 
 #ifdef CONFIG_LIBC_EXECFUNCS
-int     execl(FAR const char *path, ...);
-int     execv(FAR const char *path, FAR char *const argv[]);
+int     execl(FAR const char *path, FAR const char *arg0, ...);
+int     execle(FAR const char *path, FAR const char *arg0, ...);
+int     execv(FAR const char *path, FAR char * const argv[]);
+int     execve(FAR const char *path, FAR char *const argv[],
+               FAR char *const envp[]);
 #endif
 
 /* Byte operations */
@@ -354,23 +404,23 @@ void    swab(FAR const void *src, FAR void *dest, ssize_t nbytes);
 
 /* getopt and friends */
 
-int     getopt(int argc, FAR char *const argv[], FAR const char *optstring);
+int     getopt(int argc, FAR char * const argv[], FAR const char *optstring);
 
-/* Accessor functions intended for use only by external NXFLAT
- * modules.  The global variables optarg, optind, and optopt cannot
- * be referenced directly from external modules.
- */
+/* Accessor functions associated with getopt(). */
 
 FAR char **getoptargp(void);  /* Optional argument following option */
+FAR int   *getopterrp(void);  /* Print error message */
 FAR int   *getoptindp(void);  /* Index into argv */
 FAR int   *getoptoptp(void);  /* Unrecognized option character */
 
-int     gethostname(FAR char *name, size_t size);
-int     sethostname(FAR const char *name, size_t size);
+int     gethostname(FAR char *name, size_t namelen);
+int     sethostname(FAR const char *name, size_t namelen);
 
 /* Get configurable system variables */
 
 long    sysconf(int name);
+long    fpathconf(int fildes, int name);
+long    pathconf(FAR const char *path, int name);
 
 /* User and group identity management */
 
@@ -386,6 +436,79 @@ gid_t   getegid(void);
 
 int     setreuid(uid_t ruid, uid_t euid);
 int     setregid(gid_t rgid, gid_t egid);
+
+int     getentropy(FAR void *buffer, size_t length);
+
+void    sync(void);
+int     syncfs(int fd);
+
+#if CONFIG_FORTIFY_SOURCE > 0
+fortify_function(getcwd) FAR char *getcwd(FAR char *buf,
+                                          size_t size)
+{
+  fortify_assert(size <= fortify_size(buf, 0));
+  return __real_getcwd(buf, size);
+}
+
+fortify_function(gethostname) int gethostname(FAR char *name,
+                                              size_t namelen)
+{
+  fortify_assert(namelen <= fortify_size(name, 0));
+  return __real_gethostname(name, namelen);
+}
+
+fortify_function(pread) ssize_t pread(int fd, FAR void *buf,
+                                      size_t nbytes, off_t offset)
+{
+  fortify_assert(nbytes <= fortify_size(buf, 0));
+  return __real_pread(fd, buf, nbytes, offset);
+}
+
+fortify_function(read) ssize_t read(int fd, FAR void *buf,
+                                    size_t nbytes)
+{
+  fortify_assert(nbytes <= fortify_size(buf, 0));
+  return __real_read(fd, buf, nbytes);
+}
+
+fortify_function(readlink) ssize_t readlink(FAR const char *path,
+                                            FAR char *buf,
+                                            size_t bufsize)
+{
+  fortify_assert(bufsize <= fortify_size(buf, 0));
+  return __real_readlink(path, buf, bufsize);
+}
+
+fortify_function(readlinkat) ssize_t readlinkat(int dirfd,
+                                                FAR const char *path,
+                                                FAR char *buf,
+                                                size_t bufsize)
+{
+  fortify_assert(bufsize <= fortify_size(buf, 0));
+  return __real_readlinkat(dirfd, path, buf, bufsize);
+}
+
+fortify_function(ttyname_r) int ttyname_r(int fd, FAR char *buf,
+                                          size_t buflen)
+{
+  fortify_assert(buflen <= fortify_size(buf, 0));
+  return __real_ttyname_r(fd, buf, buflen);
+}
+
+fortify_function(pwrite) ssize_t pwrite(int fd, FAR const void *buf,
+                                        size_t nbytes, off_t offset)
+{
+  fortify_assert(nbytes <= fortify_size(buf, 0));
+  return __real_pwrite(fd, buf, nbytes, offset);
+}
+
+fortify_function(write) ssize_t write(int fd, FAR const void *buf,
+                                      size_t nbytes)
+{
+  fortify_assert(nbytes <= fortify_size(buf, 0));
+  return __real_write(fd, buf, nbytes);
+}
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

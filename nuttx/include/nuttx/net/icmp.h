@@ -51,7 +51,6 @@
 
 #include <nuttx/net/netconfig.h>
 #include <nuttx/net/ip.h>
-#include <nuttx/net/tcp.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -95,6 +94,33 @@
 #define ICMP_HDRLEN    8                           /* Size of ICMP header */
 #define IPICMP_HDRLEN  (ICMP_HDRLEN + IPv4_HDRLEN) /* Size of IPv4 + ICMP header */
 
+/* Codes for UNREACH. */
+
+#define ICMP_NET_UNREACH             0    /* Network Unreachable    */
+#define ICMP_HOST_UNREACH            1    /* Host Unreachable   */
+#define ICMP_PROT_UNREACH            2    /* Protocol Unreachable   */
+#define ICMP_PORT_UNREACH            3    /* Port Unreachable   */
+#define ICMP_FRAG_NEEDED             4    /* Fragmentation Needed/DF set  */
+#define ICMP_SR_FAILED               5    /* Source Route failed    */
+#define ICMP_NET_UNKNOWN             6
+#define ICMP_HOST_UNKNOWN            7
+#define ICMP_HOST_ISOLATED           8
+#define ICMP_NET_ANO                 9
+#define ICMP_HOST_ANO                10
+#define ICMP_NET_UNR_TOS             11
+#define ICMP_HOST_UNR_TOS            12
+#define ICMP_PKT_FILTERED            13   /* Packet filtered */
+#define ICMP_PREC_VIOLATION          14   /* Precedence violation */
+#define ICMP_PREC_CUTOFF             15   /* Precedence cut off */
+#define NR_ICMP_UNREACH              15   /* instead of hardcoding immediate value */
+
+/* Codes for TIME_EXCEEDED. */
+
+#define ICMP_EXC_TTL                 0    /* TTL count exceeded */
+#define ICMP_EXC_FRAGTIME            1    /* Fragment Reassembly time exceeded */
+
+#define ICMP_FILTER                  1
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -108,14 +134,22 @@ struct icmp_hdr_s
   uint16_t icmpchksum;      /* Checksum of ICMP header and data */
 
   /* All ICMP packets have an 8-byte header and variable-sized data section.
-   * The first 4 bytes of the header have fixed format, while the last 4 bytes
-   * depend on the type/code of that ICMP packet.
+   * The first 4 bytes of the header have fixed format, while the last
+   * 4 bytes depend on the type/code of that ICMP packet.
    */
 
   /* ICMP_ECHO_REQUEST and ICMP_ECHO_REPLY data */
 
-  uint16_t id;               /* Used to match requests with replies */
-  uint16_t seqno;            /* "  " "" "   " "      " "  " "     " */
+  union
+    {
+      struct
+        {
+          uint16_t id;      /* Used to match requests with replies */
+          uint16_t seqno;   /* "  " "" "   " "      " "  " "     " */
+        };
+
+      uint16_t data[2];
+    };
 };
 
 /* The structure holding the ICMP statistics that are gathered if

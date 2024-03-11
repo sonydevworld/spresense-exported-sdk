@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/nuttx/timers/oneshot.h
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -42,6 +27,7 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
@@ -52,7 +38,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* IOCTL commands ***********************************************************/
+
 /* These commands are used by applications to access the oneshot lower-half
  * logic via the oneshot character driver IOCTL command.  Since the oneshot
  * driver is a device control interface and not a data transfer interface,
@@ -63,7 +51,7 @@
  *
  * OSIOC_MAXDELAY   - Return the maximum delay that can be supported by
  *                    this timer.
- *                    Argument: A referenct to a struct timespec in which
+ *                    Argument: A reference to a struct timespec in which
  *                    the maximum time will be returned.
  * OSIOC_START      - Start the oneshot timer
  *                    Argument: A reference to struct oneshot_start_s
@@ -74,7 +62,7 @@
  *                    Argument: A reference to a struct timespec in which
  *                    the current time will be returned.
  *
- * NOTE: _TCIOC(0x0020) througn _TCIOC(0x003f) are reserved for use by the
+ * NOTE: _TCIOC(0x0020) through _TCIOC(0x003f) are reserved for use by the
  * oneshot driver to assure that the values are unique.  Other timer drivers
  * must not use IOCTL commands in this numeric range.
  */
@@ -96,7 +84,7 @@
  *   lower   An instance of the lower-half oneshot state structure.  This
  *           structure must have been previously initialized via a call to
  *           oneshot_initialize();
- *   ts      The location in which to return the maxumum delay.
+ *   ts      The location in which to return the maximum delay.
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned
@@ -104,7 +92,10 @@
  *
  ****************************************************************************/
 
-#define ONESHOT_MAX_DELAY(l,t) ((l)->ops->max_delay(l,t))
+#define ONESHOT_MAX_DELAY(l,t) \
+  ((l)->ops->max_delay ? (l)->ops->max_delay(l,t) : oneshot_max_delay(l,t))
+#define ONESHOT_TICK_MAX_DELAY(l,t) \
+  ((l)->ops->tick_max_delay ? (l)->ops->tick_max_delay(l,t) : oneshot_tick_max_delay(l,t))
 
 /****************************************************************************
  * Name: ONESHOT_START
@@ -126,7 +117,10 @@
  *
  ****************************************************************************/
 
-#define ONESHOT_START(l,h,a,t) ((l)->ops->start(l,h,a,t))
+#define ONESHOT_START(l,h,a,t) \
+  ((l)->ops->start ? (l)->ops->start(l,h,a,t) : oneshot_start(l,h,a,t))
+#define ONESHOT_TICK_START(l,h,a,t) \
+  ((l)->ops->tick_start ? (l)->ops->tick_start(l,h,a,t) : oneshot_tick_start(l,h,a,t))
 
 /****************************************************************************
  * Name: ONESHOT_CANCEL
@@ -152,7 +146,10 @@
  *
  ****************************************************************************/
 
-#define ONESHOT_CANCEL(l,t) ((l)->ops->cancel(l,t))
+#define ONESHOT_CANCEL(l,t) \
+  ((l)->ops->cancel ? (l)->ops->cancel(l,t) : oneshot_cancel(l,t))
+#define ONESHOT_TICK_CANCEL(l,t) \
+  ((l)->ops->tick_cancel ? (l)->ops->tick_cancel(l,t) : oneshot_tick_cancel(l,t))
 
 /****************************************************************************
  * Name: ONESHOT_CURRENT
@@ -173,7 +170,10 @@
  *
  ****************************************************************************/
 
-#define ONESHOT_CURRENT(l,t) ((l)->ops->current ? (l)->ops->current(l,t) : -ENOSYS)
+#define ONESHOT_CURRENT(l,t) \
+  ((l)->ops->current ? (l)->ops->current(l,t) : oneshot_current(l,t))
+#define ONESHOT_TICK_CURRENT(l,t) \
+  ((l)->ops->tick_current ? (l)->ops->tick_current(l,t) : oneshot_tick_current(l,t))
 
 /****************************************************************************
  * Public Types
@@ -187,8 +187,9 @@
  */
 
 struct oneshot_lowerhalf_s;
-typedef CODE void (*oneshot_callback_t)(FAR struct oneshot_lowerhalf_s *lower,
-                                        FAR void *arg);
+typedef CODE void (*oneshot_callback_t)
+                       (FAR struct oneshot_lowerhalf_s *lower,
+                        FAR void *arg);
 
 /* The one short operations supported by the lower half driver */
 
@@ -200,13 +201,24 @@ struct oneshot_operations_s
   CODE int (*start)(FAR struct oneshot_lowerhalf_s *lower,
                     oneshot_callback_t callback, FAR void *arg,
                     FAR const struct timespec *ts);
-  CODE int (*cancel)(struct oneshot_lowerhalf_s *lower,
+  CODE int (*cancel)(FAR struct oneshot_lowerhalf_s *lower,
                      FAR struct timespec *ts);
-  CODE int (*current)(struct oneshot_lowerhalf_s *lower,
+  CODE int (*current)(FAR struct oneshot_lowerhalf_s *lower,
                       FAR struct timespec *ts);
+  CODE int (*tick_max_delay)(FAR struct oneshot_lowerhalf_s *lower,
+                             FAR clock_t *ticks);
+  CODE int (*tick_start)(FAR struct oneshot_lowerhalf_s *lower,
+                         oneshot_callback_t callback, FAR void *arg,
+                         clock_t ticks);
+  CODE int (*tick_cancel)(FAR struct oneshot_lowerhalf_s *lower,
+                          FAR clock_t *ticks);
+  CODE int (*tick_current)(FAR struct oneshot_lowerhalf_s *lower,
+                           FAR clock_t *ticks);
 };
 
-/* This structure describes the state of the oneshot timer lower-half driver */
+/* This structure describes the state of the oneshot timer lower-half
+ * driver
+ */
 
 struct oneshot_lowerhalf_s
 {
@@ -246,6 +258,120 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+static inline
+int oneshot_max_delay(FAR struct oneshot_lowerhalf_s *lower,
+                      FAR struct timespec *ts)
+{
+  clock_t tick;
+  int ret;
+
+  DEBUGASSERT(lower->ops->tick_max_delay);
+
+  ret = lower->ops->tick_max_delay(lower, &tick);
+  timespec_from_tick(ts, tick);
+  return ret;
+}
+
+static inline
+int oneshot_start(FAR struct oneshot_lowerhalf_s *lower,
+                  oneshot_callback_t callback, FAR void *arg,
+                  FAR const struct timespec *ts)
+{
+  clock_t tick;
+
+  DEBUGASSERT(lower->ops->tick_start);
+
+  tick = timespec_to_tick(ts);
+  return lower->ops->tick_start(lower, callback, arg, tick);
+}
+
+static inline
+int oneshot_cancel(FAR struct oneshot_lowerhalf_s *lower,
+                   FAR struct timespec *ts)
+{
+  clock_t tick;
+  int ret;
+
+  DEBUGASSERT(lower->ops->tick_cancel);
+
+  ret = lower->ops->tick_cancel(lower, &tick);
+  timespec_from_tick(ts, tick);
+
+  return ret;
+}
+
+static inline
+int oneshot_current(FAR struct oneshot_lowerhalf_s *lower,
+                    FAR struct timespec *ts)
+{
+  clock_t tick;
+  int ret;
+
+  DEBUGASSERT(lower->ops->tick_current);
+
+  ret = lower->ops->tick_current(lower, &tick);
+  timespec_from_tick(ts, tick);
+
+  return ret;
+}
+
+static inline
+int oneshot_tick_max_delay(FAR struct oneshot_lowerhalf_s *lower,
+                           FAR clock_t *ticks)
+{
+  struct timespec ts;
+  int ret;
+
+  DEBUGASSERT(lower->ops->max_delay);
+
+  ret = lower->ops->max_delay(lower, &ts);
+  *ticks = timespec_to_tick(&ts);
+  return ret;
+}
+
+static inline
+int oneshot_tick_start(FAR struct oneshot_lowerhalf_s *lower,
+                       oneshot_callback_t callback, FAR void *arg,
+                       clock_t ticks)
+{
+  struct timespec ts;
+
+  DEBUGASSERT(lower->ops->start);
+
+  timespec_from_tick(&ts, ticks);
+  return lower->ops->start(lower, callback, arg, &ts);
+}
+
+static inline
+int oneshot_tick_cancel(FAR struct oneshot_lowerhalf_s *lower,
+                        FAR clock_t *ticks)
+{
+  struct timespec ts;
+  int ret;
+
+  DEBUGASSERT(lower->ops->cancel);
+
+  ret = lower->ops->cancel(lower, &ts);
+  *ticks = timespec_to_tick(&ts);
+
+  return ret;
+}
+
+static inline
+int oneshot_tick_current(FAR struct oneshot_lowerhalf_s *lower,
+                         FAR clock_t *ticks)
+{
+  struct timespec ts;
+  int ret;
+
+  DEBUGASSERT(lower->ops->current);
+
+  ret = lower->ops->current(lower, &ts);
+  *ticks = timespec_to_tick(&ts);
+
+  return ret;
+}
 
 /****************************************************************************
  * Name: oneshot_initialize

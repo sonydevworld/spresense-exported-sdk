@@ -1,39 +1,49 @@
 /****************************************************************************
- * lzf -- an extremely fast/free compression/decompression-method
+ * include/lzf.h
  * http://liblzf.plan9.de/
  *
  *   Copyright (c) 2000-2008 Marc Alexander Lehmann <schmorp@schmorp.de>
  *   This algorithm is believed to be patent-free.
  *
- * Redistribution and use in source and binary forms, with or without modifica-
- * tion, are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- *   1.  Redistributions of source code must retain the above copyright notice,
- *       this list of conditions and the following disclaimer.
+ *   1.  Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
  *
  *   2.  Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MER-
- * CHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
- * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPE-
- * CIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTH-
- * ERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
 
 #ifndef __INCLUDE_LZF_H
-#define __INCLUDE_LZF_H 1
+#define __INCLUDE_LZF_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <sys/types.h>
+#include <stdint.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#ifdef CONFIG_LIBC_LZF
 
 #define LZF_VERSION 0x0105 /* 1.5, API version */
 #define HLOG        CONFIG_LIBC_LZF_HLOG
@@ -77,10 +87,10 @@ struct lzf_type1_header_s   /* Compressed data header */
 /* LZF hash table */
 
 #if LZF_USE_OFFSETS
-# define LZF_HSLOT_BIAS ((const uint8_t *)in_data)
+#  define LZF_HSLOT_BIAS ((const uint8_t *)in_data)
   typedef unsigned int lzf_hslot_t;
 #else
-# define LZF_HSLOT_BIAS 0
+#  define LZF_HSLOT_BIAS 0
   typedef const uint8_t *lzf_hslot_t;
 #endif
 
@@ -150,4 +160,5 @@ unsigned int lzf_decompress(FAR const void *const in_data,
                             unsigned int in_len, FAR void *out_data,
                             unsigned int out_len);
 
+#endif /* CONFIG_LIBC_LZF */
 #endif /* __INCLUDE_LZF_H */

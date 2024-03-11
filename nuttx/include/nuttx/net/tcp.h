@@ -56,7 +56,7 @@
 #include <stdint.h>
 
 #include <nuttx/net/netconfig.h>
-#include <nuttx/net/arp.h>
+#include <nuttx/net/ethernet.h>
 #include <nuttx/net/ip.h>
 
 /****************************************************************************
@@ -76,8 +76,14 @@
 #define TCP_OPT_END       0   /* End of TCP options list */
 #define TCP_OPT_NOOP      1   /* "No-operation" TCP option */
 #define TCP_OPT_MSS       2   /* Maximum segment size TCP option */
+#define TCP_OPT_WS        3   /* Window size scaling factor */
+#define TCP_OPT_SACK_PERM 4   /* Selective-ACK Permitted option */
+#define TCP_OPT_SACK      5   /* Selective-ACK Block option */
 
-#define TCP_OPT_MSS_LEN   4   /* Length of TCP MSS option. */
+#define TCP_OPT_NOOP_LEN       1   /* Length of TCP NOOP option. */
+#define TCP_OPT_MSS_LEN        4   /* Length of TCP MSS option. */
+#define TCP_OPT_WS_LEN         3   /* Length of TCP WS option. */
+#define TCP_OPT_SACK_PERM_LEN  2   /* Length of TCP SACK option. */
 
 /* The TCP states used in the struct tcp_conn_s tcpstateflags field */
 
@@ -125,11 +131,17 @@
  * These defaults correspond to the minimum MTU values:
  *
  *   IPv4:  MTU=576;  MSS=536  (MTU - IPv4_HDRLEN - TCP_HDRLEN)
- *   IPv6:  MTU=1280; MSS=1200 (MTU - IPv5_HDRLEN - TCP_HDRLEN)
+ *   IPv6:  MTU=1280; MSS=1220 (MTU - IPv6_HDRLEN - TCP_HDRLEN)
  */
 
 #define TCP_DEFAULT_IPv4_MSS  536
-#define TCP_DEFAULT_IPv6_MSS  1200
+#define TCP_DEFAULT_IPv6_MSS  1220
+
+/* Minimal accepted MSS. It is (60+60+8) - (20+20).
+ * (MAX_IP_HDR + MAX_TCP_HDR + MIN_IP_FRAG) - (MIN_IP_HDR + MIN_TCP_HDR)
+ */
+
+#define TCP_MIN_MSS           88
 
 /* However, we do need to make allowance for certain links such as SLIP that
  * have unusually small MTUs.
@@ -142,16 +154,16 @@
 #  define MIN_IPv4_TCP_INITIAL_MSS \
      (__MIN_TCP_MSS(IPv4_HDRLEN) > 536 ? 536 : __MIN_TCP_MSS(IPv4_HDRLEN))
 #  define MAX_IPv4_TCP_INITIAL_MSS  \
-     (__MAX_TCP_MSS(IPv4_HDRLEN) > 536 ? 536 : __MAX_TCP_MSS(h))
+     (__MAX_TCP_MSS(IPv4_HDRLEN) > 536 ? 536 : __MAX_TCP_MSS(IPv4_HDRLEN))
 #endif
 
 #ifdef CONFIG_NET_IPv6
 #  define TCP_IPv6_INITIAL_MSS(d) \
-     (TCP_MSS(d,IPv6_HDRLEN) > 1200 ? 1200 : TCP_MSS(d,IPv6_HDRLEN))
+     (TCP_MSS(d,IPv6_HDRLEN) > 1220 ? 1220 : TCP_MSS(d,IPv6_HDRLEN))
 #  define MIN_IPv6_TCP_INITIAL_MSS \
-     (__MIN_TCP_MSS(IPv6_HDRLEN) > 1200 ? 1200 : __MIN_TCP_MSS(IPv6_HDRLEN))
+     (__MIN_TCP_MSS(IPv6_HDRLEN) > 1220 ? 1220 : __MIN_TCP_MSS(IPv6_HDRLEN))
 #  define MAX_IPv6_TCP_INITIAL_MSS  \
-     (__MAX_TCP_MSS(IPv6_HDRLEN) > 1200 ? 1200 : __MAX_TCP_MSS(IPv6_HDRLEN))
+     (__MAX_TCP_MSS(IPv6_HDRLEN) > 1220 ? 1220 : __MAX_TCP_MSS(IPv6_HDRLEN))
 #endif
 
 /****************************************************************************
@@ -171,7 +183,7 @@ struct tcp_hdr_s
   uint8_t  wnd[2];
   uint16_t tcpchksum;
   uint8_t  urgp[2];
-  uint8_t  optdata[4];
+  uint8_t  optdata[0];
 };
 
 /* The structure holding the TCP/IP statistics that are gathered if
@@ -189,7 +201,7 @@ struct tcp_stats_s
   net_stats_t rst;        /* Number of received TCP RST (reset) segments */
   net_stats_t rexmit;     /* Number of retransmitted TCP segments */
   net_stats_t syndrop;    /* Number of dropped SYNs due to too few
-                             available connections */
+                           * available connections */
   net_stats_t synrst;     /* Number of SYNs for closed ports triggering a RST */
 };
 #endif

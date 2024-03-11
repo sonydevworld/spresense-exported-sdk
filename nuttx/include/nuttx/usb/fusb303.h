@@ -1,41 +1,29 @@
 /****************************************************************************
  * include/nuttx/usb/fusb303.h
- * FUSB303 USB Type-C controller driver
  *
- *   Copyright (C) 2019 Haltian Ltd. All rights reserved.
- *   Authors: Juha Niskanen <juha.niskanen@haltian.com>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_USB_FUSB303_H
 #define __INCLUDE_NUTTX_USB_FUSB303_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
 #include <nuttx/fs/ioctl.h>
 
@@ -115,6 +103,7 @@ enum fusb303_mode_e
   MODE_TRY_SNK   = (1 << 4), /* For DRP only */
   MODE_TRY_SRC   = (1 << 5), /* For DRP only */
   MODE_ORIENTDEB = (1 << 6),
+
   /* Bit 7 reserved */
 };
 
@@ -169,6 +158,7 @@ enum fusb303_manual_e
   MANUAL_UNATT_SNK = (1 << 3),
   MANUAL_FORCE_SNK = (1 << 4),
   MANUAL_FORCE_SRC = (1 << 5),
+
   /* Bits 6:7 reserved */
 };
 
@@ -190,6 +180,7 @@ enum fusb303_int_mask_e
   INT_MASK_VBUS_CHG = (1 << 4),
   INT_MASK_FAULT    = (1 << 5),
   INT_MASK_ORIENT   = (1 << 6),
+
   /* Bit 7 reserved */
 };
 
@@ -200,10 +191,13 @@ enum fusb303_int_mask1_e
   INT_MASK1_REMEDY    = (1 << 0),
   INT_MASK1_FRC_SUCC  = (1 << 1),
   INT_MASK1_FRC_FAIL  = (1 << 2),
+
   /* Bit 4 reserved */
+
   INT_MASK1_REM_FAIL  = (1 << 3),
   INT_MASK1_REM_VBON  = (1 << 5),
   INT_MASK1_REM_VBOFF = (1 << 6),
+
   /* Bit 7 reserved */
 };
 
@@ -244,6 +238,7 @@ enum fusb303_type_e
   TYPE_SINK        = (1 << 4),
   TYPE_DEBUGSNK    = (1 << 5),
   TYPE_DEBUGSRC    = (1 << 6),
+
   /* Bit 7 reserved */
 };
 
@@ -258,6 +253,7 @@ enum fusb303_interrupt_e
   INTERRUPT_VBUS_CHG = (1 << 4),
   INTERRUPT_FAULT    = (1 << 5),
   INTERRUPT_ORIENT   = (1 << 6),
+
   /* Bit 7 reserved */
 };
 
@@ -269,9 +265,12 @@ enum fusb303_interrupt1_e
   INTERRUPT1_FRC_SUCC  = (1 << 1),
   INTERRUPT1_FRC_FAIL  = (1 << 2),
   INTERRUPT1_REM_FAIL  = (1 << 3),
+
   /* Bit 4 reserved */
+
   INTERRUPT1_REM_VBON  = (1 << 5),
   INTERRUPT1_REM_VBOFF = (1 << 6),
+
   /* Bit 7 reserved */
 };
 

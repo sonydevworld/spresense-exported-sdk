@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/nuttx/ioexpander/gpio.h
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -57,11 +42,11 @@
 
 /* Command:     GPIOC_WRITE
  * Description: Set the value of an output GPIO
- * Argument:    T0=output a low value; 1=outut a high value
+ * Argument:    0=output a low value; 1=output a high value
  *
  * Command:     GPIOC_READ
  * Description: Read the value of an input or output GPIO
- * Argument:    A pointer to an bool value to receive the result:
+ * Argument:    A pointer to a bool value to receive the result:
  *              false=low value; true=high value.
  *
  * Command:     GPIOC_PINTYPE
@@ -69,8 +54,8 @@
  * Argument:    A pointer to an instance of type enum gpio_pintype_e
  *
  * Command:     GPIOC_REGISTER
- * Description: Register to receive a signal whenever there an interrupt
- *              is received on an input gpio pin.  This feature, of course,
+ * Description: Register to receive a signal whenever there is an interrupt
+ *              received on an input gpio pin.  This feature, of course,
  *              depends upon interrupt GPIO support from the platform.
  * Argument:    The number of signal to be generated when the interrupt
  *              occurs.
@@ -96,12 +81,19 @@
  * Public Types
  ****************************************************************************/
 
-/* Identifies the type of the GPIO pin */
+/* Identifies the type of the GPIO pin
+ *
+ * Note: If this enum is modified, g_gplh_inttype array in
+ *       drivers/ioexpander/gpio_lower_half.c must be updated accordingly.
+ */
 
 enum gpio_pintype_e
 {
-  GPIO_INPUT_PIN = 0,
-  GPIO_OUTPUT_PIN,
+  GPIO_INPUT_PIN = 0, /* float */
+  GPIO_INPUT_PIN_PULLUP,
+  GPIO_INPUT_PIN_PULLDOWN,
+  GPIO_OUTPUT_PIN, /* push-pull */
+  GPIO_OUTPUT_PIN_OPENDRAIN,
   GPIO_INTERRUPT_PIN,
   GPIO_INTERRUPT_HIGH_PIN,
   GPIO_INTERRUPT_LOW_PIN,
@@ -119,12 +111,12 @@ typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev, uint8_t pin);
 /* Pin interface vtable definition.  Instances of this vtable are read-only
  * and may reside in FLASH.
  *
- *   - go_read.  Required for all all pin types.
+ *   - go_read.  Required for all pin types.
  *   - go_write.  Required only for the GPIO_OUTPUT_PIN pin type.  Unused
- *     for other pin types may be NULL.
- *   - go_attach and gp_eanble.  Required only the GPIO_INTERRUPT_PIN pin
- *     type.  Unused for other pin types may be NULL.
- *   - go_setpinytype.  Required for all all pin types.
+ *     for other pin types, may be NULL.
+ *   - go_attach and go_enable.  Required only for the GPIO_INTERRUPT_PIN pin
+ *     type.  Unused for other pin types, may be NULL.
+ *   - go_setpintype.  Required for all pin types.
  */
 
 struct gpio_dev_s;
@@ -141,7 +133,7 @@ struct gpio_operations_s
                             enum gpio_pintype_e pintype);
 };
 
- /* Signal information */
+/* Signal information */
 
 struct gpio_signal_s
 {
@@ -189,35 +181,121 @@ extern "C"
  * Name: gpio_pin_register
  *
  * Description:
- *   Register GPIO pin device driver.
+ *   Register GPIO pin device driver at /dev/gpioN, where N is the provided
+ *   minor number.
  *
- *   - Input pin types will be registered at /dev/gpinN
- *   - Output pin types will be registered at /dev/gpoutN
- *   - Interrupt pin types will be registered at /dev/gpintN
+ * Input Parameters:
+ *   dev    - A pointer to a gpio_dev_s
+ *   minor  - An integer value to be concatenated with '/dev/gpio'
+ *            to form the device name.
  *
- *   Where N is the provided minor number in the range of 0-99.
+ * Returned Value:
+ *   Zero on success; A negated errno value is returned on a failure
+ *   all error values returned by inode_reserve:
  *
+ *   EINVAL - 'path' is invalid for this operation
+ *   EEXIST - An inode already exists at 'path'
+ *   ENOMEM - Failed to allocate in-memory resources for the operation
  *
  ****************************************************************************/
 
 int gpio_pin_register(FAR struct gpio_dev_s *dev, int minor);
 
 /****************************************************************************
- * Name: gpio_pin_unregister
+ * Name: gpio_pin_register_byname
  *
  * Description:
- *   Unregister GPIO pin device driver.
+ *   Register GPIO pin device driver with it's pin name.
  *
- *   - Input pin types will be registered at /dev/gpinN
- *   - Output pin types will be registered at /dev/gpoutN
- *   - Interrupt pin types will be registered at /dev/gpintN
+ * Input Parameters:
+ *   dev      - A pointer to a gpio_dev_s
+ *   pinname  - A pointer to the name to be concatenated with '/dev/'
+ *              to form the device name.
  *
- *   Where N is the provided minor number in the range of 0-99.
+ * Returned Value:
+ *   Zero on success; A negated errno value is returned on a failure
+ *   all error values returned by inode_reserve:
  *
+ *   EINVAL - 'path' is invalid for this operation
+ *   EEXIST - An inode already exists at 'path'
+ *   ENOMEM - Failed to allocate in-memory resources for the operation
  *
  ****************************************************************************/
 
-void gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor);
+int gpio_pin_register_byname(FAR struct gpio_dev_s *dev,
+                             FAR const char *pinname);
+
+/****************************************************************************
+ * Name: gpio_pin_unregister
+ *
+ * Description:
+ *   Unregister GPIO pin device driver at /dev/gpioN, where N is the provided
+ *   minor number.
+ *
+ * Input Parameters:
+ *   dev    - A pointer to a gpio_dev_s
+ *   minor  - An integer value to be concatenated with '/dev/gpio'
+ *            to form the device name.
+ *
+ * Returned Value:
+ *   Zero on success; A negated value is returned on a failure
+ *   (all error values returned by inode_remove):
+ *
+ *   ENOENT - path does not exist.
+ *   EBUSY  - Ref count is not 0;
+ *
+ ****************************************************************************/
+
+int gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor);
+
+/****************************************************************************
+ * Name: gpio_pin_unregister_byname
+ *
+ * Description:
+ *   Unregister GPIO pin device driver at /dev/pinname.
+ *
+ * Input Parameters:
+ *   dev      - A pointer to a gpio_dev_s
+ *   pinname  - A pointer to the name to be concatenated with '/dev/'
+ *              to form the device name.
+ *
+ *
+ * Returned Value:
+ *   Zero on success; A negated value is returned on a failure
+ *   (all error values returned by inode_remove):
+ *
+ *   ENOENT - path does not exist.
+ *   EBUSY  - Ref count is not 0;
+ ****************************************************************************/
+
+int gpio_pin_unregister_byname(FAR struct gpio_dev_s *dev,
+                               FAR const char *pinname);
+
+/****************************************************************************
+ * Name: gpio_lower_half_byname
+ *
+ * Description:
+ *   Create a GPIO pin device driver instance for an I/O expander pin.
+ *   The I/O expander pin must have already been configured by the caller
+ *   for the particular pintype.
+ *
+ * Input Parameters:
+ *   ioe     - An instance of the I/O expander interface
+ *   pin     - The I/O expander pin number for the driver
+ *   pintype - See enum gpio_pintype_e
+ *   name    - gpio device name
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_GPIO_LOWER_HALF
+struct ioexpander_dev_s;
+int gpio_lower_half_byname(FAR struct ioexpander_dev_s *ioe,
+                           unsigned int pin, enum gpio_pintype_e pintype,
+                           FAR char *name);
+#endif
 
 /****************************************************************************
  * Name: gpio_lower_half

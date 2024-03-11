@@ -84,6 +84,14 @@
 /** @} */
 
 /**
+ *@name Invalid attribute handle ID
+ *@{
+ */
+#define BLE_GATT_INVALID_ATTRIBUTE_HANDLE (0x0000)
+
+/** @} */
+
+/**
  *@name Support Max services
  *@{
  */
@@ -299,8 +307,33 @@ struct ble_gattc_char_s
  */
 struct ble_gattc_db_disc_char_s
 {
-  uint16_t                cccd_handle;    /**< Handle of client configuration characteristic descriptor in characteristic */
-  struct ble_gattc_char_s characteristic; /**< Characteristic information */
+  /** Handle of characteristic extended properties descriptor */
+
+  uint16_t                cepd_handle;
+
+  /** Handle of characteristic user description descriptor */
+
+  uint16_t                cudd_handle;
+
+  /** Handle of client configuration characteristic descriptor */
+
+  uint16_t                cccd_handle;
+
+  /** Handle of server characteristic configuration descriptor */
+
+  uint16_t                sccd_handle;
+
+  /** Handle of characteristic presentation format descriptor */
+
+  uint16_t                cpfd_handle;
+
+  /** Handle of characteristic aggregate format descriptor */
+
+  uint16_t                cafd_handle;
+
+  /** Characteristic information */
+
+  struct ble_gattc_char_s characteristic;
 };
 
 /**
@@ -362,17 +395,41 @@ struct ble_gatt_event_db_discovery_t
  */
 struct ble_gatt_central_ops_s
 {
-  void (*write)(struct ble_gatt_char_s *ble_gatt_char);                      /**< Write response */
-  void (*read)(struct ble_gatt_char_s *ble_gatt_char);                       /**< Read response */
-  void (*notify)(struct ble_gatt_char_s *ble_gatt_char);                     /**< Notify response */
-  void (*database_discovery)(struct ble_gatt_event_db_discovery_t *db_disc); /**< Database discovery event */
+  /** Write response */
+
+  void (*write)(uint16_t conn_handle, struct ble_gatt_char_s *ble_gatt_char);
+
+  /** Read response */
+
+  void (*read)(uint16_t conn_handle, struct ble_gatt_char_s *ble_gatt_char);
+
+  /** Receive notification */
+
+  void (*notify)(uint16_t conn_handle, struct ble_gatt_char_s *ble_gatt_char);
+
+  /** Database discovery event */
+
+  void (*database_discovery)(struct ble_gatt_event_db_discovery_t *db_disc);
+
+  /** Descriptor write response */
+
+  void (*descriptor_write)(uint16_t conn_handle, uint16_t handle, int status);
+
+  /** Descriptor read response */
+
+  void (*descriptor_read)(uint16_t conn_handle,
+                          uint16_t handle,
+                          uint8_t  *data,
+                          uint16_t len);
 };
 
-
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -424,6 +481,7 @@ int ble_add_characteristic(struct ble_gatt_service_s *service, struct ble_gatt_c
  * @brief BLE Notify Characteristic value
  *        Notify characteristic value to Central (For Peripheral role)
  *
+ * @param[in] conn_handle: connection handle for which notification is sent
  * @param[in] charc: Target characteristic @ref ble_gatt_char_s
  * @param[in] data: Notify data
  * @param[in] len: Notify data length
@@ -431,23 +489,28 @@ int ble_add_characteristic(struct ble_gatt_service_s *service, struct ble_gatt_c
  * @retval error code
  */
 
-int ble_characteristic_notify(struct ble_gatt_char_s *charc, uint8_t *data, int len);
+int ble_characteristic_notify(uint16_t               conn_handle,
+                              struct ble_gatt_char_s *charc,
+                              uint8_t                *data,
+                              int                    len);
 
 /**
- * @brief BLE Read Characteristic value
+ * @brief BLE Read Characteristic value (Deprecated)
  *        Send read characteristic request to peripheral (For Central role)
  *
+ * @param[in] conn_handle: connection handle for which read request is sent
  * @param[in] charc: Bluetooth LE GATT characteristic context @ref ble_gatt_char_s
  *
  * @retval error code
  */
 
-int ble_characteristic_read(struct ble_gatt_char_s *charc);
+int ble_characteristic_read(uint16_t conn_handle, struct ble_gatt_char_s *charc);
 
 /**
- * @brief BLE Write Characteristic value
+ * @brief BLE Write Characteristic value (Deprecated)
  *        Send write characteristic request to peripheral (For Central role)
  *
+ * @param[in] conn_handle: connection handle for which write request is sent
  * @param[in] charc: Bluetooth LE GATT characteristic context @ref ble_gatt_char_s
  * @param[in] data: Write data
  * @param[in] len: Write data length
@@ -455,11 +518,76 @@ int ble_characteristic_read(struct ble_gatt_char_s *charc);
  * @retval error code
  */
 
-int ble_characteristic_write(struct ble_gatt_char_s *charc, uint8_t *data, int len);
+int ble_characteristic_write(uint16_t               conn_handle,
+                             struct ble_gatt_char_s *charc,
+                             uint8_t                *data,
+                             int                    len);
+
+/**
+ * @brief BLE Read Characteristic value
+ *        Send read characteristic request to peripheral (For Central role)
+ *
+ * @param[in] conn_handle: connection handle for which write request is sent
+ * @param[in] char_handle: characteristic handle for which write request is sent
+ *
+ * @retval error code
+ */
+
+int ble_read_characteristic(uint16_t conn_handle, uint16_t char_handle);
+
+/**
+ * @brief BLE Write Characteristic value
+ *        Send write characteristic request to peripheral (For Central role)
+ *
+ * @param[in] conn_handle: connection handle for which write request is sent
+ * @param[in] char_handle: characteristic handle for which write request is sent
+ * @param[in] data: Write data
+ * @param[in] len: Write data length
+ * @param[in] rsp: Require write response to receive write result
+ *
+ * @retval error code
+ */
+
+int ble_write_characteristic(uint16_t conn_handle,
+                             uint16_t char_handle,
+                             uint8_t  *data,
+                             int      len,
+                             bool     rsp);
+
+/**
+ * @brief BLE Read Descriptor value
+ *        Send read descriptor request to peripheral (For Central role)
+ *
+ * @param[in] conn_handle: connection handle
+ * @param[in] handle:      desctiptor handle
+ *
+ * @retval error code
+ */
+
+int ble_descriptor_read(uint16_t conn_handle, uint16_t handle);
+
+/**
+ * @brief BLE Write Descriptor value
+ *        Send write descriptor request to peripheral (For Central role)
+ *
+ * @param[in] conn_handle: connection handle
+ * @param[in] handle:      desctiptor handle
+ * @param[in] data: Write data
+ * @param[in] len: Write data length
+ *
+ * @retval error code
+ */
+
+int ble_descriptor_write(uint16_t conn_handle,
+                         uint16_t handle,
+                         uint8_t  *data,
+                         int      len);
 
 /**
  * @brief BLE start database discovery
  *        Send database discovery request to peripheral (For Central role)
+ *        In case of device/nrf52 configuration, 128-bit UUID information is not
+ *        discovered correctly. Then, you may use ble_discover_uuid() API.
  *
  * @param[in] conn_handle: Bluetooth LE GATT connection handle
  *
@@ -471,6 +599,8 @@ int ble_start_db_discovery(uint16_t conn_handle);
 /**
  * @brief BLE continue database discovery
  *        Send continue database discovery request to peripheral (For Central role)
+ *        In case of device/nrf52 configuration, 128-bit UUID information is not
+ *        discovered correctly. Then, you may use ble_discover_uuid() API.
  *
  * @param[in] start_handle: Bluetooth LE GATT start handle
  * @param[in] conn_handle: Bluetooth LE GATT connection handle
@@ -479,5 +609,21 @@ int ble_start_db_discovery(uint16_t conn_handle);
  */
 
 int ble_continue_db_discovery(uint16_t start_handle, uint16_t conn_handle);
+
+/**
+ * @brief Discover GATT database with specific UUID
+ * @param[in] conn_handle: BLE connection handle
+ * @param[in] srv_uuid: Service UUID to be discovered
+ * @param[in] char_uuid: Characteristic UUID to be discovered
+ *
+ * @retval error code
+ */
+
+int ble_discover_uuid(uint16_t conn_handle, BLE_UUID *srv_uuid, BLE_UUID *char_uuid);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __MODULES_INCLUDE_BLUETOOTH_BLE_GATT_H */

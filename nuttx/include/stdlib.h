@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/stdlib.h
  *
- *   Copyright (C) 2007-2016, 2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -71,31 +56,34 @@
  * character specified by the current locale.
  */
 
-#define MB_CUR_MAX 1
+#define MB_CUR_MAX 4
 
 /* The environ variable, normally 'char **environ;' is not implemented as a
  * function call.  However, get_environ_ptr() can be used in its place.
  */
 
-#ifndef CONFIG_DISABLE_ENVIRON
+#ifdef CONFIG_DISABLE_ENVIRON
+#  define environ NULL
+#else
 #  define environ get_environ_ptr()
 #endif
+
+#if defined(CONFIG_FS_LARGEFILE)
+#  define mkstemp64            mkstemp
+#  define mkostemp64           mkostemp
+#  define mkstemps64           mkstemps
+#  define mkostemps64          mkostemps
+#endif
+
+#define strtof_l(s, e, l)      strtof(s, e)
+#define strtod_l(s, e, l)      strtod(s, e)
+#define strtold_l(s, e, l)     strtold(s, e)
+#define strtoll_l(s, e, b, l)  strtoll(s, e, b)
+#define strtoull_l(s, e, b, l) strtoull(s, e, b)
 
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
-
-struct mallinfo
-{
-  int arena;    /* This is the total size of memory allocated
-                 * for use by malloc in bytes. */
-  int ordblks;  /* This is the number of free (not in use) chunks */
-  int mxordblk; /* Size of the largest free (not in use) chunk */
-  int uordblks; /* This is the total size of memory occupied by
-                 * chunks handed out by malloc. */
-  int fordblks; /* This is the total size of memory occupied
-                 * by free (not in use) chunks.*/
-};
 
 /* Structure type returned by the div() function. */
 
@@ -144,11 +132,29 @@ extern "C"
 
 void      srand(unsigned int seed);
 int       rand(void);
+int       rand_r(FAR unsigned int *seedp);
+void      lcong48(FAR unsigned short int param[7]);
+FAR unsigned short int *seed48(FAR unsigned short int seed16v[3]);
+void      srand48(long int seedval);
+#ifdef CONFIG_HAVE_LONG_LONG
+long int  jrand48(FAR unsigned short int xsubi[3]);
+long int  lrand48(void);
+long int  mrand48(void);
+long int  nrand48(FAR unsigned short int xsubi[3]);
+#  ifdef CONFIG_HAVE_DOUBLE
+double    drand48(void);
+double    erand48(FAR unsigned short int xsubi[3]);
+#  endif
+#endif
 
 #define   srandom(s) srand(s)
 long      random(void);
 
-#ifndef CONFIG_DISABLE_ENVIRON
+#ifdef CONFIG_CRYPTO_RANDOM_POOL
+void      arc4random_buf(FAR void *bytes, size_t nbytes);
+uint32_t  arc4random(void);
+#endif
+
 /* Environment variable support */
 
 FAR char **get_environ_ptr(void);
@@ -157,23 +163,19 @@ int       putenv(FAR const char *string);
 int       clearenv(void);
 int       setenv(FAR const char *name, FAR const char *value, int overwrite);
 int       unsetenv(FAR const char *name);
-#endif
 
 /* Process exit functions */
 
 void      exit(int status) noreturn_function;
+void      quick_exit(int status) noreturn_function;
 void      abort(void) noreturn_function;
-#ifdef CONFIG_SCHED_ATEXIT
 int       atexit(CODE void (*func)(void));
-#endif
-#ifdef CONFIG_SCHED_ONEXIT
+int       at_quick_exit(CODE void (*func)(void));
 int       on_exit(CODE void (*func)(int, FAR void *), FAR void *arg);
-#endif
 
 /* _Exit() is a stdlib.h equivalent to the unistd.h _exit() function */
 
-void      _exit(int status); /* See unistd.h */
-#define   _Exit(s) _exit(s)
+void      _Exit(int status) noreturn_function;
 
 /* System() command is not implemented in the NuttX libc because it is so
  * entangled with shell logic.  There is an experimental version at
@@ -184,6 +186,8 @@ void      _exit(int status); /* See unistd.h */
 #ifndef __KERNEL__
 int       system(FAR const char *cmd);
 #endif
+
+FAR char *realpath(FAR const char *path, FAR char *resolved);
 
 /* String to binary conversions */
 
@@ -202,13 +206,13 @@ double    strtod(FAR const char *str, FAR char **endptr);
 long double strtold(FAR const char *str, FAR char **endptr);
 #endif
 
-#define atoi(nptr)  ((int)strtol((nptr), NULL, 10))
-#define atol(nptr)  strtol((nptr), NULL, 10)
+int       atoi(FAR const char *nptr);
+long      atol(FAR const char *nptr);
 #ifdef CONFIG_HAVE_LONG_LONG
-#define atoll(nptr) strtoll((nptr), NULL, 10)
+long long atoll(FAR const char *nptr);
 #endif
 #ifdef CONFIG_HAVE_DOUBLE
-#define atof(nptr)  strtod((nptr), NULL)
+double    atof(FAR const char *nptr);
 #endif
 
 /* Binary to string conversions */
@@ -217,35 +221,31 @@ FAR char *itoa(int val, FAR char *str, int base);
 
 /* Wide character operations */
 
-#ifdef CONFIG_LIBC_WCHAR
+int       mblen(FAR const char *s, size_t n);
 int       mbtowc(FAR wchar_t *pwc, FAR const char *s, size_t n);
+size_t    mbstowcs(FAR wchar_t *dst, FAR const char *src, size_t len);
 int       wctomb(FAR char *s, wchar_t wchar);
-#endif
+size_t    wcstombs(FAR char *dst, FAR const wchar_t *src, size_t len);
 
 /* Memory Management */
 
-FAR void *malloc(size_t);
+FAR void *malloc(size_t) malloc_like1(1);
+FAR void *valloc(size_t) malloc_like1(1);
 void      free(FAR void *);
-FAR void *realloc(FAR void *, size_t);
-FAR void *memalign(size_t, size_t);
-FAR void *zalloc(size_t);
-FAR void *calloc(size_t, size_t);
-
-#ifdef CONFIG_CAN_PASS_STRUCTS
-struct mallinfo mallinfo(void);
-#else
-int      mallinfo(FAR struct mallinfo *info);
-#endif
+FAR void *realloc(FAR void *, size_t) realloc_like(2);
+FAR void *memalign(size_t, size_t) malloc_like1(2);
+FAR void *zalloc(size_t) malloc_like1(1);
+FAR void *calloc(size_t, size_t) malloc_like2(1, 2);
+FAR void *aligned_alloc(size_t, size_t) malloc_like1(2);
+int       posix_memalign(FAR void **, size_t, size_t);
 
 /* Pseudo-Terminals */
 
-#ifdef CONFIG_PSEUDOTERM_SUSV1
-FAR char *ptsname(int fd);
-int ptsname_r(int fd, FAR char *buf, size_t buflen);
-#endif
-
 #ifdef CONFIG_PSEUDOTERM
-int unlockpt(int fd);
+int       posix_openpt(int oflag);
+FAR char *ptsname(int fd);
+int       ptsname_r(int fd, FAR char *buf, size_t buflen);
+int       unlockpt(int fd);
 
 /* int grantpt(int fd); Not implemented */
 
@@ -254,35 +254,66 @@ int unlockpt(int fd);
 
 /* Arithmetic */
 
-int      abs(int j);
-long int labs(long int j);
+int       abs(int j);
+long int  labs(long int j);
 #ifdef CONFIG_HAVE_LONG_LONG
 long long int llabs(long long int j);
 #endif
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-div_t    div(int numer, int denom);
-ldiv_t   ldiv(long numer, long denom);
+div_t     div(int number, int denom);
+ldiv_t    ldiv(long number, long denom);
 #ifdef CONFIG_HAVE_LONG_LONG
-lldiv_t  lldiv(long long numer, long long denom);
-#endif
+lldiv_t   lldiv(long long number, long long denom);
 #endif
 
 /* Temporary files */
 
-int      mktemp(FAR char *path_template);
-int      mkstemp(FAR char *path_template);
+FAR char *mktemp(FAR char *path_template);
+int       mkstemp(FAR char *path_template);
+FAR char *mkdtemp(FAR char *path_template);
 
 /* Sorting */
 
-void     qsort(FAR void *base, size_t nel, size_t width,
-               CODE int (*compar)(FAR const void *, FAR const void *));
+void      qsort(FAR void *base, size_t nel, size_t width,
+                CODE int (*compar)(FAR const void *, FAR const void *));
 
 /* Binary search */
 
-FAR void *bsearch(FAR const void *key, FAR const void *base, size_t nel,
-                  size_t width, CODE int (*compar)(FAR const void *,
-                  FAR const void *));
+FAR void  *bsearch(FAR const void *key, FAR const void *base, size_t nel,
+                   size_t width, CODE int (*compar)(FAR const void *,
+                   FAR const void *));
+
+/* Current program name manipulation */
+
+FAR const char *getprogname(void);
+
+/* Registers a destructor function to be called by exit() */
+
+int __cxa_atexit(CODE void (*func)(FAR void *), FAR void *arg,
+                 FAR void *dso_handle);
+
+#if CONFIG_FORTIFY_SOURCE > 0
+fortify_function(realpath) FAR char *realpath(FAR const char *path,
+                                              FAR char *resolved)
+{
+  FAR char *ret = __real_realpath(path, resolved);
+  if (ret != NULL && resolved != NULL)
+    {
+      size_t len = 1;
+      FAR char *p;
+
+      p = ret;
+      while (*p++ != '\0')
+        {
+          len++;
+        }
+
+      fortify_assert(len <= fortify_size(resolved, 0));
+    }
+
+  return ret;
+}
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

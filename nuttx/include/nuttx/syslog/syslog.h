@@ -2,35 +2,20 @@
  * include/nuttx/syslog/syslog.h
  * The NuttX SYSLOGing interface
  *
- *   Copyright (C) 2012, 2014-2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -43,6 +28,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/streams.h>
 
 #include <sys/types.h>
 #include <stdarg.h>
@@ -93,37 +79,70 @@
 #  endif
 #endif
 
+/* Get a list of syslog channels */
+
+#define SYSLOGIOC_GETCHANNELS _SYSLOGIOC(0x0001)
+
+/* Set syslog channel filter */
+
+#define SYSLOGIOC_SETFILTER _SYSLOGIOC(0x0002)
+
+#define SYSLOG_CHANNEL_NAME_LEN 32
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-/* Initialization phases */
+/* Forward declaration */
 
-enum syslog_init_e
+struct syslog_channel_s;
+
+/* SYSLOG I/O redirection methods */
+
+typedef CODE ssize_t (*syslog_write_t)(FAR struct syslog_channel_s *channel,
+                                       FAR const char *buf, size_t buflen);
+typedef CODE int (*syslog_putc_t)(FAR struct syslog_channel_s *channel,
+                                  int ch);
+typedef CODE int (*syslog_flush_t)(FAR struct syslog_channel_s *channel);
+typedef CODE void (*syslog_close_t)(FAR struct syslog_channel_s *channel);
+
+/* SYSLOG device operations */
+
+struct syslog_channel_ops_s
 {
-  SYSLOG_INIT_RESET = 0, /* Power on SYSLOG initialization phase */
-  SYSLOG_INIT_EARLY,     /* Early initialization in up_initialize() */
-  SYSLOG_INIT_LATE       /* Late initialization in nx_start(). */
+  syslog_putc_t  sc_putc;         /* Normal buffered output */
+  syslog_putc_t  sc_force;        /* Low-level output for interrupt handlers */
+  syslog_flush_t sc_flush;        /* Flush buffered output (on crash) */
+  syslog_write_t sc_write;        /* Write multiple bytes */
+  syslog_write_t sc_write_force;  /* Write multiple bytes for interrupt handlers */
+  syslog_close_t sc_close;        /* Channel close callback */
 };
 
-/* This structure provides the interface to a SYSLOG device */
+struct syslog_channel_info_s
+{
+  char sc_name[SYSLOG_CHANNEL_NAME_LEN];
+  bool sc_disable;
+};
 
-typedef CODE ssize_t (*syslog_write_t)(FAR const char *buf, size_t buflen);
-typedef CODE int (*syslog_putc_t)(int ch);
-typedef CODE int (*syslog_flush_t)(void);
+/* This structure provides the interface to a SYSLOG channel */
 
 struct syslog_channel_s
 {
-  /* I/O redirection methods */
+  /* Channel operations */
 
-  syslog_putc_t  sc_putc;   /* Normal buffered output */
-  syslog_putc_t  sc_force;  /* Low-level output for interrupt handlers */
-  syslog_flush_t sc_flush;  /* Flush buffered output (on crash) */
-#ifdef CONFIG_SYSLOG_WRITE
-  syslog_write_t sc_write;  /* Write multiple bytes */
-#endif
+  FAR const struct syslog_channel_ops_s *sc_ops;
 
   /* Implementation specific logic may follow */
+
+#ifdef CONFIG_SYSLOG_IOCTL
+  /* Syslog channel name */
+
+  char sc_name[SYSLOG_CHANNEL_NAME_LEN];
+
+  /* Syslog channel enable status, true is disable */
+
+  bool sc_disable;
+#endif
 };
 
 /****************************************************************************
@@ -155,12 +174,30 @@ extern "C"
  *   channel - Provides the interface to the channel to be used.
  *
  * Returned Value:
- *   Zero (OK)is returned on  success.  A negated errno value is returned
+ *   Zero (OK) is returned on success.  A negated errno value is returned
  *   on any failure.
  *
  ****************************************************************************/
 
-int syslog_channel(FAR const struct syslog_channel_s *channel);
+int syslog_channel(FAR struct syslog_channel_s *channel);
+
+/****************************************************************************
+ * Name: syslog_channel_remove
+ *
+ * Description:
+ *   Removes an already configured SYSLOG channel from the list of used
+ *   channels.
+ *
+ * Input Parameters:
+ *   channel - Provides the interface to the channel to be removed.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success.  A negated errno value is returned
+ *   on any failure.
+ *
+ ****************************************************************************/
+
+int syslog_channel_remove(FAR struct syslog_channel_s *channel);
 
 /****************************************************************************
  * Name: syslog_initialize
@@ -181,7 +218,7 @@ int syslog_channel(FAR const struct syslog_channel_s *channel);
  *   as a minimum a call to syslog_channel() to use the device.
  *
  * Input Parameters:
- *   phase - One of {SYSLOG_INIT_EARLY, SYSLOG_INIT_LATE}
+ *   None
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -190,9 +227,9 @@ int syslog_channel(FAR const struct syslog_channel_s *channel);
  ****************************************************************************/
 
 #ifndef CONFIG_ARCH_SYSLOG
-int syslog_initialize(enum syslog_init_e phase);
+int syslog_initialize(void);
 #else
-#  define syslog_initialize(phase)
+#  define syslog_initialize()
 #endif
 
 /****************************************************************************
@@ -226,14 +263,73 @@ int syslog_initialize(enum syslog_init_e phase);
  *     file.
  *
  * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure.
+ *   A pointer to the new SYSLOG channel; NULL is returned on any failure.
  *
  ****************************************************************************/
 
 #ifdef CONFIG_SYSLOG_FILE
-int syslog_file_channel(FAR const char *devpath);
+FAR struct syslog_channel_s *syslog_file_channel(FAR const char *devpath);
 #endif
+
+/****************************************************************************
+ * Name: syslog_stream_channel
+ *
+ * Description:
+ *   Initialize to use the device stream as the SYSLOG sink.
+ *
+ *   On power up, the SYSLOG facility is non-existent or limited to very
+ *   low-level output.  This function may be called later in the
+ *   initialization sequence after full driver support has been initialized.
+ *   (via syslog_initialize())  It installs the configured SYSLOG drivers
+ *   and enables full SYSLOGing capability.
+ *
+ * Input Parameters:
+ *   stream - The stream device to be used.
+ *
+ * Returned Value:
+ *   Returns a newly created SYSLOG channel, or NULL in case of any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SYSLOG_STREAM
+FAR struct syslog_channel_s *
+syslog_stream_channel(FAR struct lib_outstream_s *stream);
+#endif
+
+/****************************************************************************
+ * Name: syslog_putc
+ *
+ * Description:
+ *   This is the low-level, single character, system logging interface.
+ *
+ * Input Parameters:
+ *   ch - The character to add to the SYSLOG (must be positive).
+ *
+ * Returned Value:
+ *   On success, the character is echoed back to the caller.  A negated
+ *   errno value is returned on any failure.
+ *
+ ****************************************************************************/
+
+int syslog_putc(int ch);
+
+/****************************************************************************
+ * Name: syslog_write
+ *
+ * Description:
+ *   This is the low-level, multiple character, system logging interface.
+ *
+ * Input Parameters:
+ *   buffer - The buffer containing the data to be output
+ *   buflen - The number of bytes in the buffer
+ *
+ * Returned Value:
+ *   On success, the number of characters written is returned.  A negated
+ *   errno value is returned on any failure.
+ *
+ ****************************************************************************/
+
+ssize_t syslog_write(FAR const char *buffer, size_t buflen);
 
 /****************************************************************************
  * Name: syslog_flush

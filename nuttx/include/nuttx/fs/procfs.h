@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/nuttx/fs/procfs.h
  *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
- *   Author: Ken Pettit <pettitkd@gmail.com>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -46,6 +31,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Data entry declaration prototypes ****************************************/
 
 /* Procfs operations are a subset of the mountpt_operations */
@@ -61,14 +47,18 @@ struct procfs_operations
   int     (*open)(FAR struct file *filep, FAR const char *relpath,
                   int oflags, mode_t mode);
 
-  /* The following methods must be identical in signature and position because
-   * the struct file_operations and struct mountp_operations are treated like
-   * unions.
+  /* The following methods must be identical in signature and position
+   * because the struct file_operations and struct mountpt_operations are
+   * treated like unions.
    */
 
   int     (*close)(FAR struct file *filep);
-  ssize_t (*read)(FAR struct file *filep, FAR char *buffer, size_t buflen);
-  ssize_t (*write)(FAR struct file *filep, FAR const char *buffer, size_t buflen);
+  ssize_t (*read)(FAR struct file *filep,
+                  FAR char *buffer,
+                  size_t buflen);
+  ssize_t (*write)(FAR struct file *filep,
+                   FAR const char *buffer,
+                   size_t buflen);
 
   /* The two structures need not be common after this point. The following
    * are extended methods needed to deal with the unique needs of mounted
@@ -77,13 +67,15 @@ struct procfs_operations
    * Additional open-file-specific procfs operations:
    */
 
-  int     (*dup)(FAR const struct file *oldp, FAR struct file *newp);
+  int     (*dup)(FAR const struct file *oldp,
+                 FAR struct file *newp);
 
   /* Directory operations */
 
-  int     (*opendir)(FAR const char *relpath, FAR struct fs_dirent_s *dir);
+  int     (*opendir)(FAR const char *relpath,
+                     FAR struct fs_dirent_s **dir);
   int     (*closedir)(FAR struct fs_dirent_s *dir);
-  int     (*readdir)(FAR struct fs_dirent_s *dir);
+  int     (*readdir)(FAR struct fs_dirent_s *dir, FAR struct dirent *entry);
   int     (*rewinddir)(FAR struct fs_dirent_s *dir);
 
   /* Operations on paths */
@@ -127,10 +119,29 @@ struct procfs_file_s
 
 struct procfs_dir_priv_s
 {
+  struct fs_dirent_s dir;                       /* VFS directory structure */
   uint8_t level;                                /* Directory level.  Currently 0 or 1 */
   uint16_t index;                               /* Index to the next directory entry */
   uint16_t nentries;                            /* Number of directory entries */
   FAR const struct procfs_entry_s *procfsentry; /* Pointer to procfs handler entry */
+};
+
+/* An entry for procfs_register_meminfo */
+
+struct mm_heap_s;
+struct procfs_meminfo_entry_s
+{
+  FAR const char *name;
+  FAR struct mm_heap_s *heap;
+  struct procfs_meminfo_entry_s *next;
+#if CONFIG_MM_BACKTRACE >= 0
+
+  /* This is dynamic control flag whether to turn on backtrace in the heap,
+   * you can set it by /proc/memdump.
+   */
+
+  bool backtrace;
+#endif
 };
 
 /****************************************************************************
@@ -161,9 +172,10 @@ extern "C"
  *
  *   procfs_memcpy() is a helper function.  Each read() method should
  *   provide data in a local data buffer ('src' and 'srclen').  This
- *   will transfer the data to the user receive buffer ('dest' and 'destlen'),
- *   respecting both (1) the size of the destination buffer so that it will
- *   write beyond the user receiver and (1) the file position, 'offset'.
+ *   will transfer the data to the user receive buffer ('dest' and
+ *   'destlen'), respecting both (1) the size of the destination buffer so
+ *   that it will write beyond the user receiver and (1) the file position,
+ *   'offset'.
  *
  *   This function will skip over data until the under of bytes specified
  *   by 'offset' have been skipped.  Then it will transfer data from the
@@ -191,6 +203,47 @@ size_t procfs_memcpy(FAR const char *src, size_t srclen,
                      off_t *offset);
 
 /****************************************************************************
+ * Name: procfs_snprintf
+ *
+ * Description:
+ *   This function is same with snprintf, except return values.
+ *   If buf has no enough space and output was truncated due to size limit,
+ *   snprintf:        return formatted string len.
+ *   procfs_snprintf: return string len which has written to buf.
+ *
+ * Input Parameters:
+ *   Same with snprintf
+ *
+ * Returned Value:
+ *   See Description.
+ *
+ ****************************************************************************/
+
+int procfs_snprintf(FAR char *buf, size_t size,
+                    FAR const IPTR char *format, ...) printf_like(3, 4);
+
+/****************************************************************************
+ * Name: procfs_sprintf
+ *
+ * Description:
+ *   This function used to continous format string and copy it to buffer.
+ *   Every single string length must be smaller then LINEBUF_SIZE.
+ *
+ * Input Parameters:
+ *   buf          - The address of the user's receive buffer.
+ *   size         - The size (in bytes) of the user's receive buffer.
+ *   offset       - On input, when *offset is larger the 0 , this is the
+ *                  number of bytes to skip before returning data; If bytes
+ *                  were skipped, this *offset will be decremented. when it
+ *                  decrements to a negative value, -*offset is the number of
+ *                  data copied to buffer.
+ *
+ ****************************************************************************/
+
+void procfs_sprintf(FAR char *buf, size_t size, FAR off_t *offset,
+                    FAR const IPTR char *format, ...) printf_like(4, 5);
+
+/****************************************************************************
  * Name: procfs_register
  *
  * Description:
@@ -211,6 +264,32 @@ size_t procfs_memcpy(FAR const char *src, size_t srclen,
 #ifdef CONFIG_FS_PROCFS_REGISTER
 int procfs_register(FAR const struct procfs_entry_s *entry);
 #endif
+
+/****************************************************************************
+ * Name: procfs_register_meminfo
+ *
+ * Description:
+ *   Add a new meminfo entry to the procfs file system.
+ *
+ * Input Parameters:
+ *   entry - Describes the entry to be registered.
+ *
+ ****************************************************************************/
+
+void procfs_register_meminfo(FAR struct procfs_meminfo_entry_s *entry);
+
+/****************************************************************************
+ * Name: procfs_unregister_meminfo
+ *
+ * Description:
+ *   Remove a meminfo entry from the procfs file system.
+ *
+ * Input Parameters:
+ *   entry - Describes the entry to be unregistered.
+ *
+ ****************************************************************************/
+
+void procfs_unregister_meminfo(FAR struct procfs_meminfo_entry_s *entry);
 
 #undef EXTERN
 #ifdef __cplusplus

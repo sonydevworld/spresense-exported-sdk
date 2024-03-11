@@ -6,7 +6,8 @@
  *   Copyright (C) 2007, 2009, 2011-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Derived largely from portions of uIP with has a similar BSD-styple license:
+ * Derived largely from portions of uIP with has a similar BSD-styple
+ * license:
  *
  *   Copyright (c) 2001-2003, Adam Dunkels.
  *   All rights reserved.
@@ -52,16 +53,17 @@
 #include <sys/ioctl.h>
 #include <stdint.h>
 
-#ifdef CONFIG_NET_MCASTGROUP
-#  include <queue.h>
-#endif
+#include <nuttx/queue.h>
 
 #include <net/if.h>
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 
+#include <nuttx/mm/iob.h>
 #include <nuttx/net/netconfig.h>
+#include <nuttx/net/net.h>
 #include <nuttx/net/ip.h>
+#include <nuttx/nuttx.h>
 
 #ifdef CONFIG_NET_IGMP
 #  include <nuttx/net/igmp.h>
@@ -155,6 +157,17 @@
 #  define NETDEV_ERRORS(dev)
 #endif
 
+/* There are some helper pointers for accessing the contents of the IP
+ * headers
+ */
+
+#define IPBUF(hl) ((FAR void *)(IOB_DATA(dev->d_iob) + (hl)))
+#define NETLLBUF  ((FAR void *) \
+                   ((FAR uint8_t *)IPBUF(0) - NET_LL_HDRLEN(dev)))
+
+#define IPv4BUF ((FAR struct ipv4_hdr_s *)IPBUF(0))
+#define IPv6BUF ((FAR struct ipv6_hdr_s *)IPBUF(0))
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -192,7 +205,7 @@ struct netdev_statistics_s
 
   /* Other status */
 
-  uint32_t errors;         /* Total umber of errors */
+  uint32_t errors;         /* Total number of errors */
 };
 #endif
 
@@ -218,8 +231,8 @@ struct netdev_varaddr_s
 #endif
 
 /* This structure collects information that is specific to a specific network
- * interface driver.  If the hardware platform supports only a single instance
- * of this structure.
+ * interface driver.  If the hardware platform supports only a single
+ * instance of this structure.
  */
 
 struct devif_callback_s; /* Forward reference */
@@ -233,7 +246,8 @@ struct net_driver_s
 #ifdef CONFIG_NET
   FAR struct net_driver_s *flink;
 
-  /* This is the name of network device assigned when netdev_register was called.
+  /* This is the name of network device assigned when netdev_register was
+   * called.
    * This name is only used to support socket ioctl lookups by device name
    * Examples: "eth0"
    */
@@ -243,9 +257,11 @@ struct net_driver_s
 
   /* Drivers interface flags.  See IFF_* definitions in include/net/if.h */
 
-  uint8_t d_flags;
+  uint32_t d_flags;
 
-  /* Multi network devices using multiple link layer protocols are supported */
+  /* Multi network devices using multiple link layer protocols are
+   * supported
+   */
 
   uint8_t d_lltype;             /* See enum net_lltype_e */
   uint8_t d_llhdrlen;           /* Link layer header size */
@@ -257,21 +273,25 @@ struct net_driver_s
 
   /* Link layer address */
 
+#if defined(CONFIG_NET_ETHERNET) || defined(CONFIG_NET_6LOWPAN) || \
+    defined(CONFIG_NET_BLUETOOTH) || defined(CONFIG_NET_IEEE802154) || \
+    defined(CONFIG_NET_TUN)
   union
   {
-#ifdef CONFIG_NET_ETHERNET
+#  if defined(CONFIG_NET_ETHERNET) || defined(CONFIG_NET_TUN)
     /* Ethernet device identity */
 
     struct ether_addr ether;    /* Device Ethernet MAC address */
-#endif
+#  endif
 
-#if defined(CONFIG_NET_6LOWPAN) || defined(CONFIG_NET_BLUETOOTH) || \
-    defined(CONFIG_NET_IEEE802154)
+#  if defined(CONFIG_NET_6LOWPAN) || defined(CONFIG_NET_BLUETOOTH) || \
+      defined(CONFIG_NET_IEEE802154)
   /* The address assigned to an IEEE 802.15.4 or generic packet radio. */
 
     struct netdev_varaddr_s radio;
-#endif
+#  endif
   } d_mac;
+#endif
 
   /* Network identity */
 
@@ -285,6 +305,26 @@ struct net_driver_s
   net_ipv6addr_t d_ipv6addr;    /* Host IPv6 address assigned to the network interface */
   net_ipv6addr_t d_ipv6draddr;  /* Default router IPv6 address */
   net_ipv6addr_t d_ipv6netmask; /* Network IPv6 subnet mask */
+#endif
+  /* This is a new design that uses d_iob as packets input and output
+   * buffer which used by some NICs such as celluler net driver. Case for
+   * data input, note that d_iob maybe a linked chain only when using
+   * d_iob to store reassembled datagrams, otherwise d_iob uses only
+   * one buffer to hold the entire frame data. Case for data output, note
+   * that d_iob also maybe a linked chain only when using d_iob to
+   * store fragmented datagrams, otherwise d_iob uses only one buffer
+   * to hold the entire frame data.
+   *
+   * In all cases mentioned above, d_buf always points to the beginning
+   * of the first buffer of d_iob.
+   */
+
+  FAR struct iob_s *d_iob;
+
+  /* Remember the outgoing fragments waiting to be sent */
+
+#ifdef CONFIG_NET_IPFRAG
+  FAR struct iob_queue_s d_fragout;
 #endif
 
   /* The d_buf array is used to hold incoming and outgoing packets. The
@@ -308,14 +348,14 @@ struct net_driver_s
    * or written to in the packet buffer.
    */
 
-  uint8_t *d_appdata;
+  FAR uint8_t *d_appdata;
 
 #ifdef CONFIG_NET_TCPURGDATA
   /* This pointer points to any urgent TCP data that has been received. Only
-   * present if compiled with support for urgent data (CONFIG_NET_TCPURGDATA).
+   * present if compiled with support for urgent data(CONFIG_NET_TCPURGDATA).
    */
 
-  uint8_t *d_urgdata;
+  FAR uint8_t *d_urgdata;
 
   /* Length of the (received) urgent data */
 
@@ -337,8 +377,8 @@ struct net_driver_s
 
   uint16_t d_len;
 
-  /* When d_buf contains outgoing xmit data, d_sndlen is non-zero and represents
-   * the amount of application data after d_appdata
+  /* When d_buf contains outgoing xmit data, d_sndlen is non-zero and
+   * represents the amount of application data after d_appdata
    */
 
   uint16_t d_sndlen;
@@ -372,7 +412,6 @@ struct net_driver_s
    *      socket-less packet transfers.  There events include:
    *
    *        ICMP data receipt:     ICMP_NEWDATA, ICMPv6_NEWDATA
-   *        ICMP ECHO replies:     ICMP_ECHOREPLY, ICMPv6_ECHOREPLY
    *        Driver Tx poll events: ARP_POLL, ICMP_POLL. ICMPv6_POLL
    *        IP Forwarding:         IPFWD_POLL
    *
@@ -382,7 +421,8 @@ struct net_driver_s
    *        NETDEV_DOWN - The network is down
    */
 
-  FAR struct devif_callback_s *d_conncb;
+  FAR struct devif_callback_s *d_conncb;      /* This is the list head */
+  FAR struct devif_callback_s *d_conncb_tail; /* This is the list tail */
   FAR struct devif_callback_s *d_devcb;
 
   /* Driver callbacks */
@@ -401,14 +441,10 @@ struct net_driver_s
 
   /* Drivers may attached device-specific, private information */
 
-  void *d_private;
+  FAR void *d_private;
 };
 
 typedef CODE int (*devif_poll_callback_t)(FAR struct net_driver_s *dev);
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
 
 /****************************************************************************
  * Public Function Prototypes
@@ -450,11 +486,10 @@ typedef CODE int (*devif_poll_callback_t)(FAR struct net_driver_s *dev);
  * Ethernet, you will need to call the network ARP code before calling
  * this function:
  *
- *     #define BUF ((struct eth_hdr_s *)&dev->d_buf[0])
  *     dev->d_len = ethernet_devicedrver_poll();
  *     if (dev->d_len > 0)
  *       {
- *         if (BUF->type == HTONS(ETHTYPE_IP))
+ *         if (ETHBUF->type == HTONS(ETHTYPE_IP))
  *           {
  *             arp_ipin();
  *             ipv4_input(dev);
@@ -464,9 +499,9 @@ typedef CODE int (*devif_poll_callback_t)(FAR struct net_driver_s *dev);
  *                 devicedriver_send();
  *               }
  *           }
- *         else if (BUF->type == HTONS(ETHTYPE_ARP))
+ *         else if (ETHBUF->type == HTONS(ETHTYPE_ARP))
  *           {
- *             arp_arpin();
+ *             arp_input();
  *             if (dev->d_len > 0)
  *               {
  *                 devicedriver_send();
@@ -491,14 +526,48 @@ int sixlowpan_input(FAR struct radio_driver_s *ieee,
                     FAR struct iob_s *framelist, FAR const void *metadata);
 #endif
 
+#ifdef CONFIG_NET_ARP
+
+/****************************************************************************
+ * Name: arp_input
+ *
+ * Description:
+ *   This function should be called by the Ethernet device driver when an ARP
+ *   packet has been received.   The function will act differently
+ *   depending on the ARP packet type: if it is a reply for a request
+ *   that we previously sent out, the ARP cache will be filled in with
+ *   the values from the ARP reply.  If the incoming ARP packet is an ARP
+ *   request for our IP address, an ARP reply packet is created and put
+ *   into the d_buf buffer.
+ *
+ *   On entry, this function expects that an ARP packet with a prepended
+ *   Ethernet header is present in the d_buf buffer and that the length of
+ *   the packet is set in the d_len field.
+ *
+ *   When the function returns, the value of the field d_len indicates
+ *   whether the device driver should send out the ARP reply packet or not.
+ *   If d_len is zero, no packet should be sent; If d_len is non-zero, it
+ *   contains the length of the outbound packet that is present in the d_buf
+ *   buffer.
+ *
+ ****************************************************************************/
+
+void arp_input(FAR struct net_driver_s *dev);
+
+#else /* CONFIG_NET_ARP */
+
+/* If ARP is disabled, stub out all ARP interfaces */
+
+#  define arp_input(dev)
+
+#endif /* CONFIG_NET_ARP */
+
 /****************************************************************************
  * Polling of connections
  *
  * These functions will traverse each active network connection structure
- * and perform appropriate operations:  devif_timer() will perform TCP timer
- * operations (and UDP polling operations); devif_poll() will perform TCP
- * and UDP polling operations. The CAN driver MUST implement logic to
- * periodically call devif_timer(); devif_poll() may be called asynchronously
+ * and perform appropriate operations:  devif_poll() will perform TCP
+ * and UDP polling operations. devif_poll() may be called asynchronously
  * from the network driver can accept another outgoing packet.
  *
  * In both cases, these functions will call the provided callback function
@@ -542,11 +611,22 @@ int sixlowpan_input(FAR struct radio_driver_s *ieee,
  *     return 0;
  *   }
  *
+ *   Compatible with all old flat buffer NICs
+ *
+ *                 tcp_poll()/udp_poll()/pkt_poll()/...(l3/l4)
+ *                            /              \
+ *                           /                \
+ * devif_poll_[l3/l4]_connections()     devif_iob_send() (nocopy:udp/icmp/..)
+ *            /                                   \      (copy:tcp)
+ *           /                                     \
+ *   devif_iob_poll(devif_poll_callback())  devif_poll_callback()
+ *        /                                           \
+ *       /                                             \
+ *  devif_poll("NIC"_txpoll)                     "NIC"_send()(dev->d_buf)
+ *
  ****************************************************************************/
 
 int devif_poll(FAR struct net_driver_s *dev, devif_poll_callback_t callback);
-int devif_timer(FAR struct net_driver_s *dev, int delay,
-                devif_poll_callback_t callback);
 
 /****************************************************************************
  * Name: neighbor_out
@@ -579,27 +659,21 @@ void neighbor_out(FAR struct net_driver_s *dev);
 #endif /* CONFIG_NET_IPv6 */
 
 /****************************************************************************
- * Name: devif_loopback
+ * Name: netdev_ifup / netdev_ifdown
  *
  * Description:
- *   This function should be called before sending out a packet. The function
- *   checks the destination address of the packet to see whether the target of
- *   packet is ourself and then consume the packet directly by calling input
- *   process functions.
- *
- * Returned Value:
- *   Zero is returned if the packet don't loop back to ourself, otherwise
- *   a no zero value is returned.
+ *   Bring the interface up/down
  *
  ****************************************************************************/
 
-int devif_loopback(FAR struct net_driver_s *dev);
+int netdev_ifup(FAR struct net_driver_s *dev);
+int netdev_ifdown(FAR struct net_driver_s *dev);
 
 /****************************************************************************
  * Carrier detection
  *
- * Call netdev_carrier_on when the carrier has become available and the device
- * is ready to receive/transmit packets.
+ * Call netdev_carrier_on when the carrier has become available and the
+ * device is ready to receive/transmit packets.
  *
  * Call detdev_carrier_off when the carrier disappeared and the device has
  * moved into non operational state.
@@ -610,23 +684,45 @@ int netdev_carrier_on(FAR struct net_driver_s *dev);
 int netdev_carrier_off(FAR struct net_driver_s *dev);
 
 /****************************************************************************
- * Name: net_ioctl_arglen
+ * Name: chksum
  *
  * Description:
- *   Calculate the ioctl argument buffer length.
+ *   Calculate the raw change sum over the memory region described by
+ *   data and len.
  *
  * Input Parameters:
- *
- *   cmd      The ioctl command
+ *   sum  - Partial calculations carried over from a previous call to
+ *          chksum().  This should be zero on the first time that check
+ *          sum is called.
+ *   data - Beginning of the data to include in the checksum.
+ *   len  - Length of the data to include in the checksum.
  *
  * Returned Value:
- *   The argument buffer length, or error code.
+ *   The updated checksum value.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_USRSOCK
-ssize_t net_ioctl_arglen(int cmd);
-#endif
+uint16_t chksum(uint16_t sum, FAR const uint8_t *data, uint16_t len);
+
+/****************************************************************************
+ * Name: chksum_iob
+ *
+ * Description:
+ *   Calculate the Internet checksum over an iob chain buffer.
+ *
+ * Input Parameters:
+ *   sum    - Partial calculations carried over from a previous call to
+ *            chksum().  This should be zero on the first time that check
+ *            sum is called.
+ *   iob    - An iob chain buffer over which the checksum is to be computed.
+ *   offset - Specifies the byte offset of the start of valid data.
+ *
+ * Returned Value:
+ *   The updated checksum value.
+ *
+ ****************************************************************************/
+
+uint16_t chksum_iob(uint16_t sum, FAR struct iob_s *iob, uint16_t offset);
 
 /****************************************************************************
  * Name: net_chksum
@@ -646,7 +742,8 @@ ssize_t net_ioctl_arglen(int cmd);
  *
  *   buf - A pointer to the buffer over which the checksum is to be computed.
  *
- *   len - The length of the buffer over which the checksum is to be computed.
+ *   len - The length of the buffer over which the checksum is to be
+ *         computed.
  *
  * Returned Value:
  *   The Internet checksum of the buffer.
@@ -654,6 +751,102 @@ ssize_t net_ioctl_arglen(int cmd);
  ****************************************************************************/
 
 uint16_t net_chksum(FAR uint16_t *data, uint16_t len);
+
+/****************************************************************************
+ * Name: net_chksum_iob
+ *
+ * Description:
+ *   Calculate the Internet checksum over an iob chain buffer.
+ *
+ *   The Internet checksum is the one's complement of the one's complement
+ *   sum of all 16-bit words in the buffer.
+ *
+ *   See RFC1071.
+ *
+ *   If CONFIG_NET_ARCH_CHKSUM is defined, then this function must be
+ *   provided by architecture-specific logic.
+ *
+ * Input Parameters:
+ *   sum    - Partial calculations carried over from a previous call to
+ *            chksum().  This should be zero on the first time that check
+ *            sum is called.
+ *   iob    - An iob chain buffer over which the checksum is to be computed.
+ *   offset - Specifies the byte offset of the start of valid data.
+ *
+ * Returned Value:
+ *   The Internet checksum of the given iob chain buffer.
+ *
+ ****************************************************************************/
+
+uint16_t net_chksum_iob(uint16_t sum, FAR struct iob_s *iob,
+                        uint16_t offset);
+
+/****************************************************************************
+ * Name: ipv4_upperlayer_chksum
+ *
+ * Description:
+ *   Perform the checksum calculation over the IPv4, protocol headers, and
+ *   data payload as necessary.
+ *
+ * Input Parameters:
+ *   dev   - The network driver instance.  The packet data is in the d_buf
+ *           of the device.
+ *   proto - The protocol being supported
+ *
+ * Returned Value:
+ *   The calculated checksum
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_IPv4
+uint16_t ipv4_upperlayer_chksum(FAR struct net_driver_s *dev, uint8_t proto);
+#endif /* CONFIG_NET_IPv4 */
+
+/****************************************************************************
+ * Name: ipv6_upperlayer_chksum
+ *
+ * Description:
+ *   Perform the checksum calculation over the IPv6, protocol headers, and
+ *   data payload as necessary.
+ *
+ * Input Parameters:
+ *   dev   - The network driver instance.  The packet data is in the d_buf
+ *           of the device.
+ *   proto - The protocol being supported
+ *   iplen - The size of the IPv6 header.  This may be larger than
+ *           IPv6_HDRLEN the IPv6 header if IPv6 extension headers are
+ *           present.
+ *
+ * Returned Value:
+ *   The calculated checksum
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_IPv6
+uint16_t ipv6_upperlayer_chksum(FAR struct net_driver_s *dev,
+                                uint8_t proto, unsigned int iplen);
+#endif /* CONFIG_NET_IPv6 */
+
+/****************************************************************************
+ * Name: ipv4_chksum
+ *
+ * Description:
+ *   Calculate the IPv4 header checksum of the packet header in d_buf.
+ *
+ *   The IPv4 header checksum is the Internet checksum of the 20 bytes of
+ *   the IPv4 header.
+ *
+ *   If CONFIG_NET_ARCH_CHKSUM is defined, then this function must be
+ *   provided by architecture-specific logic.
+ *
+ * Returned Value:
+ *   The IPv4 header checksum of the IPv4 header in the d_buf buffer.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_IPv4
+uint16_t ipv4_chksum(FAR struct ipv4_hdr_s *ipv4);
+#endif /* CONFIG_NET_IPv4 */
 
 /****************************************************************************
  * Name: net_incr32
@@ -675,48 +868,6 @@ uint16_t net_chksum(FAR uint16_t *data, uint16_t len);
  ****************************************************************************/
 
 void net_incr32(FAR uint8_t *op32, uint16_t op16);
-
-/****************************************************************************
- * Name: ipv4_chksum
- *
- * Description:
- *   Calculate the IPv4 header checksum of the packet header in d_buf.
- *
- *   The IPv4 header checksum is the Internet checksum of the 20 bytes of
- *   the IPv4 header.
- *
- *   If CONFIG_NET_ARCH_CHKSUM is defined, then this function must be
- *   provided by architecture-specific logic.
- *
- * Returned Value:
- *   The IPv4 header checksum of the IPv4 header in the d_buf buffer.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_IPv4
-uint16_t ipv4_chksum(FAR struct net_driver_s *dev);
-#endif
-
-/****************************************************************************
- * Name: ipv6_chksum
- *
- * Description:
- *   Calculate the IPv6 header checksum of the packet header in d_buf.
- *
- *   The IPv6 header checksum is the Internet checksum of the 40 bytes of
- *   the IPv6 header.
- *
- *   If CONFIG_NET_ARCH_CHKSUM is defined, then this function must be
- *   provided by architecture-specific logic.
- *
- * Returned Value:
- *   The IPv6 header checksum of the IPv6 header in the d_buf buffer.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_IPv6
-uint16_t ipv6_chksum(FAR struct net_driver_s *dev);
-#endif
 
 /****************************************************************************
  * Name: netdev_ipv4_hdrlen
@@ -763,5 +914,69 @@ uint16_t ipv6_chksum(FAR struct net_driver_s *dev);
  ****************************************************************************/
 
 int netdev_lladdrsize(FAR struct net_driver_s *dev);
+
+/****************************************************************************
+ * Name: netdev_iob_prepare
+ *
+ * Description:
+ *   Prepare data buffer for a given NIC
+ *   The iob offset will be updated to l2 gruard size by default:
+ *  ----------------------------------------------------------------
+ *  |                     iob entry                                |
+ *  ---------------------------------------------------------------|
+ *  |<--- CONFIG_NET_LL_GUARDSIZE -->|<--- io_len/io_pktlen(0) --->|
+ *  ---------------------------------------------------------------|
+ *
+ * Assumptions:
+ *   The caller has locked the network.
+ *
+ * Returned Value:
+ *   A non-zero copy is returned on success.
+ *
+ ****************************************************************************/
+
+int netdev_iob_prepare(FAR struct net_driver_s *dev, bool throttled,
+                       unsigned int timeout);
+
+/****************************************************************************
+ * Name: netdev_iob_replace
+ *
+ * Description:
+ *   Replace buffer resources for a given NIC
+ *
+ * Assumptions:
+ *   The caller has locked the network and new iob is prepared with
+ *   l2 gruard size as offset.
+ *
+ ****************************************************************************/
+
+void netdev_iob_replace(FAR struct net_driver_s *dev, FAR struct iob_s *iob);
+
+/****************************************************************************
+ * Name: netdev_iob_clear
+ *
+ * Description:
+ *   Clean up buffer resources for a given NIC
+ *
+ * Assumptions:
+ *   The caller has locked the network and dev->d_iob has been
+ *   released or taken away.
+ *
+ ****************************************************************************/
+
+void netdev_iob_clear(FAR struct net_driver_s *dev);
+
+/****************************************************************************
+ * Name: netdev_iob_release
+ *
+ * Description:
+ *   Release buffer resources for a given NIC
+ *
+ * Assumptions:
+ *   The caller has locked the network.
+ *
+ ****************************************************************************/
+
+void netdev_iob_release(FAR struct net_driver_s *dev);
 
 #endif /* __INCLUDE_NUTTX_NET_NETDEV_H */

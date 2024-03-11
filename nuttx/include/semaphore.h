@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/semaphore.h
  *
- *   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -44,19 +29,25 @@
 
 #include <stdint.h>
 #include <limits.h>
+#include <time.h>
+#include <nuttx/queue.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Values for protocol attribute */
+
+#define SEM_PRIO_NONE             0
+#define SEM_PRIO_INHERIT          1
+#define SEM_PRIO_PROTECT          2
+#define SEM_PRIO_MASK             3
+
+#define SEM_TYPE_MUTEX            4
+
 /* Value returned by sem_open() in the event of a failure. */
 
-#define SEM_FAILED ((FAR sem_t *)NULL)
-
-/* Bit definitions for the struct sem_s flags field */
-
-#define PRIOINHERIT_FLAGS_DISABLE (1 << 0)  /* Bit 0: Priority inheritance
-                                             * is disabled for this semaphore. */
+#define SEM_FAILED                NULL
 
 /****************************************************************************
  * Public Type Declarations
@@ -66,21 +57,42 @@
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
 struct tcb_s; /* Forward reference */
+struct sem_s;
+
 struct semholder_s
 {
 #if CONFIG_SEM_PREALLOCHOLDERS > 0
-  struct semholder_s *flink;     /* Implements singly linked list */
+  FAR struct semholder_s *flink;  /* List of semaphore's holder            */
 #endif
-  FAR struct tcb_s *htcb;        /* Holder TCB */
-  int16_t counts;                /* Number of counts owned by this holder */
+  FAR struct semholder_s *tlink;  /* List of task held semaphores          */
+  FAR struct sem_s *sem;          /* Ths corresponding semaphore           */
+  FAR struct tcb_s *htcb;         /* Ths corresponding TCB                 */
+  int16_t counts;                 /* Number of counts owned by this holder */
 };
 
 #if CONFIG_SEM_PREALLOCHOLDERS > 0
-#  define SEMHOLDER_INITIALIZER {NULL, NULL, 0}
+#  define SEMHOLDER_INITIALIZER   {NULL, NULL, NULL, NULL, 0}
+#  define INITIALIZE_SEMHOLDER(h) \
+    do { \
+      (h)->flink  = NULL; \
+      (h)->tlink  = NULL; \
+      (h)->sem    = NULL; \
+      (h)->htcb   = NULL; \
+      (h)->counts = 0; \
+    } while (0)
 #else
-#  define SEMHOLDER_INITIALIZER {NULL, 0}
+#  define SEMHOLDER_INITIALIZER   {NULL, NULL, NULL, 0}
+#  define INITIALIZE_SEMHOLDER(h) \
+    do { \
+      (h)->tlink  = NULL; \
+      (h)->sem    = NULL; \
+      (h)->htcb   = NULL; \
+      (h)->counts = 0; \
+    } while (0)
 #endif
 #endif /* CONFIG_PRIORITY_INHERITANCE */
+
+#define SEM_WAITLIST_INITIALIZER {NULL, NULL}
 
 /* This is the generic semaphore structure. */
 
@@ -88,17 +100,21 @@ struct sem_s
 {
   volatile int16_t semcount;     /* >0 -> Num counts available */
                                  /* <0 -> Num tasks waiting for semaphore */
+
   /* If priority inheritance is enabled, then we have to keep track of which
    * tasks hold references to the semaphore.
    */
 
+  uint8_t flags;                 /* See SEM_PRIO_* definitions */
+
+  dq_queue_t waitlist;
+
 #ifdef CONFIG_PRIORITY_INHERITANCE
-  uint8_t flags;                 /* See PRIOINHERIT_FLAGS_* definitions */
-# if CONFIG_SEM_PREALLOCHOLDERS > 0
+#  if CONFIG_SEM_PREALLOCHOLDERS > 0
   FAR struct semholder_s *hhead; /* List of holders of semaphore counts */
-# else
-  struct semholder_s holder[2];  /* Slot for old and new holder */
-# endif
+#  else
+  struct semholder_s holder;     /* Slot for old and new holder */
+#  endif
 #endif
 };
 
@@ -107,17 +123,25 @@ typedef struct sem_s sem_t;
 /* Initializers */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
-# if CONFIG_SEM_PREALLOCHOLDERS > 0
-#  define SEM_INITIALIZER(c) \
-    {(c), 0, NULL}               /* semcount, flags, hhead */
-# else
-#  define SEM_INITIALIZER(c) \
-    {(c), 0, {SEMHOLDER_INITIALIZER, SEMHOLDER_INITIALIZER}} /* semcount, flags, holder[2] */
-# endif
+#  if CONFIG_SEM_PREALLOCHOLDERS > 0
+/* semcount, flags, waitlist, hhead */
+
+#    define SEM_INITIALIZER(c) \
+       {(c), 0, SEM_WAITLIST_INITIALIZER, NULL}
+#  else
+/* semcount, flags, waitlist, holder[2] */
+
+#    define SEM_INITIALIZER(c) \
+       {(c), 0, SEM_WAITLIST_INITIALIZER, SEMHOLDER_INITIALIZER}
+#  endif
 #else
+/* semcount, flags, waitlist */
+
 #  define SEM_INITIALIZER(c) \
-    {(c)}                        /* semcount */
+     {(c), 0, SEM_WAITLIST_INITIALIZER}
 #endif
+
+#define SEM_WAITLIST(sem)       (&((sem)->waitlist))
 
 /****************************************************************************
  * Public Data
@@ -134,9 +158,6 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-/* Forward references needed by some prototypes */
-
-struct timespec; /* Defined in time.h */
 
 /* Counting Semaphore Interfaces (based on POSIX APIs) */
 
@@ -144,6 +165,8 @@ int        sem_init(FAR sem_t *sem, int pshared, unsigned int value);
 int        sem_destroy(FAR sem_t *sem);
 int        sem_wait(FAR sem_t *sem);
 int        sem_timedwait(FAR sem_t *sem, FAR const struct timespec *abstime);
+int        sem_clockwait(FAR sem_t *sem, clockid_t clockid,
+                         FAR const struct timespec *abstime);
 int        sem_trywait(FAR sem_t *sem);
 int        sem_post(FAR sem_t *sem);
 int        sem_getvalue(FAR sem_t *sem, FAR int *sval);
@@ -153,6 +176,66 @@ FAR sem_t *sem_open(FAR const char *name, int oflag, ...);
 int        sem_close(FAR sem_t *sem);
 int        sem_unlink(FAR const char *name);
 #endif
+
+/****************************************************************************
+ * Name: sem_setprotocol
+ *
+ * Description:
+ *    Set semaphore protocol attribute.
+ *
+ *    One particularly important use of this function is when a semaphore
+ *    is used for inter-task communication like:
+ *
+ *      TASK A                 TASK B
+ *      sem_init(sem, 0, 0);
+ *      sem_wait(sem);
+ *                             sem_post(sem);
+ *      Awakens as holder
+ *
+ *    In this case priority inheritance can interfere with the operation of
+ *    the semaphore.  The problem is that when TASK A is restarted it is a
+ *    holder of the semaphore.  However, it never calls sem_post(sem) so it
+ *    becomes *permanently* a holder of the semaphore and may have its
+ *    priority boosted when any other task tries to acquire the semaphore.
+ *
+ *    The fix is to call sem_setprotocol(SEM_PRIO_NONE) immediately after
+ *    the sem_init() call so that there will be no priority inheritance
+ *    operations on this semaphore.
+ *
+ * Input Parameters:
+ *    sem      - A pointer to the semaphore whose attributes are to be
+ *               modified
+ *    protocol - The new protocol to use
+ *
+ * Returned Value:
+ *   This function is exposed as a non-standard application interface.  It
+ *   returns zero (OK) if successful.  Otherwise, -1 (ERROR) is returned and
+ *   the errno value is set appropriately.
+ *
+ ****************************************************************************/
+
+int sem_setprotocol(FAR sem_t *sem, int protocol);
+
+/****************************************************************************
+ * Name: sem_getprotocol
+ *
+ * Description:
+ *    Return the value of the semaphore protocol attribute.
+ *
+ * Input Parameters:
+ *    sem      - A pointer to the semaphore whose attributes are to be
+ *               queried.
+ *    protocol - The user provided location in which to store the protocol
+ *               value.
+ *
+ * Returned Value:
+ *   This function is exposed as a non-standard application interface.  It
+ *   returns zero (OK) if successful.  Otherwise, -1 (ERROR) is returned and
+ *   the errno value is set appropriately.
+ *
+ ****************************************************************************/
+
+int sem_getprotocol(FAR sem_t *sem, FAR int *protocol);
 
 #undef EXTERN
 #ifdef __cplusplus

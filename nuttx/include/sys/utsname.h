@@ -46,17 +46,18 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define SYS_NAMELEN      16
-#define VERSION_NAMELEN  41
+#define SYS_NAMELEN      21
+#define VERSION_NAMELEN  51
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* These are the values returned by uname:
  *
  * FIELD       Default
  * sysname     NuttX
- * nodename    CONFIG_LIB_HOSTNAME
+ * nodename    CONFIG_LIBC_HOSTNAME
  * release     From version.h
  * version     From version.h
  * machine     CONFIG_ARCH
@@ -72,9 +73,27 @@ struct utsname
 };
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+/****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 int uname(FAR struct utsname *name);
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __INCLUDE_SYS_UTSNAME_H */

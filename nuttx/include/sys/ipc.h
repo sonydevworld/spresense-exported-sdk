@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/sys/ipc.h
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -50,10 +35,10 @@
 
 /* Mode bits:  The lower order 9-bit bits are the standard mode bits */
 
-#define IPC_MODE    0x01ff     /* Mode bit mask */
-#define IPC_CREAT   (1 << 10)  /* Create entry if key does not exist */
-#define IPC_EXCL    (1 << 11)  /* Fail if key exists */
-#define IPC_NOWAIT  (1 << 12)  /* Error if request must wait */
+#define IPC_MODE   0x01ff /* Mode bit mask */
+#define IPC_CREAT  0x0200 /* Create key if key does not exist. */
+#define IPC_EXCL   0x0400 /* Fail if key exists.  */
+#define IPC_NOWAIT 0x0800 /* Return error on wait.  */
 
 /* Keys: */
 
@@ -103,7 +88,29 @@ struct ipc_perm
  * Public Function Prototypes
  ****************************************************************************/
 
-key_t ftok(FAR const char *path, int id);
+/****************************************************************************
+ * Name: ftok
+ *
+ * Description:
+ *   Convert a pathname and a project identifier to a System V IPC key.
+ *   The ftok() function uses the identity of the file named by the given
+ *   pathname (which must refer to an existing, accessible file) and the
+ *   least significant 8 bits of proj_id (which must be nonzero) to
+ *   generate a key_t type System V IPC key, suitable for use with
+ *   msgget(2), semget(2), or shmget(2).
+ *
+ * Input Parameters:
+ *   pathname - identity of the file name
+ *   proj_id  - The value that uniquely project identifies.
+ *
+ * Returned Value:
+ *   On success, the generated key_t value is returned.
+ *   On failure -1 is returned, with errno indicating the error as for the
+ *   stat(2) system call.
+ *
+ ****************************************************************************/
+
+key_t ftok(FAR const char *pathname, int proj_id);
 
 #undef EXTERN
 #if defined(__cplusplus)

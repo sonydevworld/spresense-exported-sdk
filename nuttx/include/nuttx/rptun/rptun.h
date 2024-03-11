@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/nuttx/rptun/rptun.h
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
- *   Author: Guiding Li<liguiding@pinecone.net>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -47,14 +32,16 @@
 #include <nuttx/fs/ioctl.h>
 #include <openamp/open_amp.h>
 
-#include <string.h>
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 #define RPTUNIOC_START              _RPTUNIOC(1)
 #define RPTUNIOC_STOP               _RPTUNIOC(2)
+#define RPTUNIOC_RESET              _RPTUNIOC(3)
+#define RPTUNIOC_PANIC              _RPTUNIOC(4)
+#define RPTUNIOC_DUMP               _RPTUNIOC(5)
+#define RPTUNIOC_PING               _RPTUNIOC(6)
 
 #define RPTUN_NOTIFY_ALL            (UINT32_MAX - 0)
 
@@ -74,7 +61,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_GET_CPUNAME(d) ((d)->ops->get_cpuname(d))
+#define RPTUN_GET_CPUNAME(d) ((d)->ops->get_cpuname ? \
+                              (d)->ops->get_cpuname(d) : "")
 
 /****************************************************************************
  * Name: RPTUN_GET_FIRMWARE
@@ -90,13 +78,14 @@
  *
  ****************************************************************************/
 
-#define RPTUN_GET_FIRMWARE(d) ((d)->ops->get_firmware(d))
+#define RPTUN_GET_FIRMWARE(d) ((d)->ops->get_firmware ? \
+                               (d)->ops->get_firmware(d) : NULL)
 
 /****************************************************************************
  * Name: RPTUN_GET_ADDRENV
  *
  * Description:
- *   Get adress env list
+ *   Get address env list
  *
  * Input Parameters:
  *   dev  - Device-specific state data
@@ -106,13 +95,14 @@
  *
  ****************************************************************************/
 
-#define RPTUN_GET_ADDRENV(d) ((d)->ops->get_addrenv(d))
+#define RPTUN_GET_ADDRENV(d) ((d)->ops->get_addrenv ? \
+                              (d)->ops->get_addrenv(d) : NULL)
 
 /****************************************************************************
  * Name: RPTUN_GET_RESOURCE
  *
  * Description:
- *   Get rptun resouce
+ *   Get rptun resource
  *
  * Input Parameters:
  *   dev  - Device-specific state data
@@ -122,7 +112,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_GET_RESOURCE(d) ((d)->ops->get_resource(d))
+#define RPTUN_GET_RESOURCE(d) ((d)->ops->get_resource ? \
+                               (d)->ops->get_resource(d) : NULL)
 
 /****************************************************************************
  * Name: RPTUN_IS_AUTOSTART
@@ -138,7 +129,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_IS_AUTOSTART(d) ((d)->ops->is_autostart(d))
+#define RPTUN_IS_AUTOSTART(d) ((d)->ops->is_autostart ? \
+                               (d)->ops->is_autostart(d) : false)
 
 /****************************************************************************
  * Name: RPTUN_IS_MASTER
@@ -154,7 +146,25 @@
  *
  ****************************************************************************/
 
-#define RPTUN_IS_MASTER(d) ((d)->ops->is_master(d))
+#define RPTUN_IS_MASTER(d) ((d)->ops->is_master ? \
+                            (d)->ops->is_master(d) : false)
+
+/****************************************************************************
+ * Name: RPTUN_CONFIG
+ *
+ * Description:
+ *   CONFIG remote cpu
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *   data - Device-specific private data
+ *
+ * Returned Value:
+ *   OK unless an error occurs.  Then a negated errno value is returned
+ *
+ ****************************************************************************/
+#define RPTUN_CONFIG(d, p) ((d)->ops->config ?\
+                            (d)->ops->config(d, p) : 0)
 
 /****************************************************************************
  * Name: RPTUN_START
@@ -170,7 +180,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_START(d) ((d)->ops->start(d))
+#define RPTUN_START(d) ((d)->ops->start ? \
+                        (d)->ops->start(d) : -ENOSYS)
 
 /****************************************************************************
  * Name: RPTUN_STOP
@@ -186,7 +197,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_STOP(d) ((d)->ops->stop(d))
+#define RPTUN_STOP(d) ((d)->ops->stop ? \
+                       (d)->ops->stop(d) : -ENOSYS)
 
 /****************************************************************************
  * Name: RPTUN_NOTIFY
@@ -203,7 +215,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_NOTIFY(d,v) ((d)->ops->notify(d,v))
+#define RPTUN_NOTIFY(d,v) ((d)->ops->notify ? \
+                           (d)->ops->notify(d,v) : -ENOSYS)
 
 /****************************************************************************
  * Name: RPTUN_REGISTER_CALLBACK
@@ -221,7 +234,8 @@
  *
  ****************************************************************************/
 
-#define RPTUN_REGISTER_CALLBACK(d,c,a) ((d)->ops->register_callback(d,c,a))
+#define RPTUN_REGISTER_CALLBACK(d,c,a) ((d)->ops->register_callback ? \
+                                        (d)->ops->register_callback(d,c,a) : -ENOSYS)
 
 /****************************************************************************
  * Name: RPTUN_UNREGISTER_CALLBACK
@@ -237,7 +251,43 @@
  *
  ****************************************************************************/
 
-#define RPTUN_UNREGISTER_CALLBACK(d) ((d)->ops->register_callback(d,NULL,NULL))
+#define RPTUN_UNREGISTER_CALLBACK(d) ((d)->ops->register_callback ? \
+                                      (d)->ops->register_callback(d,NULL,NULL) : -ENOSYS)
+
+/****************************************************************************
+ * Name: RPTUN_RESET
+ *
+ * Description:
+ *   Reset remote cpu
+ *
+ * Input Parameters:
+ *   dev      - Device-specific state data
+ *   value    - reset value
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#define RPTUN_RESET(d,v) ((d)->ops->reset ? \
+                          (d)->ops->reset(d,v) : -ENOSYS)
+
+/****************************************************************************
+ * Name: RPTUN_PANIC
+ *
+ * Description:
+ *   Panic remote cpu
+ *
+ * Input Parameters:
+ *   dev      - Device-specific state data
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#define RPTUN_PANIC(d) ((d)->ops->panic ? \
+                        (d)->ops->panic(d) : -ENOSYS)
 
 /****************************************************************************
  * Public Types
@@ -252,7 +302,7 @@ struct rptun_addrenv_s
   size_t    size;
 };
 
-struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
+struct aligned_data(8) rptun_rsc_s
 {
   struct resource_table    rsc_tbl_hdr;
   unsigned int             offset[2];
@@ -260,7 +310,7 @@ struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
   struct fw_rsc_vdev       rpmsg_vdev;
   struct fw_rsc_vdev_vring rpmsg_vring0;
   struct fw_rsc_vdev_vring rpmsg_vring1;
-  unsigned int             buf_size;
+  struct fw_rsc_config     config;
 };
 
 struct rptun_dev_s;
@@ -269,22 +319,37 @@ struct rptun_ops_s
   CODE FAR const char *(*get_cpuname)(FAR struct rptun_dev_s *dev);
   CODE FAR const char *(*get_firmware)(FAR struct rptun_dev_s *dev);
 
-  CODE FAR const struct rptun_addrenv_s *(*get_addrenv)(FAR struct rptun_dev_s *dev);
+  CODE FAR const struct rptun_addrenv_s *(*get_addrenv)(
+                        FAR struct rptun_dev_s *dev);
   CODE FAR struct rptun_rsc_s *(*get_resource)(FAR struct rptun_dev_s *dev);
 
   CODE bool (*is_autostart)(FAR struct rptun_dev_s *dev);
   CODE bool (*is_master)(FAR struct rptun_dev_s *dev);
 
+  CODE int (*config)(struct rptun_dev_s *dev, void *data);
   CODE int (*start)(FAR struct rptun_dev_s *dev);
   CODE int (*stop)(FAR struct rptun_dev_s *dev);
   CODE int (*notify)(FAR struct rptun_dev_s *dev, uint32_t vqid);
   CODE int (*register_callback)(FAR struct rptun_dev_s *dev,
                                 rptun_callback_t callback, FAR void *arg);
+
+  CODE void (*reset)(FAR struct rptun_dev_s *dev, int value);
+  CODE void (*panic)(FAR struct rptun_dev_s *dev);
 };
 
 struct rptun_dev_s
 {
   FAR const struct rptun_ops_s *ops;
+};
+
+/* used for ioctl RPTUNIOC_PING */
+
+struct rptun_ping_s
+{
+  int  times;
+  int  len;
+  bool ack;
+  int  sleep; /* unit: ms */
 };
 
 /****************************************************************************
@@ -301,6 +366,10 @@ extern "C"
 
 int rptun_initialize(FAR struct rptun_dev_s *dev);
 int rptun_boot(FAR const char *cpuname);
+int rptun_poweroff(FAR const char *cpuname);
+int rptun_reset(FAR const char *cpuname, int value);
+int rptun_panic(FAR const char *cpuname);
+void rptun_dump_all(void);
 
 #ifdef __cplusplus
 }
@@ -308,4 +377,3 @@ int rptun_boot(FAR const char *cpuname);
 
 #endif /* CONFIG_RPTUN */
 #endif /* __INCLUDE_NUTTX_RPTUN_RPTUN_H */
-

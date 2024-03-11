@@ -1,35 +1,20 @@
 /****************************************************************************
- *  sched/mqueue/mqueue.h
+ * sched/mqueue/mqueue.h
  *
- *   Copyright (C) 2007, 2009, 2011, 2013-2014 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -52,7 +37,7 @@
 
 #include <nuttx/mqueue.h>
 
-#if CONFIG_MQ_MAXMSGSIZE > 0
+#if defined(CONFIG_MQ_MAXMSGSIZE) && CONFIG_MQ_MAXMSGSIZE > 0
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -61,18 +46,6 @@
 #define MQ_MAX_BYTES   CONFIG_MQ_MAXMSGSIZE
 #define MQ_MAX_MSGS    16
 #define MQ_PRIO_MAX    _POSIX_MQ_PRIO_MAX
-
-/* This defines the number of messages descriptors to allocate at each
- * "gulp."
- */
-
-#define NUM_MSG_DESCRIPTORS 24
-
-/* This defines the number of messages to set aside for exclusive use by
- * interrupt handlers
- */
-
-#define NUM_INTERRUPT_MSGS   8
 
 /****************************************************************************
  * Public Type Definitions
@@ -89,15 +62,15 @@ enum mqalloc_e
 
 struct mqueue_msg_s
 {
-  FAR struct mqueue_msg_s *next;  /* Forward link to next message */
-  uint8_t type;                   /* (Used to manage allocations) */
-  uint8_t priority;               /* priority of message */
+  struct list_node node;   /* Link node to message */
+  uint8_t type;            /* (Used to manage allocations) */
+  uint8_t priority;        /* Priority of message */
 #if MQ_MAX_BYTES < 256
-  uint8_t msglen;                 /* Message data length */
+  uint8_t msglen;          /* Message data length */
 #else
-  uint16_t msglen;                /* Message data length */
+  uint16_t msglen;         /* Message data length */
 #endif
-  char mail[MQ_MAX_BYTES];        /* Message data */
+  char mail[MQ_MAX_BYTES]; /* Message data */
 };
 
 /****************************************************************************
@@ -116,20 +89,13 @@ extern "C"
  * The number of messages in this list is a system configuration item.
  */
 
-EXTERN sq_queue_t  g_msgfree;
+EXTERN struct list_node g_msgfree;
 
-/* The g_msgfreeInt is a list of messages that are reserved for use by
+/* The g_msgfreeirq is a list of messages that are reserved for use by
  * interrupt handlers.
  */
 
-EXTERN sq_queue_t  g_msgfreeirq;
-
-/* The g_desfree data structure is a list of message descriptors available
- * to the operating system for general use. The number of messages in the
- * pool is a constant.
- */
-
-EXTERN sq_queue_t  g_desfree;
+EXTERN struct list_node g_msgfreeirq;
 
 /****************************************************************************
  * Public Function Prototypes
@@ -138,37 +104,43 @@ EXTERN sq_queue_t  g_desfree;
 struct tcb_s;        /* Forward reference */
 struct task_group_s; /* Forward reference */
 
-/* Functions defined in mq_initialize.c ************************************/
+/* Functions defined in mq_initialize.c *************************************/
 
-void weak_function nxmq_initialize(void);
-void nxmq_alloc_desblock(void);
+void nxmq_initialize(void);
 void nxmq_free_msg(FAR struct mqueue_msg_s *mqmsg);
 
-/* mq_waitirq.c ************************************************************/
+/* mq_waitirq.c *************************************************************/
 
 void nxmq_wait_irq(FAR struct tcb_s *wtcb, int errcode);
 
-/* mq_rcvinternal.c ********************************************************/
+/* mq_rcvinternal.c *********************************************************/
 
-int nxmq_verify_receive(mqd_t mqdes, FAR char *msg, size_t msglen);
-int nxmq_wait_receive(mqd_t mqdes, FAR struct mqueue_msg_s **rcvmsg);
-ssize_t nxmq_do_receive(mqd_t mqdes, FAR struct mqueue_msg_s *mqmsg,
+#ifdef CONFIG_DEBUG_FEATURES
+int nxmq_verify_receive(FAR struct file *mq, FAR char *msg, size_t msglen);
+#else
+#  define nxmq_verify_receive(msgq, msg, msglen) OK
+#endif
+int nxmq_wait_receive(FAR struct mqueue_inode_s *msgq,
+                      int oflags, FAR struct mqueue_msg_s **rcvmsg);
+ssize_t nxmq_do_receive(FAR struct mqueue_inode_s *msgq,
+                        FAR struct mqueue_msg_s *mqmsg,
                         FAR char *ubuffer, FAR unsigned int *prio);
 
-/* mq_sndinternal.c ********************************************************/
+/* mq_sndinternal.c *********************************************************/
 
-int nxmq_verify_send(mqd_t mqdes, FAR const char *msg, size_t msglen,
-                     unsigned int prio);
+#ifdef CONFIG_DEBUG_FEATURES
+int nxmq_verify_send(FAR struct file *mq, FAR const char *msg,
+                     size_t msglen, unsigned int prio);
+#else
+#  define nxmq_verify_send(mq, msg, msglen, prio) OK
+#endif
 FAR struct mqueue_msg_s *nxmq_alloc_msg(void);
-int nxmq_wait_send(mqd_t mqdes);
-int nxmq_do_send(mqd_t mqdes, FAR struct mqueue_msg_s *mqmsg,
+int nxmq_wait_send(FAR struct mqueue_inode_s *msgq, int oflags);
+int nxmq_do_send(FAR struct mqueue_inode_s *msgq,
+                 FAR struct mqueue_msg_s *mqmsg,
                  FAR const char *msg, size_t msglen, unsigned int prio);
 
-/* mq_release.c ************************************************************/
-
-void nxmq_release(FAR struct task_group_s *group);
-
-/* mq_recover.c ************************************************************/
+/* mq_recover.c *************************************************************/
 
 void nxmq_recover(FAR struct tcb_s *tcb);
 
@@ -177,6 +149,5 @@ void nxmq_recover(FAR struct tcb_s *tcb);
 }
 #endif
 
-#endif /* CONFIG_MQ_MAXMSGSIZE > 0 */
+#endif /* defined(CONFIG_MQ_MAXMSGSIZE) && CONFIG_MQ_MAXMSGSIZE > 0 */
 #endif /* __SCHED_MQUEUE_MQUEUE_H */
-

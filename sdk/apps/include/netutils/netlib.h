@@ -1,9 +1,10 @@
 /****************************************************************************
- *  apps/include/netutils/netlib.h
+ * apps/include/netutils/netlib.h
  * Various non-standard APIs to support netutils.  All non-standard and
  * intended only for internal use.
  *
- *   Copyright (C) 2007, 2009, 2011, 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2015, 2017 Gregory Nutt. All rights
+ *   reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Some of these APIs derive from uIP.  uIP also has a BSD style license:
@@ -78,82 +79,6 @@
 #  define IPv6_ROUTE_PATH CONFIG_NETLIB_PROCFS_MOUNTPT "/net/route/ipv6"
 #endif
 
-/* Using the following definitions, the following socket() arguments should
- * provide a valid socket in all configurations:
- *
- *   ret = socket(NETLIB_SOCK_FAMILY, NETLIB_SOCK_TYPE, NETLIB_SOCK_PROTOCOL);
- */
-
-/* The address family that we used to create the socket really does not
- * matter.  It should, however, be valid in the current configuration.
- */
-
-#if defined(CONFIG_NET_IPv4)
-#  define NETLIB_SOCK_FAMILY  AF_INET
-#elif defined(CONFIG_NET_IPv6)
-#  define NETLIB_SOCK_FAMILY  AF_INET6
-#elif defined(CONFIG_NET_LOCAL)
-#  define NETLIB_SOCK_FAMILY  AF_LOCAL
-#elif defined(CONFIG_NET_PKT)
-#  define NETLIB_SOCK_FAMILY  AF_PACKET
-#elif defined(CONFIG_NET_IEEE802154)
-#  define NETLIB_SOCK_FAMILY  AF_IEEE802154
-#elif defined(CONFIG_WIRELESS_PKTRADIO)
-#  define NETLIB_SOCK_FAMILY  AF_PKTRADIO
-#elif defined(CONFIG_NET_BLUETOOTH)
-#  define NETLIB_SOCK_FAMILY  AF_BLUETOOTH
-#elif defined(CONFIG_NET_USRSOCK)
-#  define NETLIB_SOCK_FAMILY  AF_INET
-#else
-#  define NETLIB_SOCK_FAMILY  AF_UNSPEC
-#endif
-
-/* Socket protocol of zero normally works */
-
-#define NETLIB_SOCK_PROTOCOL  0
-
-/* SOCK_DGRAM is the preferred socket type to use when we just want a
- * socket for performing driver ioctls.  However, we can't use SOCK_DRAM
- * if UDP is disabled.
- *
- * Pick a socket type (and perhaps protocol) compatible with the currently
- * selected address family.
- */
-
-#if NETLIB_SOCK_FAMILY == AF_INET
-#  if defined(CONFIG_NET_UDP)
-#    define NETLIB_SOCK_TYPE SOCK_DGRAM
-#  elif defined(CONFIG_NET_TCP)
-#   define NETLIB_SOCK_TYPE SOCK_STREAM
-#  elif defined(CONFIG_NET_ICMP_SOCKET)
-#   define NETLIB_SOCK_TYPE SOCK_DGRAM
-#   undef NETLIB_SOCK_PROTOCOL
-#   define NETLIB_SOCK_PROTOCOL IPPROTO_ICMP
-#  endif
-#elif NETLIB_SOCK_FAMILY == AF_INET6
-#  if defined(CONFIG_NET_UDP)
-#    define NETLIB_SOCK_TYPE SOCK_DGRAM
-#  elif defined(CONFIG_NET_TCP)
-#   define NETLIB_SOCK_TYPE SOCK_STREAM
-#  elif defined(CONFIG_NET_ICMPv6_SOCKET)
-#   define NETLIB_SOCK_TYPE SOCK_DGRAM
-#   undef NETLIB_SOCK_PROTOCOL
-#   define NETLIB_SOCK_PROTOCOL IPPROTO_ICMP6
-#  endif
-#elif NETLIB_SOCK_FAMILY == AF_LOCAL
-#  if defined(CONFIG_NET_LOCAL_DGRAM)
-#    define NETLIB_SOCK_TYPE SOCK_DGRAM
-#  elif defined(CONFIG_NET_LOCAL_STREAM)
-#     define NETLIB_SOCK_TYPE SOCK_STREAM
-#  endif
-#elif NETLIB_SOCK_FAMILY == AF_PACKET
-#  define NETLIB_SOCK_TYPE SOCK_RAW
-#elif NETLIB_SOCK_FAMILY == AF_IEEE802154
-#  define NETLIB_SOCK_TYPE SOCK_DGRAM
-#elif NETLIB_SOCK_FAMILY == AF_BLUETOOTH
-#  define NETLIB_SOCK_TYPE SOCK_RAW
-#endif
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -203,19 +128,23 @@ struct url_s
 {
   FAR char *scheme;
   int       schemelen;
+#if 0 /* not yet */
   FAR char *user;
   int       userlen;
   FAR char *password;
   int       passwordlen;
+#endif
   FAR char *host;
   int       hostlen;
-  int       port;
+  uint16_t  port;
   FAR char *path;
   int       pathlen;
+#if 0 /* not yet */
   FAR char *parameters;
   int       parameterslen;
   FAR char *bookmark;
   int       bookmarklen;
+#endif
 };
 #endif
 
@@ -243,7 +172,8 @@ ssize_t netlib_get_devices(FAR struct netlib_device_s *devlist,
                            unsigned int nentries, sa_family_t family);
 #endif
 
-/* Convert a textual representation of an IP address to a numerical representation.
+/* Convert a textual representation of an IP address to a numerical
+ * representation.
  *
  * This function takes a textual representation of an IP address in
  * the form a.b.c.d and converts it into a 4-byte array that can be
@@ -298,24 +228,31 @@ bool netlib_nodeaddrconv(FAR const char *addrstr,
 
 #ifdef CONFIG_NET_IPv4
 int netlib_get_ipv4addr(FAR const char *ifname, FAR struct in_addr *addr);
-int netlib_set_ipv4addr(FAR const char *ifname, FAR const struct in_addr *addr);
-int netlib_set_dripv4addr(FAR const char *ifname, FAR const struct in_addr *addr);
+int netlib_set_ipv4addr(FAR const char *ifname,
+                        FAR const struct in_addr *addr);
+int netlib_set_dripv4addr(FAR const char *ifname,
+                          FAR const struct in_addr *addr);
 int netlib_get_dripv4addr(FAR const char *ifname, FAR struct in_addr *addr);
-int netlib_set_ipv4netmask(FAR const char *ifname, FAR const struct in_addr *addr);
+int netlib_set_ipv4netmask(FAR const char *ifname,
+                           FAR const struct in_addr *addr);
 int netlib_get_ipv4netmask(FAR const char *ifname, FAR struct in_addr *addr);
 int netlib_ipv4adaptor(in_addr_t destipaddr, FAR in_addr_t *srcipaddr);
 #endif
 
 #ifdef CONFIG_NET_IPv6
 int netlib_get_ipv6addr(FAR const char *ifname, FAR struct in6_addr *addr);
-int netlib_set_ipv6addr(FAR const char *ifname, FAR const struct in6_addr *addr);
-int netlib_set_dripv6addr(FAR const char *ifname, FAR const struct in6_addr *addr);
-int netlib_set_ipv6netmask(FAR const char *ifname, FAR const struct in6_addr *addr);
+int netlib_set_ipv6addr(FAR const char *ifname,
+                        FAR const struct in6_addr *addr);
+int netlib_set_dripv6addr(FAR const char *ifname,
+                          FAR const struct in6_addr *addr);
+int netlib_set_ipv6netmask(FAR const char *ifname,
+                           FAR const struct in6_addr *addr);
 int netlib_ipv6adaptor(FAR const struct in6_addr *destipaddr,
                        FAR struct in6_addr *srcipaddr);
 
 uint8_t netlib_ipv6netmask2prefix(FAR const uint16_t *mask);
-void netlib_prefix2ipv6netmask(uint8_t preflen, FAR struct in6_addr *netmask);
+void netlib_prefix2ipv6netmask(uint8_t preflen,
+                               FAR struct in6_addr *netmask);
 #ifdef CONFIG_NETLINK_ROUTE
 struct neighbor_entry_s;
 ssize_t netlib_get_nbtable(FAR struct neighbor_entry_s *nbtab,
@@ -331,14 +268,16 @@ int netlib_setessid(FAR const char *ifname, FAR const char *essid);
 #ifdef CONFIG_NET_ARP
 /* ARP Table Support */
 
-int netlib_del_arpmapping(FAR const struct sockaddr_in *inaddr);
+int netlib_del_arpmapping(FAR const struct sockaddr_in *inaddr,
+                          FAR const char *ifname);
 int netlib_get_arpmapping(FAR const struct sockaddr_in *inaddr,
-                          FAR uint8_t *macaddr);
+                          FAR uint8_t *macaddr, FAR const char *ifname);
 int netlib_set_arpmapping(FAR const struct sockaddr_in *inaddr,
-                          FAR const uint8_t *macaddr);
+                          FAR const uint8_t *macaddr,
+                          FAR const char *ifname);
 #ifdef CONFIG_NETLINK_ROUTE
-struct arp_entry_s;
-ssize_t netlib_get_arptable(FAR struct arp_entry_s *arptab,
+struct arpreq;
+ssize_t netlib_get_arptable(FAR struct arpreq *arptab,
                             unsigned int nentries);
 #endif
 #endif
@@ -374,11 +313,35 @@ ssize_t netlib_get_route(FAR struct rtentry *rtelist,
 int netlib_icmpv6_autoconfiguration(FAR const char *ifname);
 #endif
 
+#ifdef CONFIG_NET_IPTABLES
+/* iptables interface support */
+
+struct ipt_replace;  /* Forward reference */
+struct ipt_entry;    /* Forward reference */
+enum nf_inet_hooks;  /* Forward reference */
+
+FAR struct ipt_replace *netlib_ipt_prepare(FAR const char *table);
+int netlib_ipt_commit(FAR const struct ipt_replace *repl);
+int netlib_ipt_flush(FAR const char *table, enum nf_inet_hooks hook);
+int netlib_ipt_append(FAR struct ipt_replace **repl,
+                      FAR const struct ipt_entry *entry,
+                      enum nf_inet_hooks hook);
+int netlib_ipt_insert(FAR struct ipt_replace **repl,
+                      FAR const struct ipt_entry *entry,
+                      enum nf_inet_hooks hook, int rulenum);
+int netlib_ipt_delete(FAR struct ipt_replace *repl,
+                      FAR const struct ipt_entry *entry,
+                      enum nf_inet_hooks hook, int rulenum);
+#  ifdef CONFIG_NET_NAT
+FAR struct ipt_entry *netlib_ipt_masquerade_entry(FAR const char *ifname);
+#  endif
+#endif
+
 /* HTTP support */
 
-int  netlib_parsehttpurl(FAR const char *url, uint16_t *port,
-                      FAR char *hostname, int hostlen,
-                      FAR char *filename, int namelen);
+int netlib_parsehttpurl(FAR const char *url, uint16_t *port,
+                        FAR char *hostname, int hostlen,
+                        FAR char *filename, int namelen);
 
 #ifdef CONFIG_NETUTILS_NETLIB_GENERICURLPARSER
 int netlib_parseurl(FAR const char *str, FAR struct url_s *url);
@@ -388,7 +351,7 @@ int netlib_parseurl(FAR const char *str, FAR struct url_s *url);
 
 int netlib_listenon(uint16_t portno);
 void netlib_server(uint16_t portno, pthread_startroutine_t handler,
-                int stacksize);
+                   int stacksize);
 
 int netlib_getifstatus(FAR const char *ifname, FAR uint8_t *flags);
 int netlib_ifup(FAR const char *ifname);
@@ -399,6 +362,12 @@ int netlib_ifdown(FAR const char *ifname);
 #if defined(CONFIG_NET_IPv4) && defined(CONFIG_NETDB_DNSCLIENT)
 int netlib_set_ipv4dnsaddr(FAR const struct in_addr *inaddr);
 #endif
+
+#if defined(CONFIG_NET_IPv6) && defined(CONFIG_NETDB_DNSCLIENT)
+int netlib_set_ipv6dnsaddr(FAR const struct in6_addr *inaddr);
+#endif
+
+int netlib_set_mtu(FAR const char *ifname, int mtu);
 
 #undef EXTERN
 #ifdef __cplusplus

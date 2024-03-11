@@ -1,36 +1,20 @@
 /****************************************************************************
  * include/netinet/in.h
  *
- *   Copyright (C) 2007, 2009-2010, 2017-2018 Gregory Nutt. All rights
- *     reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -46,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdint.h>
+#include <endian.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -73,6 +58,7 @@
 #define IPPROTO_ESP           50   /* Encapsulation Security Payload protocol */
 #define IPPROTO_AH            51   /* Authentication Header protocol */
 #define IPPROTO_ICMP6         58   /* Internal Control Message Protocol v6 */
+#define IPPROTO_ICMPV6        IPPROTO_ICMP6
 #define IPPROTO_NONE          59   /* IPv6 no next header. */
 #define IPPROTO_DSTOPTS       60   /* IPv6 destination options. */
 #define IPPROTO_MTP           92   /* Multicast Transport Protocol.  */
@@ -103,14 +89,17 @@
                                                     * blocked multicast source */
 #define IP_BLOCK_SOURCE       (__SO_PROTOCOL + 7)  /* Stop receiving multicast
                                                     * data from source */
+
 #define IP_ADD_SOURCE_MEMBERSHIP (__SO_PROTOCOL + 8) /* Join a multicast group;
-                                                    * allow receive only from
-                                                    * source */
+                                                      * allow receive only from
+                                                      * source */
+
 #define IP_DROP_SOURCE_MEMBERSHIP (__SO_PROTOCOL + 9) /* Leave a source-specific
-                                                    * group.  Stop receiving
-                                                    * data from a given
-                                                    * multicast group that come
-                                                    * from a given source */
+                                                       * group.  Stop receiving
+                                                       * data from a given
+                                                       * multicast group that come
+                                                       * from a given source */
+
 #define IP_MSFILTER           (__SO_PROTOCOL + 10) /* Access advanced, full-
                                                     * state filtering API */
 #define IP_MULTICAST_ALL      (__SO_PROTOCOL + 11) /* Modify the delivery policy
@@ -118,6 +107,11 @@
                                                     * to INADDR_ANY */
 #define IP_PKTINFO            (__SO_PROTOCOL + 12) /* Get some information about
                                                     * the incoming packet */
+#define IP_TOS                (__SO_PROTOCOL + 13) /* Access the Type-Of-Service
+                                                    * (TOS) field  */
+#define IP_TTL                (__SO_PROTOCOL + 14) /* The IP TTL (time to live)
+                                                    * of IP packets sent by the
+                                                    * network stack */
 
 /* SOL_IPV6 protocol-level socket options. */
 
@@ -132,17 +126,45 @@
 #define IPV6_UNICAST_HOPS     (__SO_PROTOCOL + 6)  /* Unicast hop limit */
 #define IPV6_V6ONLY           (__SO_PROTOCOL + 7)  /* Restrict AF_INET6 socket
                                                     * to IPv6 communications only */
-#define IPV6_PKTINFO          (__SO_PROTOCOL + 8)  /* Get some information about
+#define IPV6_PKTINFO          (__SO_PROTOCOL + 8)  /* Information about the
+                                                    * incoming packet */
+#define IPV6_RECVPKTINFO      (__SO_PROTOCOL + 9)  /* Receive the information about
                                                     * the incoming packet */
+#define IPV6_TCLASS           (__SO_PROTOCOL + 10) /* Access the Traffic Class
+                                                    * field */
+#define IPV6_RECVHOPLIMIT     (__SO_PROTOCOL + 11) /* Access the hop limit field */
+#define IPV6_HOPLIMIT         (__SO_PROTOCOL + 12) /* Hop limit */
 
 /* Values used with SIOCSIFMCFILTER and SIOCGIFMCFILTER ioctl's */
 
 #define MCAST_EXCLUDE         0
 #define MCAST_INCLUDE         1
 
+/* Definitions of the bits in an Internet address integer.
+ * On subnets, host and network parts are found according to
+ * the subnet mask, not these masks.
+ */
+
+#define IN_CLASSA(a)          ((((in_addr_t)(a)) & 0x80000000) == 0)
+#define IN_CLASSA_NET         0xff000000
+#define IN_CLASSA_NSHIFT      24
+#define IN_CLASSA_HOST        (0xffffffff & ~IN_CLASSA_NET)
+#define IN_CLASSA_MAX         128
+
+#define IN_CLASSB(a)          ((((in_addr_t)(a)) & 0xc0000000) == 0x80000000)
+#define IN_CLASSB_NET         0xffff0000
+#define IN_CLASSB_NSHIFT      16
+#define IN_CLASSB_HOST        (0xffffffff & ~IN_CLASSB_NET)
+#define IN_CLASSB_MAX         65536
+
+#define IN_CLASSC(a)          ((((in_addr_t)(a)) & 0xe0000000) == 0xc0000000)
+#define IN_CLASSC_NET         0xffffff00
+#define IN_CLASSC_NSHIFT      8
+#define IN_CLASSC_HOST        (0xffffffff & ~IN_CLASSC_NET)
+
 /* Test if an IPv4 address is a multicast address */
 
-#define IN_CLASSD(i)          (((uint32_t)(i) & 0xf0000000) == 0xe0000000)
+#define IN_CLASSD(i)          (((in_addr_t)(i) & 0xf0000000) == 0xe0000000)
 #define IN_MULTICAST(i)       IN_CLASSD(i)
 
 /* Special values of in_addr_t */
@@ -176,6 +198,9 @@
 #define IN6_IS_ADDR_MULTICAST(a) \
   ((a)->s6_addr[0] == 0xff)
 
+#define IN6_IS_ADDR_LINKLOCAL(a) \
+  ((a)->s6_addr16[0] & HTONS(0xffc0) == HTONS(0xfe80))
+
 #define IN6_IS_ADDR_LOOPBACK(a) \
   ((a)->s6_addr32[0] == 0 && \
    (a)->s6_addr32[1] == 0 && \
@@ -199,6 +224,25 @@
   ((a)->s6_addr32[0] == 0 && \
    (a)->s6_addr32[1] == 0 && \
    (a)->s6_addr32[2] == HTONL(0xffff))
+
+/* This macro to convert a 16/32-bit constant values quantity from host byte
+ * order to network byte order.  The 16-bit version of this macro is required
+ * for uIP:
+ */
+
+#ifdef CONFIG_ENDIAN_BIG
+#  define HTONS(ns) (ns)
+#  define HTONL(nl) (nl)
+#  define HTONQ(nq) (nq)
+#else
+#  define HTONS __swap_uint16
+#  define HTONL __swap_uint32
+#  define HTONQ __swap_uint64
+#endif
+
+#define NTOHS(hs) HTONS(hs)
+#define NTOHL(hl) HTONL(hl)
+#define NTOHQ(hq) HTONQ(hq)
 
 /****************************************************************************
  * Public Type Definitions
@@ -318,6 +362,24 @@ EXTERN const struct in6_addr in6addr_any;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/* Functions to convert between host and network byte ordering.
+ *
+ * REVISIT:  Since network order is defined as big-endian, the following
+ * functions are equivalent to functions declared in endian.h:
+ *
+ *   htonl   htobe32
+ *   htons   htobe16
+ *   ntohl   be32toh
+ *   ntohs   be16toh
+ */
+
+uint32_t    ntohl(uint32_t nl);
+uint16_t    ntohs(uint16_t ns);
+uint64_t    ntohq(uint64_t nq);
+uint32_t    htonl(uint32_t hl);
+uint16_t    htons(uint16_t hs);
+uint64_t    htonq(uint64_t hq);
 
 #undef EXTERN
 #if defined(__cplusplus)

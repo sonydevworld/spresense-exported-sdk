@@ -1,36 +1,20 @@
 /****************************************************************************
  * include/nuttx/fs/ioctl.h
  *
- *   Copyright (C) 2008, 2009, 2011-2014, 2017-2018 Gregory Nutt. All rights
- *     reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -42,6 +26,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <sys/types.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -72,7 +57,7 @@
 #define _AUDIOIOCBASE   (0x1000) /* Audio ioctl commands */
 #define _LCDIOCBASE     (0x1100) /* LCD character driver ioctl commands */
 #define _SLCDIOCBASE    (0x1200) /* Segment LCD ioctl commands */
-#define _WLIOCBASE      (0x1300) /* Wireless modules ioctl network commands */
+#define _CAPIOCBASE     (0x1300) /* Capture ioctl commands */
 #define _WLCIOCBASE     (0x1400) /* Wireless modules ioctl character driver commands */
 #define _CFGDIOCBASE    (0x1500) /* Config Data device (app config) ioctl commands */
 #define _TCIOCBASE      (0x1600) /* Timer ioctl commands */
@@ -97,6 +82,23 @@
 #define _NXTERMBASE     (0x2900) /* NxTerm character driver ioctl commands */
 #define _RFIOCBASE      (0x2a00) /* RF devices ioctl commands */
 #define _RPTUNBASE      (0x2b00) /* Remote processor tunnel ioctl commands */
+#define _NOTECTLBASE    (0x2c00) /* Note filter control ioctl commands*/
+#define _NOTERAMBASE    (0x2d00) /* Noteram device ioctl commands*/
+#define _RCIOCBASE      (0x2e00) /* Remote Control device ioctl commands */
+#define _HIMEMBASE      (0x2f00) /* Himem device ioctl commands */
+#define _EFUSEBASE      (0x3000) /* Efuse device ioctl commands */
+#define _MTRIOBASE      (0x3100) /* Motor device ioctl commands */
+#define _MATHIOBASE     (0x3200) /* MATH device ioctl commands */
+#define _MMCSDIOBASE    (0x3300) /* MMCSD device ioctl commands */
+#define _BLUETOOTHBASE  (0x3400) /* Bluetooth ioctl commands */
+#define _PKTRADIOBASE   (0x3500) /* Packet radio ioctl commands */
+#define _LTEBASE        (0x3600) /* LTE device ioctl commands */
+#define _VIDIOCBASE     (0x3700) /* Video device ioctl commands */
+#define _CELLIOCBASE    (0x3800) /* Cellular device ioctl commands */
+#define _MIPIDSIBASE    (0x3900) /* Mipidsi device ioctl commands */
+#define _SEIOCBASE      (0x3a00) /* Secure element ioctl commands */
+#define _SYSLOGBASE     (0x3c00) /* Syslog device ioctl commands */
+#define _WLIOCBASE      (0x8b00) /* Wireless modules ioctl network commands */
 
 /* boardctl() commands share the same number space */
 
@@ -120,6 +122,10 @@
 
 /* Terminal I/O IOCTL definitions are retained in tioctl.h */
 
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/serial/tioctl.h>
 
 /* Watchdog driver ioctl commands *******************************************/
@@ -132,45 +138,66 @@
 #define _FIOCVALID(c)   (_IOC_TYPE(c)==_FIOCBASE)
 #define _FIOC(nr)       _IOC(_FIOCBASE,nr)
 
-#define FIOC_MMAP       _FIOC(0x0001)     /* IN:  Location to return address (void **)
-                                           * OUT: If media is directly accessible,
-                                           *      return (void*) base address
-                                           *      of file
-                                           */
-#define FIOC_REFORMAT   _FIOC(0x0002)     /* IN:  None
+#define FIOC_REFORMAT   _FIOC(0x0001)     /* IN:  None
                                            * OUT: None
                                            */
-#define FIOC_OPTIMIZE   _FIOC(0x0003)     /* IN:  The number of bytes to recover
+#define FIOC_OPTIMIZE   _FIOC(0x0002)     /* IN:  The number of bytes to recover
                                            *      (ignored on most file systems)
                                            * OUT: None
                                            */
-#define FIOC_FILENAME   _FIOC(0x0004)     /* IN:  FAR const char ** pointer
-                                           * OUT: Pointer to a persistent file name
-                                           *      (Guaranteed to persist while the
-                                           *      file is open).
+#define FIOC_FILEPATH   _FIOC(0x0003)     /* IN:  FAR char *(length >= PATH_MAX)
+                                           * OUT: The full file path
                                            */
-#define FIOC_INTEGRITY  _FIOC(0x0005)     /* Run a consistency check on the
+#define FIOC_INTEGRITY  _FIOC(0x0004)     /* Run a consistency check on the
                                            *      file system media.
                                            * IN:  None
-                                           * OUT: None */
-#define FIOC_DUMP       _FIOC(0x0006)     /* Dump logical content of media.
+                                           * OUT: None
+                                           */
+#define FIOC_DUMP       _FIOC(0x0005)     /* Dump logical content of media.
                                            * IN:  None
-                                           * OUT: None */
-
-#define FIONREAD        _FIOC(0x0007)     /* IN:  Location to return value (int *)
+                                           * OUT: None
+                                           */
+#define FIONREAD        _FIOC(0x0006)     /* IN:  Location to return value (int *)
                                            * OUT: Bytes readable from this fd
                                            */
-#define FIONWRITE       _FIOC(0x0008)     /* IN:  Location to return value (int *)
+#define FIONWRITE       _FIOC(0x0007)     /* IN:  Location to return value (int *)
                                            * OUT: Number bytes in send queue
                                            */
-#define FIONSPACE       _FIOC(0x0009)     /* IN:  Location to return value (int *)
+#define FIONSPACE       _FIOC(0x0008)     /* IN:  Location to return value (int *)
                                            * OUT: Free space in send queue.
                                            */
-#define FIONUSERFS      _FIOC(0x000a)     /* IN:  Pointer to struct usefs_config_s
+#define FIONUSERFS      _FIOC(0x0009)     /* IN:  Pointer to struct usefs_config_s
                                            *      holding userfs configuration.
                                            * OUT: Instance number is returned on
                                            *      success.
                                            */
+#define FIONBIO         _FIOC(0x000a)     /* IN:  Boolean option takes an
+                                           *      int value.
+                                           * OUT: Origin option.
+                                           */
+#define FIOCLEX         _FIOC(0x000b)     /* IN:  None
+                                           * OUT: None
+                                           */
+#define FIONCLEX        _FIOC(0x000c)     /* IN:  None
+                                           * OUT: None
+                                           */
+#define FIOC_NOTIFY     _FIOC(0x000d)     /* IN:  Pointer to struct automount_notify_s
+                                           *      holding automount notification
+                                           *      configuration
+                                           * OUT: None
+                                           */
+
+#ifdef CONFIG_FDSAN
+#define FIOC_SETTAG     _FIOC(0x000e)     /* IN:  FAR uint64_t *
+                                           * Pointer to file tag
+                                           * OUT: None
+                                           */
+
+#define FIOC_GETTAG     _FIOC(0x000f)     /* IN:  FAR uint64_t *
+                                           * Pointer to file tag
+                                           * OUT: None
+                                           */
+#endif
 
 /* NuttX file system ioctl definitions **************************************/
 
@@ -265,6 +292,26 @@
                                            * IN:  None
                                            * OUT: None (ioctl return value provides
                                            *      success/failure indication). */
+#define BIOC_PARTINFO   _BIOC(0x000e)     /* Retrieve partition information from the
+                                           * block device.
+                                           * IN:  Pointer to writable struct
+                                           *      partition_info_s in which to
+                                           *      receive partition information data
+                                           * OUT: Partition information structure
+                                           *      populated with data from the block
+                                           *      device partition */
+#define BIOC_BLKSSZGET  _BIOC(0x000f)     /* Get block device sector size.
+                                           * IN:  Pointer to writable instance
+                                           *      of sector size in which
+                                           *      to return sector size.
+                                           * OUT: Data return in user-provided
+                                           *      buffer. */
+#define BIOC_BLKGETSIZE _BIOC(0x0010)     /* Get block device sector numbers.
+                                           * IN:  Pointer to writable instance
+                                           *      of sector numbers in which
+                                           *      to return sector numbers.
+                                           * OUT: Data return in user-provided
+                                           *      buffer. */
 
 /* NuttX MTD driver ioctl definitions ***************************************/
 
@@ -293,7 +340,7 @@
 #define _SNIOCVALID(c)    (_IOC_TYPE(c)==_SNIOCBASE)
 #define _SNIOC(nr)        _IOC(_SNIOCBASE,nr)
 
-/* Nuttx Analog (DAC/ADC) ioctl commands (see nuttx/analog/ioctl.h **********/
+/* NuttX Analog (DAC/ADC) ioctl commands (see nuttx/analog/ioctl.h **********/
 
 #define _ANIOCVALID(c)    (_IOC_TYPE(c)==_ANIOCBASE)
 #define _ANIOC(nr)        _IOC(_ANIOCBASE,nr)
@@ -303,13 +350,19 @@
 #define _PWMIOCVALID(c)   (_IOC_TYPE(c)==_PWMIOCBASE)
 #define _PWMIOC(nr)       _IOC(_PWMIOCBASE,nr)
 
+/* NuttX Capture ioctl definitions (see nuttx/timers/capture.h) *************/
+
+#define _CAPIOCVALID(c)   (_IOC_TYPE(c)==_CAPIOCBASE)
+#define _CAPIOC(nr)       _IOC(_CAPIOCBASE,nr)
+
 /* NuttX USB CDC/ACM serial driver ioctl definitions ************************/
+
 /* (see nuttx/usb/cdcacm.h) */
 
 #define _CAIOCVALID(c)    (_IOC_TYPE(c)==_CAIOCBASE)
 #define _CAIOC(nr)        _IOC(_CAIOCBASE,nr)
 
-/* NuttX USB CDC/ACM serial driver ioctl definitions ************************/
+/* NuttX battery driver ioctl definitions ***********************************/
 
 /* (see nuttx/power/battery.h) */
 
@@ -317,6 +370,7 @@
 #define _BATIOC(nr)       _IOC(_BATIOCBASE,nr)
 
 /* NuttX Quadrature Encoder driver ioctl definitions ************************/
+
 /* (see nuttx/power/battery.h) */
 
 #define _QEIOCVALID(c)    (_IOC_TYPE(c)==_QEIOCBASE)
@@ -343,14 +397,8 @@
 #define _SLCDIOCVALID(c)  (_IOC_TYPE(c)==_SLCDIOCBASE)
 #define _SLCDIOC(nr)      _IOC(_SLCDIOCBASE,nr)
 
-/* Wireless driver networki ioctl definitions *******************************/
-
-/* (see nuttx/include/wireless/wireless.h */
-
-#define _WLIOCVALID(c)    (_IOC_TYPE(c)==_WLIOCBASE)
-#define _WLIOC(nr)        _IOC(_WLIOCBASE,nr)
-
 /* Wireless driver character driver ioctl definitions ***********************/
+
 /* (see nuttx/include/wireless/ioctl.h */
 
 #define _WLCIOCVALID(c)   (_IOC_TYPE(c)==_WLCIOCBASE)
@@ -370,24 +418,46 @@
 #define _TCIOCVALID(c)    (_IOC_TYPE(c)==_TCIOCBASE)
 #define _TCIOC(nr)        _IOC(_TCIOCBASE,nr)
 
-/* Joystick driver ioctl definitions ***************************************/
+/* Joystick driver ioctl definitions ****************************************/
 
 /* Discrete Joystick (see nuttx/include/input/djoystick.h */
 
-#define _JOYIOCVALID(c)   (_IOC_SMASK(c)==_JOYBASE)
+#define _JOYIOCVALID(c)   (_IOC_TYPE(c)==_JOYBASE)
 #define _JOYIOC(nr)       _IOC(_JOYBASE,nr)
 
 /* FIFOs and pipe driver ioctl definitions **********************************/
 
-#define _PIPEIOCVALID(c)  (_IOC_TYPE(c)==_PIPEBASE)
-#define _PIPEIOC(nr)      _IOC(_PIPEBASE,nr)
+#define _PIPEIOCVALID(c)    (_IOC_TYPE(c)==_PIPEBASE)
+#define _PIPEIOC(nr)        _IOC(_PIPEBASE,nr)
 
-#define PIPEIOC_POLICY    _PIPEIOC(0x0001)  /* Set buffer policy
-                                             * IN: unsigned long integer
-                                             *     0=free on last close
-                                             *       (default)
-                                             *     1=fre when empty
-                                             * OUT: None */
+#define PIPEIOC_POLICY      _PIPEIOC(0x0001)  /* Set buffer policy
+                                               * IN: unsigned long integer
+                                               *     0=free on last close
+                                               *       (default)
+                                               *     1=fre when empty
+                                               * OUT: None */
+
+#define PIPEIOC_POLLINTHRD  _PIPEIOC(0x0002)  /* Set pipe POLLIN
+                                               * notifty buffer threshold.
+                                               * IN: unsigned long integer.
+                                               *     POLLIN only occurs when
+                                               *     buffer contains more
+                                               *     bytes than the
+                                               *     threshold.
+                                               * OUT: None */
+
+#define PIPEIOC_POLLOUTTHRD _PIPEIOC(0x0003)  /* Set pipe POLLOUT
+                                               * notifty buffer threshold.
+                                               * IN: unsigned long integer.
+                                               *     POLLOUT only occurs
+                                               *     when buffer can accept
+                                               *     more bytes than
+                                               *     threshold.
+                                               * OUT: None */
+
+#define PIPEIOC_PEEK        _PIPEIOC(0x0004)  /* Pipe peek interface
+                                               * IN: pipe_peek_s
+                                               * OUT: Length of data */
 
 /* RTC driver ioctl definitions *********************************************/
 
@@ -512,6 +582,95 @@
 #define _RPTUNIOCVALID(c)   (_IOC_TYPE(c)==_RPTUNBASE)
 #define _RPTUNIOC(nr)       _IOC(_RPTUNBASE,nr)
 
+/* Notectl drivers **********************************************************/
+
+#define _NOTECTLIOCVALID(c) (_IOC_TYPE(c) == _NOTECTLBASE)
+#define _NOTECTLIOC(nr)     _IOC(_NOTECTLBASE, nr)
+
+/* Noteram drivers **********************************************************/
+
+#define _NOTERAMIOCVALID(c) (_IOC_TYPE(c) == _NOTERAMBASE)
+#define _NOTERAMIOC(nr)     _IOC(_NOTERAMBASE, nr)
+
+/* Remote Control drivers ***************************************************/
+
+#define _RCIOCVALID(c)    (_IOC_TYPE(c)==_RCIOCBASE)
+#define _RCIOC(nr)        _IOC(_RCIOCBASE,nr)
+
+/* Hime drivers *************************************************************/
+
+#define _HIMEMIOCVALID(c)   (_IOC_TYPE(c) == _HIMEMBASE)
+#define _HIMEMIOC(nr)       _IOC(_HIMEMBASE, nr)
+
+/* Efuse drivers ************************************************************/
+
+#define _EFUSEIOCVALID(c)   (_IOC_TYPE(c) == _EFUSEBASE)
+#define _EFUSEIOC(nr)       _IOC(_EFUSEBASE, nr)
+
+/* Motor drivers ************************************************************/
+
+#define _MTRIOCVALID(c)     (_IOC_TYPE(c) == _MTRIOBASE)
+#define _MTRIOC(nr)         _IOC(_MTRIOBASE, nr)
+
+/* MATH drivers *************************************************************/
+
+#define _MATHIOCVALID(c)    (_IOC_TYPE(c) == _MATHIOBASE)
+#define _MATHIOC(nr)        _IOC(_MATHIOBASE, nr)
+
+/* MMCSD drivers ************************************************************/
+
+#define _MMCSDIOCVALID(c)   (_IOC_TYPE(c) == _MMCSDIOBASE)
+#define _MMCSDIOC(nr)       _IOC(_MMCSDIOBASE, nr)
+
+/* Bluetooth ioctl definitions **********************************************/
+
+#define _BLUETOOTHIOCVALID(c) (_IOC_TYPE(c)==_BLUETOOTHBASE)
+#define _BLUETOOTHIOC(nr)     _IOC(_BLUETOOTHBASE,nr)
+
+/* Packet radio ioctl definitions *******************************************/
+
+#define _PKRADIOIOCVALID(c) (_IOC_TYPE(c)==_PKTRADIOBASE)
+#define _PKRADIOIOC(nr)     _IOC(_PKTRADIOBASE,nr)
+
+/* LTE device ioctl definitions *********************************************/
+
+#define _LTEIOCVALID(c) (_IOC_TYPE(c)==_LTEBASE)
+#define _LTEIOC(nr)     _IOC(_LTEBASE,nr)
+
+/* Video device ioctl definitions *******************************************/
+
+#define _VIDIOCVALID(c) (_IOC_TYPE(c)==_VIDIOCBASE)
+#define _VIDIOC(nr)      _IOC(_VIDIOCBASE,nr)
+
+/* cellularctl() command definitions ****************************************/
+
+#define _CELLIOCVALID(c) (_IOC_TYPE(c)==_CELLIOCBASE)
+#define _CELLIOC(nr)     _IOC(_CELLIOCBASE,nr)
+
+/* mipidsi driver ioctl definitions *****************************************/
+
+#define _MIPIDSIIOCVALID(c)    (_IOC_TYPE(c)==_MIPIDSIBASE)
+#define _MIPIDSIIOC(nr)        _IOC(_MIPIDSIBASE,nr)
+
+/* Secure element ioctl definitions *****************************************/
+
+/* (see nuttx/include/crypto/se05x.h */
+
+#define _SEIOCVALID(c)     (_IOC_TYPE(c)==_SEIOCBASE)
+#define _SEIOC(nr)         _IOC(_SEIOCBASE,nr)
+
+/* syslog driver ioctl definitions ******************************************/
+
+#define _SYSLOGVALID(c) (_IOC_TYPE(c)==_SYSLOGBASE)
+#define _SYSLOGIOC(nr)  _IOC(_SYSLOGBASE,nr)
+
+/* Wireless driver network ioctl definitions ********************************/
+
+/* (see nuttx/include/wireless/wireless.h */
+
+#define _WLIOCVALID(c)    (_IOC_TYPE(c)==_WLIOCBASE)
+#define _WLIOC(nr)        _IOC(_WLIOCBASE,nr)
+
 /* boardctl() command definitions *******************************************/
 
 #define _BOARDIOCVALID(c) (_IOC_TYPE(c)==_BOARDBASE)
@@ -520,6 +679,12 @@
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
+
+struct pipe_peek_s
+{
+  FAR void *buf;
+  size_t size;
+};
 
 /****************************************************************************
  * Public Data

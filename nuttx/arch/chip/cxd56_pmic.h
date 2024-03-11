@@ -1,35 +1,20 @@
 /****************************************************************************
  * arch/arm/src/cxd56xx/cxd56_pmic.h
  *
- *   Copyright 2018 Sony Semiconductor Solutions Corporation
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of Sony Semiconductor Solutions Corporation nor
- *    the names of its contributors may be used to endorse or promote
- *    products derived from this software without specific prior written
- *    permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -186,7 +171,7 @@ struct pmic_mon_rec_s
 
 struct pmic_mon_log_s
 {
-  FAR struct pmic_monitor_rec_s *rec;
+  struct pmic_monitor_rec_s *rec;
   int index;
   int size;
 };
@@ -205,7 +190,7 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Public Functions Prototypes
  ****************************************************************************/
 
 /****************************************************************************
@@ -229,7 +214,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int cxd56_pmic_get_interrupt_status(FAR uint8_t *status);
+int cxd56_pmic_get_interrupt_status(uint8_t *status);
 
 /****************************************************************************
  * Name: cxd56_pmic_set_gpo_reg
@@ -257,8 +242,8 @@ int cxd56_pmic_get_interrupt_status(FAR uint8_t *status);
  *
  ****************************************************************************/
 
-int cxd56_pmic_set_gpo_reg(FAR uint8_t *setbit0, FAR uint8_t *clrbit0,
-                           FAR uint8_t *setbit1, FAR uint8_t *clrbit1);
+int cxd56_pmic_set_gpo_reg(uint8_t *setbit0, uint8_t *clrbit0,
+                           uint8_t *setbit1, uint8_t *clrbit1);
 
 /****************************************************************************
  * Name: cxd56_pmic_set_gpo
@@ -310,6 +295,22 @@ int cxd56_pmic_set_gpo_hiz(uint8_t chset);
 bool cxd56_pmic_get_gpo(uint8_t chset);
 
 /****************************************************************************
+ * Name: cxd56_pmic_get_gpo_hiz
+ *
+ * Description:
+ *   Get the tristate value from the specified GPO channel(s)
+ *
+ * Input Parameter:
+ *   chset : GPO Channel number(s)
+ *
+ * Returned Value:
+ *   Return 0(off), 1(on) or -1(HiZ)
+ *
+ ****************************************************************************/
+
+int cxd56_pmic_get_gpo_hiz(uint8_t chset);
+
+/****************************************************************************
  * Name: cxd56_pmic_set_loadswitch_reg
  *
  * Description:
@@ -332,7 +333,7 @@ bool cxd56_pmic_get_gpo(uint8_t chset);
  *
  ****************************************************************************/
 
-int cxd56_pmic_set_loadswitch_reg(FAR uint8_t *setbit, FAR uint8_t *clrbit);
+int cxd56_pmic_set_loadswitch_reg(uint8_t *setbit, uint8_t *clrbit);
 
 /****************************************************************************
  * Name: cxd56_pmic_set_loadswitch
@@ -361,7 +362,8 @@ int cxd56_pmic_set_loadswitch(uint8_t chset, bool value);
  *   chset - LoadSwitch Channel number(s)
  *
  * Returned Value:
- *   Return true if all of the specified chset are on. Otherwise, return false
+ *   Return true if all of the specified chset are on.
+ *   Otherwise, return false
  *
  ****************************************************************************/
 
@@ -391,7 +393,7 @@ bool cxd56_pmic_get_loadswitch(uint8_t chset);
  *
  ****************************************************************************/
 
-int cxd56_pmic_set_ddc_ldo_reg(FAR uint8_t *setbit, FAR uint8_t *clrbit);
+int cxd56_pmic_set_ddc_ldo_reg(uint8_t *setbit, uint8_t *clrbit);
 
 /****************************************************************************
  * Name: cxd56_pmic_set_ddc_ldo
@@ -420,7 +422,8 @@ int cxd56_pmic_set_ddc_ldo(uint8_t chset, bool value);
  *   chset - DDC/LDO Channel number(s)
  *
  * Returned Value:
- *   Return true if all of the specified chset are on. Otherwise, return false
+ *   Return true if all of the specified chset are on.
+ *   Otherwise, return false
  *
  ****************************************************************************/
 
@@ -441,7 +444,7 @@ bool cxd56_pmic_get_ddc_ldo(uint8_t chset);
  *
  ****************************************************************************/
 
-int cxd56_pmic_get_gauge(FAR struct pmic_gauge_s *gauge);
+int cxd56_pmic_get_gauge(struct pmic_gauge_s *gauge);
 
 /****************************************************************************
  * Name: cxd56_pmic_getlowervol
@@ -457,7 +460,7 @@ int cxd56_pmic_get_gauge(FAR struct pmic_gauge_s *gauge);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getlowervol(FAR int *voltage);
+int cxd56_pmic_getlowervol(int *voltage);
 
 /****************************************************************************
  * Name: cxd56_pmic_setlowervol
@@ -489,7 +492,7 @@ int cxd56_pmic_setlowervol(int voltage);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getnotifyvol(FAR int *voltage);
+int cxd56_pmic_getnotifyvol(int *voltage);
 
 /****************************************************************************
  * Name: cxd56_pmic_setnotifyvol
@@ -521,7 +524,7 @@ int cxd56_pmic_setnotifyvol(int voltage);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getchargevol(FAR int *voltage);
+int cxd56_pmic_getchargevol(int *voltage);
 
 /****************************************************************************
  * Name: cxd56_pmic_setchargevol
@@ -554,7 +557,7 @@ int cxd56_pmic_setchargevol(int voltage);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getchargecurrent(FAR int *current);
+int cxd56_pmic_getchargecurrent(int *current);
 
 /****************************************************************************
  * Name: cxd56_pmic_setchargecurrent
@@ -587,7 +590,7 @@ int cxd56_pmic_setchargecurrent(int current);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getporttype(FAR int *porttype);
+int cxd56_pmic_getporttype(int *porttype);
 
 /****************************************************************************
  * Name: cxd56_pmic_getchargestate
@@ -603,13 +606,14 @@ int cxd56_pmic_getporttype(FAR int *porttype);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getchargestate(FAR uint8_t *state);
+int cxd56_pmic_getchargestate(uint8_t *state);
 
 /****************************************************************************
  * Name: cxd56_pmic_setrechargevol
  *
  * Description:
- *   Set threshold voltage against full charge for automatic restart charging.
+ *   Set threshold voltage against full charge for automatic restart
+ *   charging.
  *
  * Input Parameter:
  *   mV - Available values are -400, -350, -300 and -250 (mV)
@@ -625,7 +629,8 @@ int cxd56_pmic_setrechargevol(int mv);
  * Name: cxd56_pmic_getrechargevol
  *
  * Description:
- *   Get threshold voltage against full charge for automatic restart charging.
+ *   Get threshold voltage against full charge for automatic restart
+ *   charging.
  *
  * Input Parameter:
  *   mV - Possible values are -400, -350, -300 and -250 (mV)
@@ -635,7 +640,7 @@ int cxd56_pmic_setrechargevol(int mv);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getrechargevol(FAR int *mv);
+int cxd56_pmic_getrechargevol(int *mv);
 
 /****************************************************************************
  * Name: cxd56_pmic_setchargecompcurrent
@@ -667,7 +672,7 @@ int cxd56_pmic_setchargecompcurrent(int current);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getchargecompcurrent(FAR int *current);
+int cxd56_pmic_getchargecompcurrent(int *current);
 
 /****************************************************************************
  * Name: cxd56_pmic_gettemptable
@@ -684,7 +689,7 @@ int cxd56_pmic_getchargecompcurrent(FAR int *current);
  *
  ****************************************************************************/
 
-int cxd56_pmic_gettemptable(FAR struct pmic_temp_table_s *table);
+int cxd56_pmic_gettemptable(struct pmic_temp_table_s *table);
 
 /****************************************************************************
  * Name: cxd56_pmic_settemptable
@@ -701,7 +706,7 @@ int cxd56_pmic_gettemptable(FAR struct pmic_temp_table_s *table);
  *
  ****************************************************************************/
 
-int cxd56_pmic_settemptable(FAR struct pmic_temp_table_s *table);
+int cxd56_pmic_settemptable(struct pmic_temp_table_s *table);
 
 /****************************************************************************
  * Name: cxd56_pmic_setchargemode
@@ -743,7 +748,7 @@ int cxd56_pmic_setchargemode(int low, int high);
  *
  ****************************************************************************/
 
-int cxd56_pmic_getchargemode(FAR int *low, FAR int *high);
+int cxd56_pmic_getchargemode(int *low, int *high);
 
 /****************************************************************************
  * Name: cxd56_pmic_read
@@ -761,7 +766,7 @@ int cxd56_pmic_getchargemode(FAR int *low, FAR int *high);
  *
  ****************************************************************************/
 
-int cxd56_pmic_read(uint8_t addr, FAR void *buf, uint32_t size);
+int cxd56_pmic_read(uint8_t addr, void *buf, uint32_t size);
 
 /****************************************************************************
  * Name: cxd56_pmic_write
@@ -779,17 +784,17 @@ int cxd56_pmic_read(uint8_t addr, FAR void *buf, uint32_t size);
  *
  ****************************************************************************/
 
-int cxd56_pmic_write(uint8_t addr, FAR void *buf, uint32_t size);
+int cxd56_pmic_write(uint8_t addr, void *buf, uint32_t size);
 
 /****************************************************************************
  * Battery monitor for debug
  ****************************************************************************/
 
 #ifdef CONFIG_CXD56_PMIC_BATMONITOR
-int cxd56_pmic_monitor_enable(FAR struct pmic_mon_s *ptr);
-int cxd56_pmic_monitor_status(FAR struct pmic_mon_status_s *ptr);
-int cxd56_pmic_monitor_set(FAR struct pmic_mon_set_s *ptr);
-int cxd56_pmic_monitor_get(FAR struct pmic_mon_log_s *ptr);
+int cxd56_pmic_monitor_enable(struct pmic_mon_s *ptr);
+int cxd56_pmic_monitor_status(struct pmic_mon_status_s *ptr);
+int cxd56_pmic_monitor_set(struct pmic_mon_set_s *ptr);
+int cxd56_pmic_monitor_get(struct pmic_mon_log_s *ptr);
 #else
 #define cxd56_pmic_monitor_enable(ptr)
 #define cxd56_pmic_monitor_status(ptr)

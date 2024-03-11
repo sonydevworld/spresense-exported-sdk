@@ -1,36 +1,20 @@
 /****************************************************************************
  * include/stdio.h
  *
- *   Copyright (C) 2007-2009, 2011, 2013-2015, 2018-2019 Gregory Nutt. All
- *     rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -45,10 +29,10 @@
 
 #include <sys/types.h>
 #include <stdarg.h>
-#include <sched.h>
 #include <time.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/lib/lib.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -57,6 +41,7 @@
 /* File System Definitions **************************************************/
 
 #define FILENAME_MAX _POSIX_NAME_MAX
+#define FOPEN_MAX    _POSIX_STREAM_MAX
 
 /* The (default) size of the I/O buffers */
 
@@ -78,19 +63,9 @@
 
 /* The first three _iob entries are reserved for standard I/O */
 
-#define stdin      (&sched_getstreams()->sl_streams[0])
-#define stdout     (&sched_getstreams()->sl_streams[1])
-#define stderr     (&sched_getstreams()->sl_streams[2])
-
-/* These APIs are not implemented and/or can be synthesized from
- * supported APIs.
- */
-
-#define putc(c,s)  fputc((c),(s))
-#define putchar(c) fputc(c, stdout)
-#define getc(s)    fgetc(s)
-#define getchar()  fgetc(stdin)
-#define rewind(s)  ((void)fseek((s),0,SEEK_SET))
+#define stdin      lib_get_stream(0)
+#define stdout     lib_get_stream(1)
+#define stderr     lib_get_stream(2)
 
 /* Path to the directory where temporary files can be created */
 
@@ -112,6 +87,23 @@
 
 #define TMP_MAX 56800235584ull
 
+#if defined(CONFIG_FS_LARGEFILE)
+#  define tmpfile64 tmpfile
+#  define fopen64   fopen
+#  define freopen64 freopen
+#  define fseeko64  fseeko
+#  define ftello64  ftello
+#  define fgetpos64 fgetpos
+#  define fsetpos64 fsetpos
+#endif
+
+#define setlinebuf(stream)   setvbuf(stream, NULL, _IOLBF, 0)
+
+#define clearerr_unlocked(stream) clearerr(stream)
+#define feof_unlocked(stream)     feof(stream)
+#define ferror_unlocked(stream)   ferror(stream)
+#define fileno_unlocked(stream)   fileno(stream)
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -119,6 +111,12 @@
 /* Streams */
 
 typedef struct file_struct FILE;
+
+struct va_format
+{
+  FAR const char *fmt;
+  FAR va_list *va;
+};
 
 /****************************************************************************
  * Public Data
@@ -141,59 +139,98 @@ extern "C"
 
 /* Operations on streams (FILE) */
 
-void   clearerr(register FILE *stream);
+void   clearerr(FAR FILE *stream);
 int    fclose(FAR FILE *stream);
 int    fflush(FAR FILE *stream);
 int    feof(FAR FILE *stream);
 int    ferror(FAR FILE *stream);
 int    fileno(FAR FILE *stream);
 int    fgetc(FAR FILE *stream);
+int    fgetc_unlocked(FAR FILE *stream);
 int    fgetpos(FAR FILE *stream, FAR fpos_t *pos);
-char  *fgets(FAR char *s, int n, FAR FILE *stream);
-FAR FILE *fopen(FAR const char *path, FAR const char *type);
-int    fprintf(FAR FILE *stream, FAR const IPTR char *format, ...);
+FAR char *fgets(FAR char *s, int n, FAR FILE *stream);
+FAR char *fgets_unlocked(FAR char *s, int n, FAR FILE *stream);
+FAR FILE *fopen(FAR const char *path, FAR const char *type) fopen_like;
+int    fprintf(FAR FILE *stream, FAR const IPTR char *format, ...)
+       printf_like(2, 3);
 int    fputc(int c, FAR FILE *stream);
-int    fputs(FAR const char *s, FAR FILE *stream);
+int    fputc_unlocked(int c, FAR FILE *stream);
+int    fputs(FAR const IPTR char *s, FAR FILE *stream);
+int    fputs_unlocked(FAR const IPTR char *s, FAR FILE *stream);
 size_t fread(FAR void *ptr, size_t size, size_t n_items, FAR FILE *stream);
+size_t fread_unlocked(FAR void *ptr, size_t size, size_t n_items,
+                      FAR FILE *stream);
 FAR FILE *freopen(FAR const char *path, FAR const char *mode,
-         FAR FILE *stream);
-int    fscanf(FAR FILE *stream, FAR const IPTR char *fmt, ...);
+                  FAR FILE *stream);
+int    fscanf(FAR FILE *stream, FAR const IPTR char *fmt, ...)
+       scanf_like(2, 3);
 int    fseek(FAR FILE *stream, long int offset, int whence);
+int    fseeko(FAR FILE *stream, off_t offset, int whence);
 int    fsetpos(FAR FILE *stream, FAR fpos_t *pos);
 long   ftell(FAR FILE *stream);
+off_t  ftello(FAR FILE *stream);
 size_t fwrite(FAR const void *ptr, size_t size, size_t n_items,
-         FAR FILE *stream);
+              FAR FILE *stream);
+size_t fwrite_unlocked(FAR const void *ptr, size_t size, size_t n_items,
+                       FAR FILE *stream);
+int     getc(FAR FILE *stream);
+int     getchar(void);
+int     getchar_unlocked(void);
 ssize_t getdelim(FAR char **lineptr, size_t *n, int delimiter,
-         FAR FILE *stream);
+                 FAR FILE *stream);
 ssize_t getline(FAR char **lineptr, size_t *n, FAR FILE *stream);
 FAR char *gets(FAR char *s);
 FAR char *gets_s(FAR char *s, rsize_t n);
+void   rewind(FAR FILE *stream);
+
 void   setbuf(FAR FILE *stream, FAR char *buf);
 int    setvbuf(FAR FILE *stream, FAR char *buffer, int mode, size_t size);
+void   setbuffer(FAR FILE *stream, FAR char *buf, size_t size);
+
 int    ungetc(int c, FAR FILE *stream);
 
-/* Operations on the stdout stream, buffers, paths, and the whole printf-family */
+void flockfile(FAR FILE *stream);
+int ftrylockfile(FAR FILE *stream);
+void funlockfile(FAR FILE *stream);
+
+/* Operations on the stdout stream, buffers, paths,
+ * and the whole printf-family
+ */
 
 void   perror(FAR const char *s);
-int    printf(FAR const IPTR char *fmt, ...);
-int    puts(FAR const char *s);
+int    printf(FAR const IPTR char *fmt, ...) printf_like(1, 2);
+int    putc(int c, FAR FILE *stream);
+int    putc_unlocked(int c, FAR FILE *stream);
+int    putchar(int c);
+int    putchar_unlocked(int c);
+int    puts(FAR const IPTR char *s);
 int    rename(FAR const char *oldpath, FAR const char *newpath);
-int    sprintf(FAR char *buf, FAR const IPTR char *fmt, ...);
-int    asprintf (FAR char **ptr, FAR const IPTR char *fmt, ...);
+int    renameat(int olddirfd, FAR const char *oldpath,
+                int newdirfd, FAR const char *newpath);
+int    sprintf(FAR char *buf, FAR const IPTR char *fmt, ...)
+       printf_like(2, 3);
+int    asprintf(FAR char **ptr, FAR const IPTR char *fmt, ...)
+       printf_like(2, 3);
 int    snprintf(FAR char *buf, size_t size,
-         FAR const IPTR char *fmt, ...);
-int    sscanf(FAR const char *buf, FAR const IPTR char *fmt, ...);
+                FAR const IPTR char *fmt, ...) printf_like(3, 4);
+int    sscanf(FAR const char *buf, FAR const IPTR char *fmt, ...)
+       scanf_like(2, 3);
 
-int    scanf(FAR const IPTR char *fmt, ...);
-int    vasprintf(FAR char **ptr, FAR const IPTR char *fmt, va_list ap);
+int    scanf(FAR const IPTR char *fmt, ...) scanf_like(1, 2);
+int    vasprintf(FAR char **ptr, FAR const IPTR char *fmt, va_list ap)
+       printf_like(2, 0);
 int    vfprintf(FAR FILE *stream, FAR const IPTR char *fmt,
-         va_list ap);
-int    vfscanf(FAR FILE *stream, FAR const IPTR char *fmt, va_list ap);
-int    vprintf(FAR const IPTR char *fmt, va_list ap);
+                va_list ap) printf_like(2, 0);
+int    vfscanf(FAR FILE *stream, FAR const IPTR char *fmt, va_list ap)
+       scanf_like(2, 0);
+int    vprintf(FAR const IPTR char *fmt, va_list ap) printf_like(1, 0);
+int    vscanf(FAR const IPTR char *fmt, va_list ap) scanf_like(1, 0);
 int    vsnprintf(FAR char *buf, size_t size, FAR const IPTR char *fmt,
-         va_list ap);
-int    vsprintf(FAR char *buf, FAR const IPTR char *fmt, va_list ap);
-int    vsscanf(FAR const char *buf, FAR const char *fmt, va_list ap);
+                 va_list ap) printf_like(3, 0);
+int    vsprintf(FAR char *buf, FAR const IPTR char *fmt, va_list ap)
+       printf_like(2, 0);
+int    vsscanf(FAR const char *buf, FAR const IPTR char *fmt, va_list ap)
+       scanf_like(2, 0);
 
 /* Operations on file descriptors including:
  *
@@ -202,23 +239,86 @@ int    vsscanf(FAR const char *buf, FAR const char *fmt, va_list ap);
  *   Part 1 (dprintf and vdprintf)
  */
 
-FAR FILE *fdopen(int fd, FAR const char *type);
-int    dprintf(int fd, FAR const IPTR char *fmt, ...);
-int    vdprintf(int fd, FAR const IPTR char *fmt, va_list ap);
+FAR FILE *fdopen(int fd, FAR const char *type) fopen_like;
+int    dprintf(int fd, FAR const IPTR char *fmt, ...) printf_like(2, 3);
+int    vdprintf(int fd, FAR const IPTR char *fmt, va_list ap)
+       printf_like(2, 0);
 
 /* Operations on paths */
 
+FAR FILE *tmpfile(void) fopen_like;
 FAR char *tmpnam(FAR char *s);
-FAR char *tempnam(FAR const char *dir, FAR const char *pfx);
+FAR char *tempnam(FAR const char *dir, FAR const char *pfx) malloc_like;
 int       remove(FAR const char *path);
 
 /* Shell operations.  These are not actually implemented in the OS.  See
- * apps/system/open for implementation.
+ * apps/system/popen for implementation.
  */
 
-#if !defined(CONFIG_BUILD_KERNEL) && !defined(__KERNEL__)
-FILE *popen(FAR const char *command, FAR const char *mode);
+#ifndef __KERNEL__
 int pclose(FILE *stream);
+FILE *popen(FAR const char *command, FAR const char *mode) popen_like;
+#endif
+
+#if CONFIG_FORTIFY_SOURCE > 0
+fortify_function(fgets) FAR char *fgets(FAR char *s, int n, FAR FILE *stream)
+{
+  fortify_assert((size_t)n <= fortify_size(s, 0));
+  return __real_fgets(s, n, stream);
+}
+
+fortify_function(fread) size_t fread(FAR void *ptr, size_t size,
+                                     size_t n_items, FAR FILE *stream)
+{
+  fortify_assert(n_items == 0 || (n_items * size) / n_items == size);
+  fortify_assert(n_items * size <= fortify_size(ptr, 0));
+  return __real_fread(ptr, size, n_items, stream);
+}
+
+fortify_function(fwrite) size_t fwrite(FAR const void *ptr, size_t size,
+                                       size_t n_items, FAR FILE *stream)
+{
+  fortify_assert(n_items == 0 || (n_items * size) / n_items == size);
+  fortify_assert(n_items * size <= fortify_size(ptr, 0));
+  return __real_fwrite(ptr, size, n_items, stream);
+}
+
+fortify_function(vsnprintf) int vsnprintf(FAR char *buf, size_t size,
+                                          FAR const IPTR char *format,
+                                          va_list ap)
+{
+  fortify_assert(size <= fortify_size(buf, 0));
+  return __real_vsnprintf(buf, size, format, ap);
+}
+
+fortify_function(vsprintf) int vsprintf(FAR char *dest,
+                                        FAR const IPTR char *src,
+                                        va_list ap)
+{
+  int ret;
+
+  ret = __real_vsprintf(dest, src, ap);
+  fortify_assert(ret == -1 || (size_t)ret <= fortify_size(dest, 0));
+  return ret;
+}
+
+fortify_function(snprintf) int snprintf(FAR char *buf, size_t size,
+                                        FAR const IPTR char *format, ...)
+{
+  fortify_assert(size <= fortify_size(buf, 0));
+  return __real_snprintf(buf, size, format, fortify_va_arg_pack());
+}
+
+fortify_function(sprintf) int sprintf(FAR char *buf,
+                                      FAR const IPTR char *fmt,
+                                      ...)
+{
+  int ret;
+
+  ret = __real_sprintf(buf, fmt, fortify_va_arg_pack());
+  fortify_assert(ret == -1 || (size_t)ret <= fortify_size(buf, 0));
+  return ret;
+}
 #endif
 
 #undef EXTERN

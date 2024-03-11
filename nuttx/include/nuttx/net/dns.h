@@ -136,9 +136,9 @@
  * Public Type Definitions
  ****************************************************************************/
 
- /* The DNS message header */
+/* The DNS message header */
 
-struct dns_header_s
+begin_packed_struct struct dns_header_s
 {
   uint16_t id;
   uint8_t  flags1;
@@ -147,15 +147,15 @@ struct dns_header_s
   uint16_t numanswers;
   uint16_t numauthrr;
   uint16_t numextrarr;
-};
+} end_packed_struct;
 
 /* The DNS question message structure */
 
-struct dns_question_s
+begin_packed_struct struct dns_question_s
 {
   uint16_t type;
   uint16_t class;
-};
+} end_packed_struct;
 
 /* The DNS answer message structure */
 
@@ -208,20 +208,20 @@ extern "C"
 int dns_add_nameserver(FAR const struct sockaddr *addr, socklen_t addrlen);
 
 /****************************************************************************
- * Name: dns_del_nameserver
+ * Name: dns_default_nameserver
  *
  * Description:
- *   Remove a DNS server so it is no longer available for further use.
+ *   Reset the resolver to use only the default DNS server, if any.
  *
  ****************************************************************************/
-/* REVISIT: Not implemented */
+
+int dns_default_nameserver(void);
 
 /****************************************************************************
  * Name: dns_foreach_nameserver
  *
  * Description:
- *   Traverse each nameserver entry in the resolv.conf file and perform the
- *   the provided callback.
+ *   Traverse each nameserver entry and perform the provided callback.
  *
  ****************************************************************************/
 
@@ -247,10 +247,19 @@ int dns_register_notify(dns_callback_t callback, FAR void *arg);
 
 int dns_unregister_notify(dns_callback_t callback, FAR void *arg);
 
+/****************************************************************************
+ * Name: dns_set_queryfamily
+ *
+ * Description:
+ *   Configure the address family to be used for queries.
+ *
+ ****************************************************************************/
+
+int dns_set_queryfamily(sa_family_t family);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
 #endif /* __INCLUDE_NUTTX_NET_DNS_H */
-

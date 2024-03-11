@@ -1,18 +1,6 @@
 /****************************************************************************
  * include/nuttx/mtd/nand_model.h
  *
- * ONFI Support.  The Open NAND Flash Interface (ONFI) is an industry
- * Workgroup made up of more than 100 companies that build, design-in, or
- * enable NAND Flash memory. This file provides definitions for standardized
- * ONFI NAND interfaces.
- *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * This logic was based largely on Atmel sample code for the SAMA5D3x with
- * modifications for better integration with NuttX.  The Atmel sample code
- * has a BSD compatibile license that requires this copyright notice:
- *
  *   Copyright (c) 2012, Atmel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
@@ -124,7 +112,8 @@ EXTERN const struct nand_model_s g_nandmodels[NAND_NMODELS];
  * Input Parameters:
  *   modeltab  List of nand_model_s instances.
  *   size      Number of models in list.
- *   chipid    Identifier returned by the Nand(id1|(id2<<8)|(id3<<16)|(id4<<24)).
+ *   chipid    Identifier returned by the
+ *             Nand(id1|(id2<<8)|(id3<<16)|(id4<<24)).
  *   model     nand_model_s instance to update with the model parameters.
  *
  * Returned Value:
@@ -152,13 +141,13 @@ int nandmodel_find(FAR const struct nand_model_s *modeltab, size_t size,
  *   offset  Stores the byte offset inside the first accessed page.
  *
  * Returned Value:
- *   OK on success; -EPIPE on failure.
+ *   OK on success; -ESPIPE on failure.
  *
  ****************************************************************************/
 
 int nandmodel_translate(FAR const struct nand_model_s *model, off_t address,
-                        size_t size, FAR off_t *block, off_t *page,
-                        off_t *offset);
+                        size_t size, FAR off_t *block, FAR off_t *page,
+                        FAR off_t *offset);
 
 /****************************************************************************
  * Name: nandmodel_getscheme

@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/nuttx/cache.h
  *
- *   Copyright (C) 2019 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -60,8 +45,48 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_get_icache_linesize
+ *
+ * Description:
+ *   Get icache linesize
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache line size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE
+size_t up_get_icache_linesize(void);
+#else
+#  define up_get_icache_linesize() 0
+#endif
+
+/****************************************************************************
+ * Name: up_get_icache_size
+ *
+ * Description:
+ *   Get icache size
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE
+size_t up_get_icache_size(void);
+#else
+#  define up_get_icache_size() 0
+#endif
 
 /****************************************************************************
  * Name: up_enable_icache
@@ -83,9 +108,7 @@ extern "C"
 #ifdef CONFIG_ARCH_ICACHE
 void up_enable_icache(void);
 #else
-static inline void up_enable_icache(void)
-{
-}
+#  define up_enable_icache()
 #endif
 
 /****************************************************************************
@@ -105,9 +128,7 @@ static inline void up_enable_icache(void)
 #ifdef CONFIG_ARCH_ICACHE
 void up_disable_icache(void);
 #else
-static inline void up_disable_icache(void)
-{
-}
+#  define up_disable_icache()
 #endif
 
 /****************************************************************************
@@ -128,9 +149,7 @@ static inline void up_disable_icache(void)
 #ifdef CONFIG_ARCH_ICACHE
 void up_invalidate_icache(uintptr_t start, uintptr_t end);
 #else
-static inline void up_invalidate_icache(uintptr_t start, uintptr_t end)
-{
-}
+#  define up_invalidate_icache(start, end)
 #endif
 
 /****************************************************************************
@@ -150,12 +169,115 @@ static inline void up_invalidate_icache(uintptr_t start, uintptr_t end)
 #ifdef CONFIG_ARCH_ICACHE
 void up_invalidate_icache_all(void);
 #else
-static inline void up_invalidate_icache_all(void)
-{
-}
+#  define up_invalidate_icache_all()
 #endif
 
- /****************************************************************************
+/****************************************************************************
+ * Name: up_lock_icache
+ *
+ * Description:
+ *   Prefetch and lock the instruction cache within the specified region.
+ *   If the specified address if not present in the instruction cache,
+ *   some architectures transfer the line from memory, others wait the
+ *   address be read from memory, and then lock.
+ *
+ * Input Parameters:
+ *   start - virtual start address of region
+ *   end   - virtual end address of region + 1
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE_LOCK
+void up_lock_icache(uintptr_t start, uintptr_t end);
+#else
+#  define up_lock_icache()
+#endif
+
+/****************************************************************************
+ * Name: up_unlock_icache
+ *
+ * Description:
+ *   Unlock the instruction cache within the specified region.
+ *
+ * Input Parameters:
+ *   start - virtual start address of region
+ *   end   - virtual end address of region + 1
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE_LOCK
+void up_unlock_icache(uintptr_t start, uintptr_t end);
+#else
+#  define up_unlock_icache()
+#endif
+
+/****************************************************************************
+ * Name: up_unlock_icache_all
+ *
+ * Description:
+ *   Unlock the entire contents of instruction cache.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE_LOCK
+void up_unlock_icache_all(void);
+#else
+#  define up_unlock_icache_all()
+#endif
+
+/****************************************************************************
+ * Name: up_get_dcache_linesize
+ *
+ * Description:
+ *   Get dcache linesize
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache line size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE
+size_t up_get_dcache_linesize(void);
+#else
+#  define up_get_dcache_linesize() 0
+#endif
+
+/****************************************************************************
+ * Name: up_get_dcache_size
+ *
+ * Description:
+ *   Get dcache size
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE
+size_t up_get_dcache_size(void);
+#else
+#  define up_get_dcache_size() 0
+#endif
+
+/****************************************************************************
  * Name: up_enable_dcache
  *
  * Description:
@@ -175,9 +297,7 @@ static inline void up_invalidate_icache_all(void)
 #ifdef CONFIG_ARCH_DCACHE
 void up_enable_dcache(void);
 #else
-static inline void up_enable_dcache(void)
-{
-}
+#  define up_enable_dcache()
 #endif
 
 /****************************************************************************
@@ -197,9 +317,7 @@ static inline void up_enable_dcache(void)
 #ifdef CONFIG_ARCH_DCACHE
 void up_disable_dcache(void);
 #else
-static inline void up_disable_dcache(void)
-{
-}
+#  define up_disable_dcache()
 #endif
 
 /****************************************************************************
@@ -222,9 +340,7 @@ static inline void up_disable_dcache(void)
 #ifdef CONFIG_ARCH_DCACHE
 void up_invalidate_dcache(uintptr_t start, uintptr_t end);
 #else
-static inline void up_invalidate_dcache(uintptr_t start, uintptr_t end)
-{
-}
+#  define up_invalidate_dcache(start, end)
 #endif
 
 /****************************************************************************
@@ -244,9 +360,7 @@ static inline void up_invalidate_dcache(uintptr_t start, uintptr_t end)
 #ifdef CONFIG_ARCH_DCACHE
 void up_invalidate_dcache_all(void);
 #else
-static inline void up_invalidate_dcache_all(void)
-{
-}
+#  define up_invalidate_dcache_all()
 #endif
 
 /****************************************************************************
@@ -268,9 +382,7 @@ static inline void up_invalidate_dcache_all(void)
 #ifdef CONFIG_ARCH_DCACHE
 void up_clean_dcache(uintptr_t start, uintptr_t end);
 #else
-static inline void up_clean_dcache(uintptr_t start, uintptr_t end)
-{
-}
+#  define up_clean_dcache(start, end)
 #endif
 
 /****************************************************************************
@@ -291,9 +403,7 @@ static inline void up_clean_dcache(uintptr_t start, uintptr_t end)
 #ifdef CONFIG_ARCH_DCACHE
 void up_clean_dcache_all(void);
 #else
-static inline void up_clean_dcache_all(void)
-{
-}
+#  define up_clean_dcache_all()
 #endif
 
 /****************************************************************************
@@ -315,9 +425,7 @@ static inline void up_clean_dcache_all(void)
 #ifdef CONFIG_ARCH_DCACHE
 void up_flush_dcache(uintptr_t start, uintptr_t end);
 #else
-static inline void up_flush_dcache(uintptr_t start, uintptr_t end)
-{
-}
+#  define up_flush_dcache(start, end)
 #endif
 
 /****************************************************************************
@@ -337,9 +445,72 @@ static inline void up_flush_dcache(uintptr_t start, uintptr_t end)
 #ifdef CONFIG_ARCH_DCACHE
 void up_flush_dcache_all(void);
 #else
-static inline void up_flush_dcache_all(void)
-{
-}
+#  define up_flush_dcache_all()
+#endif
+
+/****************************************************************************
+ * Name: up_lock_dcache
+ *
+ * Description:
+ *   Prefetch and lock the data cache within the specified region.
+ *   If the specified address is not present in the data cache,
+ *   some architectures transfer the line from memory, others wait the
+ *   address be read from memory, and then lock.
+ *
+ * Input Parameters:
+ *   start - virtual start address of region
+ *   end   - virtual end address of region + 1
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE_LOCK
+void up_lock_dcache(uintptr_t start, uintptr_t end);
+#else
+#  define up_lock_dcache()
+#endif
+
+/****************************************************************************
+ * Name: up_unlock_dcache
+ *
+ * Description:
+ *   Unlock the data cache within the specified region.
+ *
+ * Input Parameters:
+ *   start - virtual start address of region
+ *   end   - virtual end address of region + 1
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE_LOCK
+void up_unlock_dcache(uintptr_t start, uintptr_t end);
+#else
+#  define up_unlock_dcache()
+#endif
+
+/****************************************************************************
+ * Name: up_unlock_dcache_all
+ *
+ * Description:
+ *   Unlock the entire contents of data cache.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE_LOCK
+void up_unlock_dcache_all(void);
+#else
+#  define up_unlock_dcache_all()
 #endif
 
 /****************************************************************************
@@ -363,9 +534,7 @@ static inline void up_flush_dcache_all(void)
 #ifdef CONFIG_ARCH_ICACHE
 void up_coherent_dcache(uintptr_t addr, size_t len);
 #else
-static inline void up_coherent_dcache(uintptr_t addr, size_t len)
-{
-}
+#  define up_coherent_dcache(addr, len)
 #endif
 
 #undef EXTERN

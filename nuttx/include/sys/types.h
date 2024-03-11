@@ -1,35 +1,20 @@
 /****************************************************************************
  * include/sys/types.h
  *
- *   Copyright (C) 2007-2009, 2011-2012, 2014-2015 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -75,15 +60,15 @@
 #  endif
 #endif
 
-/* POSIX-like OS return values: */
+/* Values for seeking */
 
-#if !defined(__cplusplus)
-#  undef  ERROR
-#  define ERROR -1
+#define SEEK_SET    0  /* From the start of the file */
+#define SEEK_CUR    1  /* From the current file offset */
+#define SEEK_END    2  /* From the end of the file */
+
+#ifndef CONFIG_SMP_NCPUS
+#  define CONFIG_SMP_NCPUS 1
 #endif
-
-#undef  OK
-#define OK 0
 
 /* Scheduling Priorities.
  *
@@ -98,22 +83,20 @@
 #define SCHED_PRIORITY_MIN       1
 #define SCHED_PRIORITY_IDLE      0
 
+#if defined(CONFIG_FS_LARGEFILE)
+#  define __USE_FILE_OFFSET64    1
+#  define fsblkcnt64_t           fsblkcnt_t
+#  define fsfilcnt64_t           fsfilcnt_t
+#  define blkcnt64_t             blkcnt_t
+#  define off64_t                off_t
+#  define fpos64_t               fpos_t
+#endif
+
 /****************************************************************************
  * Type Declarations
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
-
-/* Floating point types */
-
-typedef float        float32;
-#ifndef CONFIG_HAVE_DOUBLE
-typedef float        double_t;
-typedef float        float64;
-#else
-typedef double       double_t;
-typedef double       float64;
-#endif
 
 /* Misc. scalar types */
 
@@ -139,14 +122,10 @@ typedef int16_t      ssize_t;
 typedef uint16_t     rsize_t;
 
 #else /* CONFIG_SMALL_MEMORY */
-/* As a general rule, the size of size_t should be the same as the size of
- * uintptr_t: 32-bits on a machine with 32-bit addressing but 64-bits on a
- * machine with 64-bit addressing.
- */
 
-typedef uintptr_t    size_t;
-typedef intptr_t     ssize_t;
-typedef uintptr_t    rsize_t;
+typedef _size_t      size_t;
+typedef _ssize_t     ssize_t;
+typedef _size_t      rsize_t;
 
 #endif /* CONFIG_SMALL_MEMORY */
 
@@ -159,44 +138,47 @@ typedef int16_t      gid_t;
 
 /* dev_t is used for device IDs */
 
-typedef uint16_t     dev_t;
+typedef uint32_t     dev_t;
 
 /* ino_t is used for file serial numbers */
 
 typedef uint16_t     ino_t;
 
-/* pid_t is used for process IDs and process group IDs. It must be signed because
- * negative PID values are used to represent invalid PIDs.
+/* nlink_t is used for link counts */
+
+typedef uint16_t     nlink_t;
+
+/* pid_t is used for process IDs and process group IDs. It must be signed
+ * because negative PID values are used to represent invalid PIDs.
  */
 
-typedef int16_t      pid_t;
+typedef int          pid_t;
 
 /* id_t is a general identifier that can be used to contain at least a pid_t,
  * uid_t, or gid_t.
  */
 
-typedef int16_t      id_t;
+typedef int          id_t;
 
-/* Unix requires a key of type key_t defined in file sys/types.h for requesting
- * resources such as shared memory segments, message queues and semaphores. A key
- * is simply an integer of type key_t
+/* Unix requires a key of type key_t defined in file sys/types.h for
+ * requesting resources such as shared memory segments, message queues and
+ * semaphores. A key is simply an integer of type key_t
  */
 
-typedef int16_t      key_t;
+typedef int32_t      key_t;
 
 /* Signed integral type of the result of subtracting two pointers */
 
 typedef intptr_t     ptrdiff_t;
 
-#ifndef CONFIG_WCHAR_BUILTIN
-/* Wide, 16-bit character types.  wchar_t is a built-in type in C++ and
- * its declaration here may cause compilation errors on some compilers
- * if -DCONFIG_WCHAR_BUILTIN is not included in the CXXFLAGS.
+#if !defined(__cplusplus)
+/* Wide character types.  wchar_t is a built-in type in C++ and
+ * its declaration here may cause compilation errors on some compilers.
  *
  * REVISIT: wchar_t belongs in stddef.h
  */
 
-typedef uint16_t     wchar_t;
+typedef _wchar_t     wchar_t;
 #endif
 
 /* wint_t
@@ -212,6 +194,21 @@ typedef int wint_t;
 
 typedef int wctype_t;
 
+#if defined(CONFIG_FS_LARGEFILE)
+/* Large file versions */
+
+typedef uint64_t     fsblkcnt_t;
+typedef uint64_t     fsfilcnt_t;
+
+typedef uint64_t     blkcnt_t;
+typedef int64_t      off_t;
+typedef int64_t      fpos_t;
+#else
+/* fsblkcnt_t and fsfilcnt_t shall be defined as unsigned integer types. */
+
+typedef uint32_t     fsblkcnt_t;
+typedef uint32_t     fsfilcnt_t;
+
 /* blkcnt_t and off_t are signed integer types.
  *
  *   blkcnt_t is used for file block counts.
@@ -223,13 +220,7 @@ typedef int wctype_t;
 
 typedef uint32_t     blkcnt_t;
 typedef int32_t      off_t;
-typedef off_t        fpos_t;
-
-#ifdef CONFIG_HAVE_LONG_LONG
-/* Large file versions */
-
-typedef int64_t      off64_t;
-typedef int64_t      fpos64_t;
+typedef int32_t      fpos_t;
 #endif
 
 /* blksize_t is a signed integer value used for file block sizes */
@@ -239,6 +230,7 @@ typedef int16_t      blksize_t;
 /* Network related */
 
 typedef unsigned int socklen_t;
+#define __socklen_t_defined
 typedef uint16_t     sa_family_t;
 
 /* Used for system times in clock ticks. This type is the natural width of
@@ -250,9 +242,13 @@ typedef uint16_t     sa_family_t;
 
 #ifdef CONFIG_SYSTEM_TIME64
 typedef uint64_t     clock_t;
+typedef int64_t      time_t;         /* Holds time in seconds */
 #else
 typedef uint32_t     clock_t;
+typedef uint32_t     time_t;         /* Holds time in seconds */
 #endif
+typedef int          clockid_t;      /* Identifies one time base source */
+typedef FAR void    *timer_t;        /* Represents one POSIX timer */
 
 /* The type useconds_t shall be an unsigned integer type capable of storing
  * values at least in the range [0, 1000000]. The type suseconds_t shall be
@@ -263,7 +259,6 @@ typedef uint32_t     clock_t;
 typedef uint32_t     useconds_t;
 typedef int32_t      suseconds_t;
 
-#ifdef CONFIG_SMP
 /* This is the smallest integer type that will hold a bitset of all CPUs */
 
 #if (CONFIG_SMP_NCPUS <= 8)
@@ -275,9 +270,6 @@ typedef volatile uint32_t cpu_set_t;
 #else
 #  error SMP: Extensions needed to support this number of CPUs
 #endif
-#else
-typedef volatile uint8_t cpu_set_t;
-#endif /* CONFIG_SMP */
 
 /* BSD types provided only to support porting to NuttX. */
 
@@ -295,14 +287,58 @@ typedef unsigned long  ulong;
 typedef signed char    s_char;
 typedef FAR char      *caddr_t;
 
+/* These were defined by ISO C without the first `_'.  */
+
+typedef uint8_t  u_int8_t;
+typedef uint16_t u_int16_t;
+typedef uint32_t u_int32_t;
+#ifdef __INT24_DEFINED
+typedef uint24_t u_int24_t;
+#endif
+#ifdef __INT64_DEFINED
+typedef uint64_t u_int64_t;
+#endif
+
+struct fsid_s
+{
+  int val[2];
+};
+
 /* Task entry point */
 
 typedef CODE int (*main_t)(int argc, FAR char *argv[]);
 
-#endif /* __ASSEMBLY__ */
+/* POSIX-like OS return values: */
+
+enum
+{
+  ERROR = -1,
+  OK = 0,
+};
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+/* This entry point must be supplied by the application */
+
+#ifdef CONFIG_INIT_ENTRYPOINT
+int CONFIG_INIT_ENTRYPOINT(int argc, FAR char *argv[]);
+#endif
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __INCLUDE_SYS_TYPES_H */

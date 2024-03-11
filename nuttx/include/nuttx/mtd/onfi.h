@@ -1,18 +1,6 @@
 /****************************************************************************
  * include/nuttx/mtd/onfi.h
  *
- * ONFI Support.  The Open NAND Flash Interface (ONFI) is an industry
- * Workgroup made up of more than 100 companies that build, design-in, or
- * enable NAND Flash memory. This file provides definitions for standardized
- * ONFI NAND interfaces.
- *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * This ONFI logic was based largely on Atmel sample code for the SAMA5D3x
- * with modifications for better integration with NuttX.  The Atmel sample
- * code has a BSD compatibile license that requires this copyright notice:
- *
  *   Copyright (c) 2010, Atmel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,7 +52,7 @@
  * Public Types
  ****************************************************************************/
 
-/* Describes memory organization block information in ONFI parameter page*/
+/* Describes memory organization block information in ONFI parameter page */
 
 struct onfi_pgparam_s
 {
@@ -102,7 +90,7 @@ extern "C"
  *
  * Description:
  *   This function read an the ONFI signature at address of 20h to detect
- *   if the device is ONFI compatiable.
+ *   if the device is ONFI compatible.
  *
  * Input Parameters:
  *   cmdaddr  - NAND command address base
@@ -164,7 +152,7 @@ bool onfi_embeddedecc(FAR const struct onfi_pgparam_s *onfi,
                       uintptr_t cmdaddr, uintptr_t addraddr,
                       uintptr_t dataaddr, bool enable);
 #else
-# define onfi_embeddedecc(o,c,a,d,e) (false)
+#  define onfi_embeddedecc(o,c,a,d,e) (false)
 #endif
 
 /****************************************************************************

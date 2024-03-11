@@ -1,31 +1,25 @@
 /****************************************************************************
- * wireless/bluetooth/bt_driver.h
- * Bluetooth HCI driver API.
- *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Ported from the Intel/Zephyr arduino101_firmware_source-v1.tar package
- * where the code was released with a compatible 3-clause BSD license:
+ * include/nuttx/wireless/bluetooth/bt_driver.h
  *
  *   Copyright (c) 2016, Intel Corporation
  *   All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS AS IS
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -40,13 +34,20 @@
  ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_DRIVER_H
-#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_DRIVER_H 1
+#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_DRIVER_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/wireless/bluetooth/bt_buf.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define bt_netdev_receive(btdev, type, data, len) \
+        (btdev)->receive(btdev, type, data, len)
 
 /****************************************************************************
  * Public Types
@@ -60,12 +61,40 @@ struct bt_driver_s
 
   /* Open the HCI transport */
 
-  CODE int (*open)(FAR const struct bt_driver_s *btdev);
+  CODE int (*open)(FAR struct bt_driver_s *btdev);
 
   /* Send data to HCI */
 
-  CODE int (*send)(FAR const struct bt_driver_s *btdev,
-                   FAR struct bt_buf_s *buf);
+  CODE int (*send)(FAR struct bt_driver_s *btdev,
+                   enum bt_buf_type_e type,
+                   FAR void *data, size_t len);
+
+  /* Close the HCI transport */
+
+  CODE void (*close)(FAR struct bt_driver_s *btdev);
+
+  /* Filled by register function but called by bt_driver_s */
+
+  CODE int (*receive)(FAR struct bt_driver_s *btdev,
+                      enum bt_buf_type_e type,
+                      FAR void *data, size_t len);
+
+  /* Lower-half logic may support platform-specific ioctl commands */
+
+  CODE int (*ioctl)(FAR struct bt_driver_s *btdev, int cmd,
+                    unsigned long arg);
+
+  /* For private use by device drivers.
+   * Should NOT be touched by the bluetooth stack.
+   */
+
+  FAR void *priv;
+
+  /* Reserved for the bluetooth stack.
+   * Should NOT be touched by drivers.
+   */
+
+  FAR void *bt_net;
 };
 
 /****************************************************************************
@@ -88,24 +117,23 @@ struct bt_driver_s
  *
  ****************************************************************************/
 
-int bt_netdev_register(FAR const struct bt_driver_s *btdev);
+int bt_netdev_register(FAR struct bt_driver_s *btdev);
 
 /****************************************************************************
- * Name: bt_hci_receive
+ * Name: bt_netdev_unregister
  *
  * Description:
- *   Called by the Bluetooth low-level driver when new data is received from
- *   the radio.  This may be called from the low-level driver and is part of
- *   the driver interface prototyped in include/nuttx/wireless/bluetooth/bt_driver.h
+ *   Unregister a network driver registered by bt_netdev_register.
  *
  * Input Parameters:
- *   buf - An instance of the buffer structure providing the received frame.
+ *   btdev - An instance of the low-level driver interface structure.
  *
  * Returned Value:
- *  None
+ *   Zero (OK) is returned on success.  Otherwise a negated errno value is
+ *   returned to indicate the nature of the failure.
  *
  ****************************************************************************/
 
-void bt_hci_receive(FAR struct bt_buf_s *buf);
+int bt_netdev_unregister(FAR struct bt_driver_s *btdev);
 
 #endif /* __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_DRIVER_H */

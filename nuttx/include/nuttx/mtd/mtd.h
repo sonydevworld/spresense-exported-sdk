@@ -2,35 +2,20 @@
  * include/nuttx/mtd/mtd.h
  * Memory Technology Device (MTD) interface
  *
- *   Copyright (C) 2009-2013, 2015, 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -55,34 +40,42 @@
 
 /* Ioctl commands */
 
-#define MTDIOC_GEOMETRY   _MTDIOC(0x0001) /* IN:  Pointer to write-able struct
-                                           *      mtd_geometry_s in which to receive
-                                           *      receive geometry data (see mtd.h)
-                                           * OUT: Geometry structure is populated
-                                           *      with data for the MTD */
-#define MTDIOC_XIPBASE    _MTDIOC(0x0002) /* IN:  Pointer to pointer to void in
-                                           *      which to received the XIP base.
-                                           * OUT: If media is directly accessible,
-                                           *      return (void*) base address
-                                           *      of device memory */
-#define MTDIOC_BULKERASE  _MTDIOC(0x0003) /* IN:  None
-                                           * OUT: None */
-#define MTDIOC_PROTECT    _MTDIOC(0x0004) /* IN:  Pointer to read-able struct
-                                           *      mtd_protects_s that provides
-                                           *      the region to protect.
-                                           * OUT: None */
-#define MTDIOC_UNPROTECT  _MTDIOC(0x0005) /* IN:  Pointer to read-able struct
-                                           *      mtd_protects_s that provides
-                                           *      the region to un-protect.
-                                           * OUT: None */
-#define MTDIOC_SETSPEED   _MTDIOC(0x0006) /* IN:  New bus speed in Hz
-                                           * OUT: None */
-#define MTDIOC_EXTENDED   _MTDIOC(0x0007) /* IN:  unsigned long
-                                           *      0=Use normal memory region
-                                           *      1=Use alternate/extended memory
-                                           * OUT: None */
-#define MTDIOC_ECCSTATUS  _MTDIOC(0x0008) /* IN:  Pointer to uint8_t
-                                           * OUT: ECC status */
+/* Note, the following ioctl existed in the past and was removed:
+ * #define MTDIOC_XIPBASE    _MTDIOC(0x0002)
+ * #define MTDIOC_FLUSH      _MTDIOC(0x0009)
+ * #define MTDIOC_PARTINFO   _MTDIOC(0x000b)
+ * try to avoid adding a new ioctl with the same ioctl number and
+ * replace with BIOC_XIPBASE, BIOC_FLUSH and BIOC_PARTINFO instead.
+ */
+
+#define MTDIOC_GEOMETRY     _MTDIOC(0x0001) /* IN:  Pointer to write-able struct
+                                             *      mtd_geometry_s in which to receive
+                                             *      receive geometry data (see mtd.h)
+                                             * OUT: Geometry structure is populated
+                                             *      with data for the MTD */
+#define MTDIOC_BULKERASE    _MTDIOC(0x0003) /* IN:  None
+                                            * OUT: None */
+#define MTDIOC_PROTECT      _MTDIOC(0x0004) /* IN:  Pointer to read-able struct
+                                             *      mtd_protects_s that provides
+                                             *      the region to protect.
+                                             * OUT: None */
+#define MTDIOC_UNPROTECT    _MTDIOC(0x0005) /* IN:  Pointer to read-able struct
+                                             *      mtd_protects_s that provides
+                                             *      the region to un-protect.
+                                             * OUT: None */
+#define MTDIOC_SETSPEED     _MTDIOC(0x0006) /* IN:  New bus speed in Hz
+                                             * OUT: None */
+#define MTDIOC_EXTENDED     _MTDIOC(0x0007) /* IN:  unsigned long
+                                             *      0=Use normal memory region
+                                             *      1=Use alternate/extended memory
+                                             * OUT: None */
+#define MTDIOC_ECCSTATUS    _MTDIOC(0x0008) /* IN:  Pointer to uint8_t
+                                             * OUT: ECC status */
+#define MTDIOC_ERASESTATE   _MTDIOC(0x000a) /* IN:  Pointer to uint8_t
+                                             * OUT: Byte value that represents the
+                                             *      erased state of the MTD cell */
+#define MTDIOC_ERASESECTORS _MTDIOC(0x000c) /* IN: Pointer to mtd_erase_s structure
+                                             * OUT: None */
 
 /* Macros to hide implementation */
 
@@ -92,6 +85,8 @@
 #define MTD_READ(d,s,n,b)  ((d)->read    ? (d)->read(d,s,n,b)   : (-ENOSYS))
 #define MTD_WRITE(d,s,n,b) ((d)->write   ? (d)->write(d,s,n,b)  : (-ENOSYS))
 #define MTD_IOCTL(d,c,a)   ((d)->ioctl   ? (d)->ioctl(d,c,a)    : (-ENOSYS))
+#define MTD_ISBAD(d,b)     ((d)->isbad   ? (d)->isbad(d,b)      : (-ENOSYS))
+#define MTD_MARKBAD(d,b)   ((d)->markbad ? (d)->markbad(d,b)    : (-ENOSYS))
 
 /* If any of the low-level device drivers declare they want sub-sector erase
  * support, then define MTD_SUBSECTOR_ERASE.
@@ -105,10 +100,10 @@
  * Public Types
  ****************************************************************************/
 
-struct qspi_dev_s; /* Forward reference */
+struct qspi_dev_s;    /* Forward reference */
 
 /* The following defines the geometry for the device.  It treats the device
- * as though it where just an array of fixed size blocks.  That is most likely
+ * as though it were just an array of fixed size blocks.  That is most likely
  * not true, but the client will expect the device logic to do whatever is
  * necessary to make it appear so.
  */
@@ -117,8 +112,12 @@ struct mtd_geometry_s
 {
   uint32_t blocksize;     /* Size of one read/write block. */
   uint32_t erasesize;     /* Size of one erase blocks -- must be a multiple
-                           * of blocksize.*/
+                           * of blocksize. */
   uint32_t neraseblocks;  /* Number of erase blocks */
+
+  /* NULL-terminated string representing the device model */
+
+  char     model[NAME_MAX + 1];
 };
 
 /* This structure describes a range of sectors to be protected or
@@ -142,6 +141,14 @@ struct mtd_byte_write_s
   const uint8_t *buffer;  /* Pointer to the data to write */
 };
 
+/* This structure describes a range of erase sectors to be erased. */
+
+struct mtd_erase_s
+{
+  uint32_t startblock;  /* First block to be erased */
+  uint32_t nblocks;     /* Number of blocks to be erased */
+};
+
 /* This structure defines the interface to a simple memory technology device.
  * It will likely need to be extended in the future to support more complex
  * devices.
@@ -162,15 +169,15 @@ struct mtd_dev_s
 
   /* Read/write from the specified read/write blocks */
 
-  ssize_t (*bread)(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                   FAR uint8_t *buffer);
-  ssize_t (*bwrite)(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                    FAR const uint8_t *buffer);
+  ssize_t (*bread)(FAR struct mtd_dev_s *dev, off_t startblock,
+                   size_t nblocks, FAR uint8_t *buffer);
+  ssize_t (*bwrite)(FAR struct mtd_dev_s *dev, off_t startblock,
+                    size_t nblocks, FAR const uint8_t *buffer);
 
-  /* Some devices may support byte oriented reads (optional).  Most MTD devices
-   * are inherently block oriented so byte-oriented writing is not supported. It
-   * is recommended that low-level drivers not support read() if it requires
-   * buffering.
+  /* Some devices may support byte oriented reads (optional).  Most MTD
+   * devices are inherently block oriented so byte-oriented writing is not
+   * supported. It is recommended that low-level drivers not support read()
+   * if it requires buffering.
    */
 
   ssize_t (*read)(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
@@ -182,12 +189,18 @@ struct mtd_dev_s
 
   /* Support other, less frequently used commands:
    *  - MTDIOC_GEOMETRY:  Get MTD geometry
-   *  - MTDIOC_XIPBASE:   Convert block to physical address for eXecute-In-Place
+   *  - MTDIOC_XIPBASE:   Convert block to physical address for
+   *    eXecute-In-Place
    *  - MTDIOC_BULKERASE: Erase the entire device
    * (see include/nuttx/fs/ioctl.h)
    */
 
   int (*ioctl)(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
+
+  /* Check/Mark bad block for the specified block number */
+
+  int (*isbad)(FAR struct mtd_dev_s *dev, off_t block);
+  int (*markbad)(FAR struct mtd_dev_s *dev, off_t block);
 
   /* Name of this MTD device */
 
@@ -221,7 +234,7 @@ extern "C"
  *   Given an instance of an MTD driver, create a flash partition, ie.,
  *   another MTD driver instance that only operates with a sub-region of
  *   FLASH media.  That sub-region is defined by a sector offset and a
- *   sector count (where the size of a sector is provided the by parent MTD
+ *   sector count (where the size of a sector is provided by the parent MTD
  *   driver).
  *
  *   NOTE: Since there may be a number of MTD partition drivers operating on
@@ -256,19 +269,19 @@ FAR struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 int mtd_setpartitionname(FAR struct mtd_dev_s *mtd, FAR const char *name);
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: mtd_rwb_initialize
  *
  * Description:
- *   Create an initialized MTD device instance.  This MTD driver contains another
- *   MTD driver and converts a larger sector size to a standard 512 byte sector
- *   size.
+ *   Create an initialized MTD device instance.  This MTD driver contains
+ *   another MTD driver and converts a larger sector size to a standard 512
+ *   byte sector size.
  *
- *   MTD devices are not registered in the file system, but are created as instances
- *   that can be bound to other functions (such as a block or character driver front
- *   end).
+ *   MTD devices are not registered in the file system, but are created as
+ *   instances that can be bound to other functions (such as a block or
+ *   character driver front end).
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #if defined(CONFIG_MTD_WRBUFFER) || defined(CONFIG_MTD_READAHEAD)
 FAR struct mtd_dev_s *mtd_rwb_initialize(FAR struct mtd_dev_s *mtd);
@@ -384,14 +397,15 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev,
 FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev);
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: at24c_uninitialize
  *
  * Description:
- *   Release resources held by an allocated MTD device instance.  Resources are only
- *   allocated for the case where multiple AT24xx devices are support.
+ *   Release resources held by an allocated MTD device instance.  Resources
+ *   are only allocated for the case where multiple AT24xx devices are
+ *   supported.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifdef CONFIG_AT24XX_MULTI
 void at24c_uninitialize(FAR struct mtd_dev_s *mtd);
@@ -415,7 +429,8 @@ FAR struct mtd_dev_s *at25_initialize(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *is25xp_initialize(FAR struct spi_dev_s *dev);
+FAR struct mtd_dev_s *is25xp_initialize(FAR struct spi_dev_s *dev,
+                                        uint16_t spi_devid);
 
 /****************************************************************************
  * Name: m25p_initialize
@@ -500,7 +515,8 @@ FAR struct mtd_dev_s *sst25xx_initialize(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *sst26_initialize_spi(FAR struct spi_dev_s *dev);
+FAR struct mtd_dev_s *sst26_initialize_spi(FAR struct spi_dev_s *dev,
+                                           uint16_t spi_devid);
 
 /****************************************************************************
  * Name: sst39vf_initialize
@@ -596,32 +612,16 @@ FAR struct mtd_dev_s *n25qxxx_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
 /****************************************************************************
- * Name: blockmtd_initialize
+ * Name: w25qxxxjv_initialize
  *
  * Description:
- *   Create and initialize a BLOCK MTD device instance.
- *
- * Input Parameters:
- *   path - Path name of the block device backing the MTD device
+ *   Create an initialized MTD device instance for the QuadSPI-based
+ *   W25QxxxJV FLASH part from Winbond.
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *blockmtd_initialize(FAR const char *path, size_t offset,
-                                          size_t mtdlen, int16_t sectsize,
-                                          int32_t erasesize);
-
-/****************************************************************************
- * Name: blockmtd_teardown
- *
- * Description:
- *   Teardown a previously created blockmtd device.
- *
- * Input Parameters:
- *   dev - Pointer to the mtd driver instance.
- *
- ****************************************************************************/
-
-void blockmtd_teardown(FAR struct mtd_dev_s *dev);
+FAR struct mtd_dev_s *w25qxxxjv_initialize(FAR struct qspi_dev_s *qspi,
+                                           bool unprotect);
 
 /****************************************************************************
  * Name: filemtd_initialize
@@ -635,7 +635,8 @@ void blockmtd_teardown(FAR struct mtd_dev_s *dev);
  ****************************************************************************/
 
 FAR struct mtd_dev_s *filemtd_initialize(FAR const char *path, size_t offset,
-                                         int16_t sectsize, int32_t erasesize);
+                                         int16_t sectsize,
+                                         int32_t erasesize);
 
 /****************************************************************************
  * Name: filemtd_teardown
@@ -662,6 +663,99 @@ void filemtd_teardown(FAR struct mtd_dev_s *dev);
  ****************************************************************************/
 
 bool filemtd_isfilemtd(FAR struct mtd_dev_s *mtd);
+
+/****************************************************************************
+ * Name: nullmtd_initialize
+ *
+ * Description:
+ *   Create and initialize a MTD null device instance.
+ *
+ * Input Parameters:
+ *   mtdlen    - Total length of a size in bytes of the MTD null device
+ *   sectsize  - Sector size of the MTD null device
+ *   erasesize - Erase block size of the MTD null device
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *nullmtd_initialize(size_t mtdlen, int16_t sectsize,
+                                         int32_t erasesize);
+
+/****************************************************************************
+ * Name: rpmsgmtd_register
+ *
+ * Description:
+ *   Rpmsg-mtd client register function, the client cpu should call
+ *   this function in the board initialize process.
+ *
+ * Parameters:
+ *   remotecpu  - the server cpu name
+ *   remotepath - the device you want to access in the remote cpu
+ *   localpath  - the device path in local cpu, if NULL, the localpath is
+ *                same as the remotepath, provide this argument to supoort
+ *                custom device path
+ *
+ * Returned Values:
+ *   OK on success; A negated errno value is returned on any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RPMSGMTD
+int rpmsgmtd_register(FAR const char *remotecpu, FAR const char *remotepath,
+                      FAR const char *localpath);
+#endif
+
+/****************************************************************************
+ * Name: rpmsgmtd_server_init
+ *
+ * Description:
+ *   Rpmsg-mtd server initialize function, the server cpu should call
+ *   this function.
+ *
+ * Parameters:
+ *   None
+ *
+ * Returned Values:
+ *   OK on success; A negated errno value is returned on any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RPMSGMTD_SERVER
+int rpmsgmtd_server_init(void);
+#endif
+
+/****************************************************************************
+ * Name: dhara_initialize
+ *
+ * Description:
+ *   Initialize to provide a block driver wrapper around an MTD interface
+ *
+ * Input Parameters:
+ *   minor - The minor device number.  The MTD block device will be
+ *           registered as as /dev/mtdblockN where N is the minor number.
+ *   mtd   - The MTD device that supports the FLASH interface.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MTD_DHARA
+int dhara_initialize(int minor, FAR struct mtd_dev_s *mtd);
+#endif
+
+/****************************************************************************
+ * Name: dhara_initialize_by_path
+ *
+ * Description:
+ *   Initialize to provide a block driver wrapper around an MTD interface
+ *
+ * Input Parameters:
+ *   path - The block device path.
+ *   mtd  - The MTD device that supports the FLASH interface.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MTD_DHARA
+int dhara_initialize_by_path(FAR const char *path,
+                             FAR struct mtd_dev_s *mtd);
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

@@ -1,35 +1,20 @@
 /****************************************************************************
- * arch/include/CXD56XX/crashdump.h
+ * arch/arm/include/cxd56xx/crashdump.h
  *
- *   Copyright 2018 Sony Semiconductor Solutions Corporation
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of Sony Semiconductor Solutions Corporation nor
- *    the names of its contributors may be used to endorse or promote
- *    products derived from this software without specific prior written
- *    permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -44,10 +29,12 @@
 
 #include <stdint.h>
 
+#include <sys/param.h>
+
 #include <nuttx/irq.h>
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Pre-processor Prototypes
  ****************************************************************************/
 
 /* Configuration ************************************************************/
@@ -69,9 +56,7 @@
 #define CONFIG_USTACK_SIZE (CRASHLOG_LEFTOVER / NUMBER_STACKS / \
                             sizeof(stack_word_t))
 
-#define ARRAYSIZE(a) (sizeof((a))/sizeof(a[0]))
-
-/* For Assert keep this much of the file name*/
+/* For Assert keep this much of the file name */
 
 #define MAX_FILE_PATH_LENGTH 40
 
@@ -100,7 +85,7 @@ typedef struct
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
   _stack_t interrupt;
 #endif
-} stack_t;
+} crash_stack_t;
 
 /* Flags to identify what is in the dump */
 
@@ -119,9 +104,9 @@ typedef struct
   fault_flags_t flags;                  /* What is in the dump */
   uintptr_t     current_regs;           /* Used to validate the dump */
   int           lineno;                 /* __LINE__ to up_assert */
-  int           pid;                    /* Process ID */
+  pid_t         pid;                    /* Process ID */
   uint32_t      regs[XCPTCONTEXT_REGS]; /* Interrupt register save area */
-  stack_t       stacks;                 /* Stack info */
+  crash_stack_t stacks;                 /* Stack info */
 #if CONFIG_TASK_NAME_SIZE > 0
   char          name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
                                                   * terminator) */

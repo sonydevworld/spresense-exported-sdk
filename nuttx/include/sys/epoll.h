@@ -1,5 +1,5 @@
 /****************************************************************************
- * fs/vfs/fs_epoll.c
+ * include/sys/epoll.h
  *
  *   Copyright (C) 2015 Anton D. Kachalov. All rights reserved.
  *   Author: Anton D. Kachalov <mouse@mayc.ru>
@@ -40,7 +40,11 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
 #include <poll.h>
+#include <fcntl.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -74,37 +78,72 @@ enum EPOLL_EVENTS
 #define EPOLLERR EPOLLERR
     EPOLLHUP = POLLHUP,
 #define EPOLLHUP EPOLLHUP
+    EPOLLRDHUP = 0x2000,
+#define EPOLLRDHUP EPOLLRDHUP
+    EPOLLWAKEUP = 1u << 29,
+#define EPOLLWAKEUP EPOLLWAKEUP
+    EPOLLONESHOT = 1u << 30,
+#define EPOLLONESHOT EPOLLONESHOT
+    EPOLLET = 1u << 31,
+#define EPOLLET EPOLLET
   };
 
-typedef union poll_data
+/* Flags to be passed to epoll_create1.  */
+
+enum
 {
-  int          fd;       /* The descriptor being polled */
-} epoll_data_t;
+  EPOLL_CLOEXEC = O_CLOEXEC
+#define EPOLL_CLOEXEC EPOLL_CLOEXEC
+};
+
+union epoll_data
+{
+  FAR void    *ptr;
+  int          fd;
+  uint32_t     u32;
+#ifdef CONFIG_HAVE_LONG_LONG
+  uint64_t     u64;
+#endif
+};
+
+typedef union epoll_data epoll_data_t;
 
 struct epoll_event
 {
+  uint32_t     events;
   epoll_data_t data;
-  FAR sem_t   *sem;      /* Pointer to semaphore used to post output event */
-  pollevent_t  events;   /* The input event flags */
-  pollevent_t  revents;  /* The output event flags */
-  FAR void    *priv;     /* For use by drivers */
 };
 
-struct epoll_head
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C"
 {
-  int size;
-  int occupied;
-  FAR struct epoll_event *evs;
-};
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 int epoll_create(int size);
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *ev);
-int epoll_wait(int epfd, struct epoll_event *evs, int maxevents, int timeout);
+int epoll_create1(int flags);
+int epoll_ctl(int epfd, int op, int fd, FAR struct epoll_event *ev);
+int epoll_wait(int epfd, FAR struct epoll_event *evs,
+               int maxevents, int timeout);
+int epoll_pwait(int epfd, FAR struct epoll_event *evs,
+                int maxevents, int timeout, FAR const sigset_t *sigmask);
 
 void epoll_close(int epfd);
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __INCLUDE_SYS_EPOLL_H */

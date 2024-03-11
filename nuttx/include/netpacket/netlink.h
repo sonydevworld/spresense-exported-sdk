@@ -1,40 +1,25 @@
 /****************************************************************************
  * include/netpacket/netlink.h
  *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
-#ifndef  __INCLUDE_NETPACKET_NETLINK_H
-#define  __INCLUDE_NETPACKET_NETLINK_H
+#ifndef __INCLUDE_NETPACKET_NETLINK_H
+#define __INCLUDE_NETPACKET_NETLINK_H
 
 /****************************************************************************
  * Included Files
@@ -45,6 +30,8 @@
 
 #include <sys/socket.h>
 #include <stdint.h>
+
+#include <netpacket/if_addr.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -65,30 +52,32 @@
 
 #define NETLINK_ROUTE          0       /* Routing/device hook for user-space
                                         * routing daemons (default) */
-#define NETLINK_USERSOCK       1       /* Reserved for user mode socket protocols */
-#define NETLINK_FIREWALL       2       /* Interface to receive packets from
+#define NETLINK_UNUSED         1       /* Unused number */
+#define NETLINK_USERSOCK       2       /* Reserved for user mode socket protocols */
+#define NETLINK_FIREWALL       3       /* Interface to receive packets from
                                         * the firewall */
-#define NETLINK_SOCK_DIAG      3       /* Socket monitoring */
-#define NETLINK_NFLOG          4       /* netfilter/iptables ULOG */
-#define NETLINK_XFRM           5       /* Interface to IPsec security databases
-                                        * for key-manager daemons using the Internet
-                                        * Key Exchange protocol. */
-#define NETLINK_ISCSI          6       /* Open-iSCSI */
-#define NETLINK_AUDIT          7       /* Interface to auditing sub-system */
-#define NETLINK_FIB_LOOKUP     8
-#define NETLINK_CONNECTOR      9
-#define NETLINK_NETFILTER      10      /* netfilter subsystem */
-#define NETLINK_IP6_FW         11      /* Interface to transport packets from
+#define NETLINK_SOCK_DIAG      4       /* Socket monitoring */
+#define NETLINK_NFLOG          5       /* netfilter/iptables ULOG */
+#define NETLINK_XFRM           6       /* Interface to IPsec security databases
+                                        * for key-manager daemons using the
+                                        * Internet Key Exchange protocol. */
+#define NETLINK_SELINUX        7       /* SELinux event notifications */
+#define NETLINK_ISCSI          8       /* Open-iSCSI */
+#define NETLINK_AUDIT          9       /* Interface to auditing sub-system */
+#define NETLINK_FIB_LOOKUP     10
+#define NETLINK_CONNECTOR      11
+#define NETLINK_NETFILTER      12      /* netfilter subsystem */
+#define NETLINK_IP6_FW         13      /* Interface to transport packets from
                                         * netfilter to user-space. */
-#define NETLINK_DNRTMSG        12      /* DECnet routing messages */
-#define NETLINK_KOBJECT_UEVENT 13      /* Kernel messages to userspace */
-#define NETLINK_GENERIC        14
+#define NETLINK_DNRTMSG        14      /* DECnet routing messages */
+#define NETLINK_KOBJECT_UEVENT 15      /* Kernel messages to userspace */
+#define NETLINK_GENERIC        16
                                        /* NETLINK_DM (DM Events) */
-#define NETLINK_SCSITRANSPORT  16      /* SCSI Transports */
-#define NETLINK_ECRYPTFS       17
-#define NETLINK_RDMA           18
-#define NETLINK_CRYPTO         19      /* Crypto layer */
-#define NETLINK_SMC            20      /* SMC monitoring */
+#define NETLINK_SCSITRANSPORT  18      /* SCSI Transports */
+#define NETLINK_ECRYPTFS       19
+#define NETLINK_RDMA           20
+#define NETLINK_CRYPTO         21      /* Crypto layer */
+#define NETLINK_SMC            22      /* SMC monitoring */
 
 /* Definitions associated with struct sockaddr_nl ***************************/
 
@@ -122,7 +111,7 @@
 /* Flags for ACK message */
 
 #define NLM_F_CAPPED           0x0100  /* request was capped */
-#define NLM_F_ACK_TLVS        0x0200  /* extended ACK TVLs were included */
+#define NLM_F_ACK_TLVS         0x0200  /* extended ACK TVLs were included */
 
 /* Definitions for struct nlmsghdr ******************************************/
 
@@ -131,13 +120,17 @@
 #define NLMSG_HDRLEN          sizeof(struct nlmsghdr)
 #define NLMSG_LENGTH(n)       (NLMSG_HDRLEN + (n))
 #define NLMSG_SPACE(len)      NLMSG_ALIGN(NLMSG_LENGTH(len))
-#define NLMSG_DATA(hdr)       ((FAR void*)(((FAR char*)hdr) + NLMSG_HDRLEN))
-#define NLMSG_NEXT(hdr,n) \
+#define NLMSG_DATA(hdr)       ((FAR void *)(((FAR char *)hdr) + NLMSG_HDRLEN))
+#define NLMSG_NEXT(hdr, n) \
   ((n) -= NLMSG_ALIGN((hdr)->nlmsg_len), \
-   (FAR struct nlmsghdr*) \
-   (((FAR cha r*)(hdr)) + NLMSG_ALIGN((hdr)->nlmsg_len)))
+   (FAR struct nlmsghdr *) \
+   (((FAR char *)(hdr)) + NLMSG_ALIGN((hdr)->nlmsg_len)))
+#define NLMSG_OK(nlh, len) \
+  ((len) >= (int)sizeof(struct nlmsghdr) && \
+    (nlh)->nlmsg_len >= sizeof(struct nlmsghdr) && \
+    (nlh)->nlmsg_len <= (len))
 #define NLMSG_PAYLOAD(hdr, len) \
-  ((hdr)->nlmsg_len - NLMSG_SPACE((len)))
+  ((hdr)->nlmsg_len - NLMSG_SPACE(len))
 
 #define NLMSG_NOOP            1    /* Nothing */
 #define NLMSG_ERROR           2    /* Error */
@@ -151,14 +144,14 @@
 
 #define RTA_MASK              (sizeof(uint32_t) - 1)
 #define RTA_ALIGN(n)          (((n) + RTA_MASK) & ~RTA_MASK)
-#define RTA_OK(rta,n) \
+#define RTA_OK(rta, n) \
   ((n) >= (int)sizeof(struct rtattr) && \
    (rta)->rta_len >= sizeof(struct rtattr) && \
    (rta)->rta_len <= (n))
 #define RTA_NEXT(rta, attrlen) \
   ((attrlen) -= RTA_ALIGN((rta)->rta_len), \
-   (FAR struct rtattr*)(((FAR char*)(rta)) + RTA_ALIGN((rta)->rta_len)))
-#define RTA_LENGTH(n)         (RTA_ALIGN(sizeof(struct rtattr)) + (n))
+   (FAR struct rtattr *)(((FAR char *)(rta)) + RTA_ALIGN((rta)->rta_len)))
+#define RTA_LENGTH(n)         (sizeof(struct rtattr) + (n))
 #define RTA_SPACE(n)          RTA_ALIGN(RTA_LENGTH(n))
 #define RTA_DATA(rta)         ((FAR void *)(((FAR char *)(rta)) + RTA_LENGTH(0)))
 #define RTA_PAYLOAD(rta)      ((int)((rta)->rta_len) - RTA_LENGTH(0))
@@ -170,8 +163,13 @@
 #define RTA_SRC               2    /* Argument:  Route source address */
 #define RTA_IIF               3    /* Argument:  Input interface index */
 #define RTA_OIF               4    /* Argument:  Output interface index */
-#define RTA_GENMASK           5    /* Argument:  Network address mask of sub-net */
-#define RTA_GATEWAY           6    /* Argument:  Gateway address of the route */
+#define RTA_GATEWAY           5    /* Argument:  Gateway address of the route */
+#define RTA_GENMASK           6    /* Argument:  Network address mask of sub-net */
+#define RTA_PRIORITY          7    /* Argument:  Route priority */
+#define RTA_TABLE             8    /* Argument:  Route table */
+#define RTA_PREFSRC           9    /* Argument:  Preferred source address */
+#define RTA_METRICS           10   /* Argument:  Route metric */
+#define RTA_MAX               10   /* MAX type, same as last argument */
 
 /* NETLINK_ROUTE protocol message types *************************************/
 
@@ -183,10 +181,10 @@
  *   of rtattr structures.
  */
 
-#define RTM_NEWLINK           0
-#define RTM_DELLINK           1
-#define RTM_GETLINK           2
-#define RTM_SETLINK           3
+#define RTM_NEWLINK           16
+#define RTM_DELLINK           17
+#define RTM_GETLINK           18
+#define RTM_SETLINK           19
 
 /* Address settings:
  *
@@ -196,9 +194,9 @@
  *   followed by rtattr routing attributes.
  */
 
-#define RTM_NEWADDR           4
-#define RTM_DELADDR           5
-#define RTM_GETADDR           6
+#define RTM_NEWADDR           20
+#define RTM_DELADDR           21
+#define RTM_GETADDR           22
 
 /* Routing tables:
  *
@@ -212,9 +210,9 @@
  *   except rtm_table and rtm_protocol, 0 is the wildcard.
  */
 
-#define RTM_NEWROUTE         7
-#define RTM_DELROUTE         8
-#define RTM_GETROUTE         9
+#define RTM_NEWROUTE         24
+#define RTM_DELROUTE         25
+#define RTM_GETROUTE         26
 
 /* Neighbor cache:
  *
@@ -223,9 +221,9 @@
  *   an ARP entry).  The message contains an ndmsg structure.
  */
 
-#define RTM_NEWNEIGH         10
-#define RTM_DELNEIGH         11
-#define RTM_GETNEIGH         12
+#define RTM_NEWNEIGH         28
+#define RTM_DELNEIGH         29
+#define RTM_GETNEIGH         30
 
 /* Routing rules:
  *
@@ -233,9 +231,9 @@
  *   Add, delete or retrieve a routing rule.  Carries a struct rtmsg
  */
 
-#define RTM_NEWRULE          13
-#define RTM_DELRULE          14
-#define RTM_GETRULE          15
+#define RTM_NEWRULE          32
+#define RTM_DELRULE          33
+#define RTM_GETRULE          34
 
 /* Queuing discipline settings:
  *
@@ -244,9 +242,9 @@
  *   struct tcmsg and may be followed by a series of attributes.
  */
 
-#define RTM_NEWQDISC         16
-#define RTM_DELQDISC         17
-#define RTM_GETQDISC         18
+#define RTM_NEWQDISC         36
+#define RTM_DELQDISC         37
+#define RTM_GETQDISC         38
 
 /* Traffic classes used with queues:
  *
@@ -255,9 +253,9 @@
  *   tcmsg as described above.
  */
 
-#define RTM_NEWTCLASS        19
-#define RTM_DELTCLASS        20
-#define RTM_GETTCLASS        21
+#define RTM_NEWTCLASS        40
+#define RTM_DELTCLASS        41
+#define RTM_GETTCLASS        42
 
 /* Traffic filters:
  *
@@ -266,34 +264,25 @@
  *   messages contain a struct tcmsg as described above.
  */
 
-#define RTM_NEWTFILTER       22
-#define RTM_DELTFILTER       23
-#define RTM_GETTFILTER       24
+#define RTM_NEWTFILTER       44
+#define RTM_DELTFILTER       45
+#define RTM_GETTFILTER       46
 
 /* Others: */
 
-#define RTM_NEWACTION        25
-#define RTM_DELACTION        26
-#define RTM_GETACTION        27
-#define RTM_NEWPREFIX        28
-#define RTM_GETPREFIX        29
-#define RTM_GETMULTICAST     30
-#define RTM_GETANYCAST       31
-#define RTM_NEWNEIGHTBL      32
-#define RTM_GETNEIGHTBL      33
-#define RTM_SETNEIGHTBL      34
+#define RTM_NEWACTION        48
+#define RTM_DELACTION        49
+#define RTM_GETACTION        50
+#define RTM_NEWPREFIX        52
+#define RTM_GETMULTICAST     58
+#define RTM_GETANYCAST       62
+#define RTM_NEWNEIGHTBL      64
+#define RTM_GETNEIGHTBL      66
+#define RTM_SETNEIGHTBL      67
+#define RTM_NEWNDUSEROPT     68
 
-#define RTM_LASTMSG          34  /* NETLINK_ROUTE messages followd by NETLINK_CRYPTO */
-
-/* Definitions for struct ifaddrmsg  ****************************************/
-
-/* ifa_flags definitions:  ifa_flags is a flag word of IFA_F_SECONDARY for
- * secondary address (old alias interface), IFA_F_PERMANENT for a permanent
- * address set by the user and other undocumented flags.
- */
-
-#define IFA_F_SECONDARY      0x01
-#define IFA_F_PERMANENT      0x02
+#define RTM_BASE             16
+#define RTM_MAX              68
 
 /* Definitions for struct ifinfomsg *****************************************/
 
@@ -305,6 +294,22 @@
 /* Values for rta_type */
 
 #define IFLA_IFNAME          1
+#define IFLA_ADDRESS         2
+#define IFLA_MTU             3
+#define IFLA_WIRELESS        4
+#define IFLA_STATS           5
+#define IFLA_OPERSTATE       6
+#define IFLA_LINKMODE        7
+#define IFLA_BROADCAST       8
+#define IFLA_LINK            9
+#define IFLA_QDISC           10
+#define IFLA_COST            11
+#define IFLA_PRIORITY        12
+#define IFLA_MASTER          13
+#define IFLA_PROTINFO        14
+#define IFLA_TXQLEN          15
+#define IFLA_MAP             16
+#define IFLA_WEIGHT          17
 
 /* Definitions for struct rtmsg *********************************************/
 
@@ -338,8 +343,8 @@
 #define RTPROT_KERNEL         2    /* Route installed by kernel */
 #define RTPROT_BOOT           3    /* Route installed during boot */
 #define RTPROT_STATIC         4    /* Route installed by administrator */
-#define RTPROT_RA             5    /* RDISC/ND router advertisements */
-#define RTPROT_DHCP           6    /* DHCP client */
+#define RTPROT_RA             9    /* RDISC/ND router advertisements */
+#define RTPROT_DHCP           16   /* DHCP client */
 
 /* rtm_scope */
 
@@ -350,51 +355,88 @@
 #define  RT_SCOPE_HOST        254  /* Route on local host */
 #define  RT_SCOPE_NOWHERE     255  /* Destination does not exist */
 
-/* NETLINK_CRYPTO protocol message types ************************************/
+/* RTnetlink multicast groups (userspace) */
 
-#define CRYPTO_MSG_NEWALG     (RTM_LASTMSG + 1)
-#define CRYPTO_MSG_DELALG     (RTM_LASTMSG + 2)
-#define CRYPTO_MSG_UPDATEALG  (RTM_LASTMSG + 3)
-#define CRYPTO_MSG_GETALG     (RTM_LASTMSG + 4)
-#define CRYPTO_MSG_DELRNG     (RTM_LASTMSG + 5)
-#define CRYPTO_MSG_GETSTAT    (RTM_LASTMSG + 6)
+#define RTMGRP_LINK           1
+#define RTMGRP_NOTIFY         2
+#define RTMGRP_NEIGH          4
+#define RTMGRP_TC             8
 
-#define CRYPTO_MSG_LAST       (RTM_LASTMSG + 6)
+#define RTMGRP_IPV4_IFADDR    0x10
+#define RTMGRP_IPV4_MROUTE    0x20
+#define RTMGRP_IPV4_ROUTE     0x40
+#define RTMGRP_IPV4_RULE      0x80
 
-/* Netlink message attributes. */
+#define RTMGRP_IPV6_IFADDR    0x100
+#define RTMGRP_IPV6_MROUTE    0x200
+#define RTMGRP_IPV6_ROUTE     0x400
+#define RTMGRP_IPV6_IFINFO    0x800
 
-#define CRYPTOCFGA_UNSPEC           0
-#define CRYPTOCFGA_PRIORITY_VAL     1  /* Argument: uint32_t */
+#define RTMGRP_DECnet_IFADDR  0x1000
+#define RTMGRP_DECnet_ROUTE   0x4000
 
-#define CRYPTOCFGA_REPORT_LARVAL    2  /* Argument: struct crypto_report_larval */
-#define CRYPTOCFGA_REPORT_HASH      3  /* Argument: struct crypto_report_hash */
-#define CRYPTOCFGA_REPORT_BLKCIPHER 4  /* Argument: struct crypto_report_blkcipher */
-#define CRYPTOCFGA_REPORT_AEAD      5  /* Argument: struct crypto_report_aead */
-#define CRYPTOCFGA_REPORT_COMPRESS  6  /* Argument: struct crypto_report_comp */
-#define CRYPTOCFGA_REPORT_RNG       7  /* Argument: struct crypto_report_rng */
-#define CRYPTOCFGA_REPORT_CIPHER    8  /* Argument: struct crypto_report_cipher */
-#define CRYPTOCFGA_REPORT_AKCIPHER  9  /* Argument: struct crypto_report_akcipher */
-#define CRYPTOCFGA_REPORT_KPP       0  /* Argument: struct crypto_report_kpp */
-#define CRYPTOCFGA_REPORT_ACOMP     1  /* Argument: struct crypto_report_acomp */
+#define RTMGRP_IPV6_PREFIX    0x20000
 
-#define CRYPTOCFGA_STAT_LARVAL      2  /* Argument: struct crypto_stat_larval */
-#define CRYPTOCFGA_STAT_HASH        3  /* Argument: struct crypto_stat_hash */
-#define CRYPTOCFGA_STAT_BLKCIPHER   4  /* Argument: struct crypto_stat_blkcipher */
-#define CRYPTOCFGA_STAT_AEAD        5  /* Argument: struct crypto_stat_aead */
-#define CRYPTOCFGA_STAT_COMPRESS    6  /* Argument: struct crypto_stat_comp */
-#define CRYPTOCFGA_STAT_RNG         7  /* Argument: struct crypto_stat_rng */
-#define CRYPTOCFGA_STAT_CIPHER      8  /* Argument: struct crypto_stat_cipher */
-#define CRYPTOCFGA_STAT_AKCIPHER    9  /* Argument: struct crypto_stat_akcipher */
-#define CRYPTOCFGA_STAT_KPP         10 /* Argument: struct crypto_stat_kpp */
-#define CRYPTOCFGA_STAT_ACOMP       11 /* Argument: struct crypto_stat_acomp */
+/* RTnetlink multicast groups */
 
-/* Max size of names.  No magic here.  These can be extended as necessary. */
+#define RTNLGRP_NONE          0
+#define RTNLGRP_LINK          1
+#define RTNLGRP_NOTIFY        2
+#define RTNLGRP_NEIGH         3
+#define RTNLGRP_TC            4
+#define RTNLGRP_IPV4_IFADDR   5
+#define RTNLGRP_IPV4_MROUTE   6
+#define RTNLGRP_IPV4_ROUTE    7
+#define RTNLGRP_IPV4_RULE     8
+#define RTNLGRP_IPV6_IFADDR   9
+#define RTNLGRP_IPV6_MROUTE   10
+#define RTNLGRP_IPV6_ROUTE    11
+#define RTNLGRP_IPV6_IFINFO   12
+#define RTNLGRP_DECnet_IFADDR 13
+#define RTNLGRP_NOP2          14
+#define RTNLGRP_DECnet_ROUTE  15
+#define RTNLGRP_DECnet_RULE   16
+#define RTNLGRP_NOP4          17
+#define RTNLGRP_IPV6_PREFIX   18
+#define RTNLGRP_IPV6_RULE     19
+#define RTNLGRP_ND_USEROPT    20
+#define RTNLGRP_PHONET_IFADDR 21
+#define RTNLGRP_PHONET_ROUTE  22
+#define RTNLGRP_DCB           23
+#define RTNLGRP_IPV4_NETCONF  24
+#define RTNLGRP_IPV6_NETCONF  25
+#define RTNLGRP_MDB           26
+#define RTNLGRP_MPLS_ROUTE    27
+#define RTNLGRP_NSID          28
+#define RTNLGRP_MAX           29
 
-#define CRYPTO_MAX_ALG_NAME   32
-#define CRYPTO_MAX_NAME       32
+#define FRA_UNSPEC            0
+#define FRA_FWMARK            1  /* Mark */
+#define FRA_TABLE             2  /* Extended table id */
+#define FRA_FWMASK            3  /* Mask for netfilter mark */
 
-#define CRYPTO_REPORT_MAXSIZE \
-  (sizeof(struct crypto_user_alg) + sizeof(struct crypto_report_blkcipher))
+/**
+ * nla_type (16 bits)
+ * +---+---+-------------------------------+
+ * | N | O | Attribute Type                |
+ * +---+---+-------------------------------+
+ * N := Carries nested attributes
+ * O := Payload stored in network byte order
+ *
+ * Note: The N and O flag are mutually exclusive.
+ */
+
+#define NLA_F_NET_BYTEORDER (1 << 14)
+#define NLA_F_NESTED        (1 << 15)
+#define NLA_TYPE_MASK       ~(NLA_F_NESTED | NLA_F_NET_BYTEORDER)
+
+#define NLA_ALIGNTO    4
+#define NLA_ALIGN(len) (((len) + NLA_ALIGNTO - 1) & ~(NLA_ALIGNTO - 1))
+#define NLA_HDRLEN     (NLA_ALIGN(sizeof(struct nlattr)))
+
+/* rtm_flags */
+
+#define RTM_F_CLONED  0x200  /* This route is cloned */
 
 /****************************************************************************
  * Public Type Definitions
@@ -428,6 +470,22 @@ struct nlmsghdr
                           /* Data follows */
 };
 
+struct nlmsgerr
+{
+  int   error;
+  struct nlmsghdr msg;
+  /**
+   * Followed by the message contents unless NETLINK_CAP_ACK was set
+   * or the ACK indicates success (error == 0)
+   * message length is aligned with NLMSG_ALIGN()
+   */
+
+  /**
+   * Followed by TLVs defined in enum nlmsgerr_attrs
+   * if NETLINK_EXT_ACK was set
+   */
+};
+
 /* NETLINK_ROUTE Message Structures *****************************************/
 
 /* RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK
@@ -449,9 +507,9 @@ struct rtattr
 struct ifinfomsg
 {
   uint8_t  ifi_family;    /* AF_UNSPEC */
-  uint8_t  ifi_pid;
+  uint8_t  ifi_pad;
   uint16_t ifi_type;      /* Device type (ARPHRD) */
-  int16_t  ifi_index;     /* Unique interface index */
+  int32_t  ifi_index;     /* Unique interface index */
   uint32_t ifi_flags;     /* Device IFF_* flags  */
   uint32_t ifi_change;    /* Change mask, must always be 0xffffffff */
 };
@@ -461,22 +519,6 @@ struct ifinfomsg
 struct rtgenmsg
 {
   uint8_t  rtgen_family;
-};
-
-/* RTM_NEWADDR, RTM_DELADDR, RTM_GETADDR
- *
- * Add, remove or receive information about an IP address associated with
- * an interface.  These messages contain an ifaddrmsg structure, optionally
- * followed by rtattr routing attributes.
- */
-
-struct ifaddrmsg
-{
-  uint8_t  ifa_family;    /* Address type:  AF_INET or AF_INET6 */
-  uint8_t  ifa_prefixlen; /* Prefix length of address */
-  uint8_t  ifa_flags;     /* Address flags.  See IFA_F_* definitions */
-  uint8_t  ifa_scope;     /* Address scope */
-  int16_t  ifa_index;     /* Unique interface index */
 };
 
 /* RTM_NEWNEIGH, RTM_DELNEIGH, RTM_GETNEIGH
@@ -510,165 +552,147 @@ struct rtmsg
   uint32_t rtm_flags;
 };
 
-/* NETLINK_CRYPTO Message Structures ***********\*****************************/
+/**
+ *  <------- NLA_HDRLEN ------> <-- NLA_ALIGN(payload)-->
+ * +---------------------+- - -+- - - - - - - - - -+- - -+
+ * |        Header       | Pad |     Payload       | Pad |
+ * |   (struct nlattr)   | ing |                   | ing |
+ * +---------------------+- - -+- - - - - - - - - -+- - -+
+ *  <-------------- nlattr->nla_len -------------->
+ */
 
-struct crypto_user_alg
+struct nlattr
 {
-  char cru_name[CRYPTO_MAX_ALG_NAME];
-  char cru_driver_name[CRYPTO_MAX_ALG_NAME];
-  char cru_module_name[CRYPTO_MAX_ALG_NAME];
-  uint32_t cru_type;
-  uint32_t cru_mask;
-  uint32_t cru_refcnt;
-  uint32_t cru_flags;
+  uint16_t nla_len;
+  uint16_t nla_type;
 };
 
-struct crypto_report_larval
+/* Generic 32 bitflags attribute content sent to the kernel.
+ *
+ * The value is a bitmap that defines the values being set
+ * The selector is a bitmask that defines which value is legit
+ *
+ * Examples:
+ *  value = 0x0, and selector = 0x1
+ *  implies we are selecting bit 1 and we want to set its value to 0.
+ *
+ *  value = 0x2, and selector = 0x2
+ *  implies we are selecting bit 2 and we want to set its value to 1.
+ *
+ */
+
+struct nla_bitfield32
 {
-  char type[CRYPTO_MAX_NAME];
+  uint32_t value;
+  uint32_t selector;
 };
 
-struct crypto_report_hash
+/****************************************************************************
+ *              Neighbor Discovery userland options
+ */
+
+struct nduseroptmsg
 {
-  char type[CRYPTO_MAX_NAME];
-  size_t blocksize;
-  size_t digestsize;
+  unsigned char   nduseropt_family;
+  unsigned char   nduseropt_pad1;
+  unsigned short  nduseropt_opts_len;     /* Total length of options */
+  int             nduseropt_ifindex;
+  uint8_t         nduseropt_icmp_type;
+  uint8_t         nduseropt_icmp_code;
+  unsigned short  nduseropt_pad2;
+  unsigned int    nduseropt_pad3;
+
+  /* Followed by one or more ND options */
 };
 
-struct crypto_report_cipher
+enum
 {
-  char type[CRYPTO_MAX_ALG_NAME];
-  size_t blocksize;
-  size_t min_keysize;
-  size_t max_keysize;
+  NDUSEROPT_UNSPEC,
+  NDUSEROPT_SRCADDR,
+  __NDUSEROPT_MAX
 };
 
-struct crypto_report_blkcipher
+/* This struct should be in sync with struct rtnl_link_stats64 */
+
+struct rtnl_link_stats
 {
-  char type[CRYPTO_MAX_NAME];
-  char geniv[CRYPTO_MAX_NAME];
-  size_t blocksize;
-  size_t min_keysize;
-  size_t max_keysize;
-  size_t ivsize;
+  uint32_t rx_packets;       /* total packets received  */
+  uint32_t tx_packets;       /* total packets transmitted  */
+  uint32_t rx_bytes;         /* total bytes received   */
+  uint32_t tx_bytes;         /* total bytes transmitted  */
+  uint32_t rx_errors;        /* bad packets received    */
+  uint32_t tx_errors;        /* packet transmit problems  */
+  uint32_t rx_dropped;       /* no space in linux buffers  */
+  uint32_t tx_dropped;       /* no space available in linux  */
+  uint32_t multicast;        /* multicast packets received  */
+  uint32_t collisions;
+
+  /* detailed rx_errors: */
+
+  uint32_t rx_length_errors;
+  uint32_t rx_over_errors;   /* receiver ring buff overflow  */
+  uint32_t rx_crc_errors;    /* recved pkt with crc error  */
+  uint32_t rx_frame_errors;  /* recv'd frame alignment error */
+  uint32_t rx_fifo_errors;   /* recv'r fifo overrun    */
+  uint32_t rx_missed_errors; /* receiver missed packet  */
+
+  /* detailed tx_errors */
+
+  uint32_t tx_aborted_errors;
+  uint32_t tx_carrier_errors;
+  uint32_t tx_fifo_errors;
+  uint32_t tx_heartbeat_errors;
+  uint32_t tx_window_errors;
+
+  /* for cslip etc */
+
+  uint32_t rx_compressed;
+  uint32_t tx_compressed;
+
+  uint32_t rx_nohandler;     /* dropped, no handler found  */
 };
 
-struct crypto_report_aead
-{
-  char type[CRYPTO_MAX_NAME];
-  char geniv[CRYPTO_MAX_NAME];
-  size_t blocksize;
-  size_t maxauthsize;
-  size_t ivsize;
-};
+/* The main device statistics structure */
 
-struct crypto_report_comp
+struct rtnl_link_stats64
 {
-  char type[CRYPTO_MAX_NAME];
-};
+  uint64_t rx_packets;       /* total packets received       */
+  uint64_t tx_packets;       /* total packets transmitted    */
+  uint64_t rx_bytes;         /* total bytes received         */
+  uint64_t tx_bytes;         /* total bytes transmitted      */
+  uint64_t rx_errors;        /* bad packets received         */
+  uint64_t tx_errors;        /* packet transmit problems     */
+  uint64_t rx_dropped;       /* no space in linux buffers    */
+  uint64_t tx_dropped;       /* no space available in linux  */
+  uint64_t multicast;        /* multicast packets received   */
+  uint64_t collisions;
 
-struct crypto_report_rng
-{
-  char type[CRYPTO_MAX_NAME];
-  size_t seedsize;
-};
+  /* detailed rx_errors: */
 
-struct crypto_report_akcipher
-{
-  char type[CRYPTO_MAX_NAME];
-};
+  uint64_t rx_length_errors;
+  uint64_t rx_over_errors;   /* receiver ring buff overflow  */
+  uint64_t rx_crc_errors;    /* recved pkt with crc error    */
+  uint64_t rx_frame_errors;  /* recv'd frame alignment error */
+  uint64_t rx_fifo_errors;   /* recv'r fifo overrun          */
+  uint64_t rx_missed_errors; /* receiver missed packet       */
 
-struct crypto_report_kpp
-{
-  char type[CRYPTO_MAX_NAME];
-};
+  /* detailed tx_errors */
 
-struct crypto_report_acomp
-{
-  char type[CRYPTO_MAX_NAME];
-};
+  uint64_t tx_aborted_errors;
+  uint64_t tx_carrier_errors;
+  uint64_t tx_fifo_errors;
+  uint64_t tx_heartbeat_errors;
+  uint64_t tx_window_errors;
 
-struct crypto_stat_larval
-{
-  char type[CRYPTO_MAX_NAME];
-};
+  /* for cslip etc */
 
-#ifdef CONFIG_HAVE_LONG_LONG
-typedef uint64_t crypto_stat_t;
-#else
-typedef uint32_t crypto_stat_t;
-#endif
-
-struct crypto_stat_aead
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_encrypt_cnt;
-  crypto_stat_t stat_encrypt_tlen;
-  crypto_stat_t stat_decrypt_cnt;
-  crypto_stat_t stat_decrypt_tlen;
-  crypto_stat_t stat_err_cnt;
-};
-
-struct crypto_stat_akcipher
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_encrypt_cnt;
-  crypto_stat_t stat_encrypt_tlen;
-  crypto_stat_t stat_decrypt_cnt;
-  crypto_stat_t stat_decrypt_tlen;
-  crypto_stat_t stat_verify_cnt;
-  crypto_stat_t stat_sign_cnt;
-  crypto_stat_t stat_err_cnt;
-};
-
-struct crypto_stat_cipher
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_encrypt_cnt;
-  crypto_stat_t stat_encrypt_tlen;
-  crypto_stat_t stat_decrypt_cnt;
-  crypto_stat_t stat_decrypt_tlen;
-  crypto_stat_t stat_err_cnt;
-};
-
-struct crypto_stat_compress
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_compress_cnt;
-  crypto_stat_t stat_compress_tlen;
-  crypto_stat_t stat_decompress_cnt;
-  crypto_stat_t stat_decompress_tlen;
-  crypto_stat_t stat_err_cnt;
-};
-
-struct crypto_stat_hash
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_hash_cnt;
-  crypto_stat_t stat_hash_tlen;
-  crypto_stat_t stat_err_cnt;
-};
-
-struct crypto_stat_kpp
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_setsecret_cnt;
-  crypto_stat_t stat_generate_public_key_cnt;
-  crypto_stat_t stat_compute_shared_secret_cnt;
-  crypto_stat_t stat_err_cnt;
-};
-
-struct crypto_stat_rng
-{
-  char type[CRYPTO_MAX_NAME];
-  crypto_stat_t stat_generate_cnt;
-  crypto_stat_t stat_generate_tlen;
-  crypto_stat_t stat_seed_cnt;
-  crypto_stat_t stat_err_cnt;
+  uint64_t rx_compressed;
+  uint64_t tx_compressed;
+  uint64_t rx_nohandler;     /* dropped, no handler found    */
 };
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /*  __INCLUDE_NETPACKET_NETLINK_H */
+#endif /* __INCLUDE_NETPACKET_NETLINK_H */

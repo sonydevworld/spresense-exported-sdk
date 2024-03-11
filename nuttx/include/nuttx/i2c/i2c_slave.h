@@ -1,40 +1,49 @@
 /****************************************************************************
  * include/nuttx/i2c/i2c_slave.h
  *
- *   Copyright(C) 2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES(INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_I2C_I2C_SLAVE_H
 #define __INCLUDE_NUTTX_I2C_I2C_SLAVE_H
+
+/****************************************************************************
+ * Using I2C slave mode:
+ *
+ * After I2C slave mode is initialized by calling an architecture defined
+ * initialization function, the hardware will monitor the I2C bus waiting
+ * for messages with this device's address.
+ *
+ * Before I2C data can be received, the I2CS_READ macro should be called
+ * to register a buffer where the received data will be stored, and a
+ * callback function should be registered with either (not both) the
+ * I2CS_REGISTERCALLBACK macro.  When the data is received (via an I2C
+ * write message) it will be written to the supplied buffer and the callback
+ * function will be called.
+ *
+ * The I2C_WRITE macro is used to register a buffer with data to be
+ * sent when the master next issues an I2C read message.  There is no
+ * specific notification that the data has been read, but since usual
+ * I2C operation is for the master to transmit a message indicating
+ * the desired data before reading, the slave should register the
+ * return data in the callback function and preserve it until the next
+ * callback it received.
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -49,6 +58,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* I2C address calculation.  Convert 7- and 10-bit address to 8-bit and
  * 16-bit read/write address
  */
@@ -104,14 +114,13 @@
  * Name: I2CS_WRITE
  *
  * Description:
- *   Send a block of data on I2C using the previously selected I2C
- *   frequency and slave address. Each write operational will be an 'atomic'
- *   operation in the sense that any other I2C actions will be serialized
- *   and pend until this write completes. Required.
+ *   Send a block of data on I2C to the next master to issue an I2C read
+ *   transaction to this slave. Required.
  *
  * Input Parameters:
  *   dev    - Device-specific state data
- *   buffer - A pointer to the read-only buffer of data to be written to device
+ *   buffer - A pointer to the read-only buffer of data to be written to
+ *            device
  *   buflen - The number of bytes to send from the buffer
  *
  * Returned Value:
@@ -125,14 +134,15 @@
  * Name: I2CS_READ
  *
  * Description:
- *   Receive a block of data from I2C using the previously selected I2C
- *   frequency and slave address. Each read operational will be an 'atomic'
- *   operation in the sense that any other I2C actions will be serialized
- *   and pend until this read completes. Required.
+ *   Register a buffer to receive the data from the next I2C write
+ *   transaction addressed to this slave.  The callback function supplied
+ *   by the I2CS_REGISTERCALLBACK macro will be called once the buffer
+ *   has been filled.  Required.
  *
  * Input Parameters:
  *   dev    - Device-specific state data
- *   buffer - A pointer to a buffer of data to receive the data from the device
+ *   buffer - A pointer to a buffer of data to receive the data from the
+ *            device
  *   buflen - The requested number of bytes to be read
  *
  * Returned Value:
@@ -164,18 +174,30 @@
  * Public Types
  ****************************************************************************/
 
+/* The callback function */
+
+typedef int (i2c_slave_callback_t)(void *arg, size_t rx_len);
+
 /* The I2C vtable */
 
 struct i2c_slave_s;
 struct i2c_slaveops_s
 {
-  int (*setownaddress)(FAR struct i2c_slave_s *dev, int addr, int nbits);
-  int (*write)(FAR struct i2c_slave_s *dev, FAR const uint8_t *buffer,
-        int buflen);
-  int (*read)(FAR struct i2c_slave_s *dev, FAR uint8_t *buffer,
-        int buflen);
+  int (*setownaddress)(FAR struct i2c_slave_s *dev,
+                       int                     addr,
+                       int                     nbits);
+
+  int (*write)(FAR struct i2c_slave_s *dev,
+               FAR const uint8_t      *buffer,
+               int                     buflen);
+
+  int (*read)(FAR struct i2c_slave_s *dev,
+              FAR uint8_t            *buffer,
+              int                     buflen);
+
   int (*registercallback)(FAR struct i2c_slave_s *dev,
-        int (*callback)(FAR void *arg), FAR void *arg);
+                          i2c_slave_callback_t   *callback,
+                          FAR void               *arg);
 };
 
 /* I2C private data.  This structure only defines the initial fields of the
@@ -189,7 +211,7 @@ struct i2c_slave_s
 };
 
 /****************************************************************************
- * Public Functions
+ * Public Functions Definitions
  ****************************************************************************/
 
 #undef EXTERN

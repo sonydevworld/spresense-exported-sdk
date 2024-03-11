@@ -29,10 +29,13 @@
 #include <nuttx/compiler.h>
 
 #ifdef CONFIG_ARCH_DEBUG_H
-# include <arch/debug.h>
+#  include <arch/debug.h>
 #endif
 #ifdef CONFIG_ARCH_CHIP_DEBUG_H
-# include <arch/chip/debug.h>
+#  include <arch/chip/debug.h>
+#endif
+#ifdef CONFIG_ARCH_BOARD_DEBUG_H
+#  include <arch/board/debug.h>
 #endif
 
 #include <syslog.h>
@@ -78,7 +81,8 @@
  *    really intended only for crash error reporting.
  */
 
-#if !defined(EXTRA_FMT) && !defined(EXTRA_ARG) && defined(CONFIG_HAVE_FUNCTIONNAME)
+#if !defined(EXTRA_FMT) && !defined(EXTRA_ARG) && \
+    defined(CONFIG_HAVE_FUNCTIONNAME) && !defined(CONFIG_DEFAULT_SMALL)
 #  define EXTRA_FMT "%s: "
 #  define EXTRA_ARG ,__FUNCTION__
 #endif
@@ -610,6 +614,24 @@
 #  define pwminfo     _none
 #endif
 
+#ifdef CONFIG_DEBUG_CAPTURE_ERROR
+#  define cperr       _err
+#else
+#  define cperr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_CAPTURE_WARN
+#  define cpwarn     _warn
+#else
+#  define cpwarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_CAPTURE_INFO
+#  define cpinfo     _info
+#else
+#  define cpinfo     _none
+#endif
+
 #ifdef CONFIG_DEBUG_RC_ERROR
 #  define rcerr        _err
 #else
@@ -626,6 +648,24 @@
 #  define rcinfo      _info
 #else
 #  define rcinfo      _none
+#endif
+
+#ifdef CONFIG_DEBUG_RMT_ERROR
+#  define rmterr        _err
+#else
+#  define rmterr       _none
+#endif
+
+#ifdef CONFIG_DEBUG_RMT_WARN
+#  define rmtwarn      _warn
+#else
+#  define rmtwarn      _none
+#endif
+
+#ifdef CONFIG_DEBUG_RMT_INFO
+#  define rmtinfo      _info
+#else
+#  define rmtinfo      _none
 #endif
 
 #ifdef CONFIG_DEBUG_RTC_ERROR
@@ -790,6 +830,60 @@
 #  define vinfo       _none
 #endif
 
+#ifdef CONFIG_DEBUG_VIRTIO_ERROR
+#  define vrterr      _err
+#else
+#  define vrterr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_VIRTIO_WARN
+#  define vrtwarn     _warn
+#else
+#  define vrtwarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_VIRTIO_INFO
+#  define vrtinfo     _info
+#else
+#  define vrtinfo     _none
+#endif
+
+#ifdef CONFIG_DEBUG_RESET_ERROR
+#  define rsterr       _err
+#else
+#  define rsterr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_RESET_WARN
+#  define rstwarn     _warn
+#else
+#  define rstwarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_RESET_INFO
+#  define rstinfo     _info
+#else
+#  define rstinfo     _none
+#endif
+
+#ifdef CONFIG_DEBUG_IPC_ERROR
+#  define ipcerr       _err
+#else
+#  define ipcerr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_IPC_WARN
+#  define ipcwarn     _warn
+#else
+#  define ipcwarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_IPC_INFO
+#  define ipcinfo     _info
+#else
+#  define ipcinfo     _none
+#endif
+
 /* Buffer dumping macros do not depend on varargs */
 
 #ifdef CONFIG_DEBUG_ERROR
@@ -797,12 +891,12 @@
 #  ifdef CONFIG_DEBUG_INFO
 #    define infodumpbuffer(m,b,n) lib_dumpbuffer(m,b,n)
 #  else
-#   define infodumpbuffer(m,b,n)
+#    define infodumpbuffer(m,b,n)
 #  endif
 #else
-#  define errdumpbuffer(m,b,n)
-#  define infodumpbuffer(m,b,n)
-# endif
+#    define errdumpbuffer(m,b,n)
+#    define infodumpbuffer(m,b,n)
+#  endif
 
 /* Subsystem specific debug */
 
@@ -1062,6 +1156,14 @@
 #  define mtrinfodumpbuffer(m,b,n)
 #endif
 
+#ifdef CONFIG_DEBUG_RESET
+#  define reseterrdumpbuffer(m,b,n)  errdumpbuffer(m,b,n)
+#  define resetinfodumpbuffer(m,b,n) infodumpbuffer(m,b,n)
+#else
+#  define reseterrdumpbuffer(m,b,n)
+#  define resetinfodumpbuffer(m,b,n)
+#endif
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -1070,6 +1172,26 @@
 extern "C"
 {
 #endif
+
+/* Type of the call out function pointer provided to
+ * lib_dumphandler() or lib_dumpvhandler()
+ */
+
+typedef CODE void (*lib_dump_handler_t)(FAR void *arg,
+                                        FAR const char *fmt, ...)
+                  printf_like(2, 3);
+
+/* Dump a buffer of data with handler */
+
+void lib_dumphandler(FAR const char *msg, FAR const uint8_t *buffer,
+                     unsigned int buflen, lib_dump_handler_t handler,
+                     FAR void *arg);
+
+/* Do a pretty buffer dump from multiple buffers with handler. */
+
+void lib_dumpvhandler(FAR const char *msg, FAR const struct iovec *iov,
+                      int iovcnt, lib_dump_handler_t handler,
+                      FAR void *arg);
 
 /* Dump a buffer of data */
 
@@ -1080,6 +1202,16 @@ void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer,
 
 void lib_dumpvbuffer(FAR const char *msg, FAR const struct iovec *iov,
                      int iovcnt);
+
+/* Dump a buffer of data with fd */
+
+void lib_dumpfile(int fd, FAR const char *msg, FAR const uint8_t *buffer,
+                  unsigned int buflen);
+
+/* Do a pretty buffer dump from multiple buffers with fd. */
+
+void lib_dumpvfile(int fd, FAR const char *msg, FAR const struct iovec *iov,
+                   int iovcnt);
 
 /* The system logging interfaces are normally accessed via the macros
  * provided above.  If the cross-compiler's C pre-processor supports a
@@ -1092,19 +1224,19 @@ void lib_dumpvbuffer(FAR const char *msg, FAR const struct iovec *iov,
 
 #ifndef CONFIG_CPP_HAVE_VARARGS
 #ifdef CONFIG_DEBUG_ALERT
-void _alert(const char *format, ...) sysloglike(1, 2);
+void _alert(FAR const char *format, ...) syslog_like(1, 2);
 #endif
 
 #ifdef CONFIG_DEBUG_ERROR
-void _err(const char *format, ...) sysloglike(1, 2);
+void _err(FAR const char *format, ...) syslog_like(1, 2);
 #endif
 
 #ifdef CONFIG_DEBUG_WARN
-void _warn(const char *format, ...) sysloglike(1, 2);
+void _warn(FAR const char *format, ...) syslog_like(1, 2);
 #endif
 
 #ifdef CONFIG_DEBUG_INFO
-void _info(const char *format, ...) sysloglike(1, 2);
+void _info(FAR const char *format, ...) syslog_like(1, 2);
 #endif
 #endif /* CONFIG_CPP_HAVE_VARARGS */
 

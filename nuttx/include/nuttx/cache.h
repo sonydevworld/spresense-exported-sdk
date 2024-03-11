@@ -49,6 +49,46 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: up_get_icache_linesize
+ *
+ * Description:
+ *   Get icache linesize
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache line size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE
+size_t up_get_icache_linesize(void);
+#else
+#  define up_get_icache_linesize() 0
+#endif
+
+/****************************************************************************
+ * Name: up_get_icache_size
+ *
+ * Description:
+ *   Get icache size
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE
+size_t up_get_icache_size(void);
+#else
+#  define up_get_icache_size() 0
+#endif
+
+/****************************************************************************
  * Name: up_enable_icache
  *
  * Description:
@@ -195,6 +235,46 @@ void up_unlock_icache(uintptr_t start, uintptr_t end);
 void up_unlock_icache_all(void);
 #else
 #  define up_unlock_icache_all()
+#endif
+
+/****************************************************************************
+ * Name: up_get_dcache_linesize
+ *
+ * Description:
+ *   Get dcache linesize
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache line size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE
+size_t up_get_dcache_linesize(void);
+#else
+#  define up_get_dcache_linesize() 0
+#endif
+
+/****************************************************************************
+ * Name: up_get_dcache_size
+ *
+ * Description:
+ *   Get dcache size
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Cache size
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_DCACHE
+size_t up_get_dcache_size(void);
+#else
+#  define up_get_dcache_size() 0
 #endif
 
 /****************************************************************************

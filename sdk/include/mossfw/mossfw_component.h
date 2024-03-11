@@ -129,6 +129,7 @@ int mossfw_get_delivereddata_single(mossfw_input_t *in,
                                     mossfw_onedata_t *rdat);
 bool mossfw_deliverback_dataarray(mossfw_input_t *in, mossfw_data_t *dat,
                                int used);
+mossfw_data_t *mossfw_release_delivereddata_array(mossfw_input_t *in);
 
 int mossfw_set_waitcondition(mossfw_input_t *in, int wait_size,
                           mossfw_callback_op_t *op);

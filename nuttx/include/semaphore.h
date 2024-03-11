@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <time.h>
+#include <nuttx/queue.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -40,15 +41,13 @@
 #define SEM_PRIO_NONE             0
 #define SEM_PRIO_INHERIT          1
 #define SEM_PRIO_PROTECT          2
+#define SEM_PRIO_MASK             3
+
+#define SEM_TYPE_MUTEX            4
 
 /* Value returned by sem_open() in the event of a failure. */
 
-#define SEM_FAILED ((FAR sem_t *)NULL)
-
-/* Bit definitions for the struct sem_s flags field */
-
-#define PRIOINHERIT_FLAGS_DISABLE (1 << 0)  /* Bit 0: Priority inheritance
-                                             * is disabled for this semaphore. */
+#define SEM_FAILED                NULL
 
 /****************************************************************************
  * Public Type Declarations
@@ -93,6 +92,8 @@ struct semholder_s
 #endif
 #endif /* CONFIG_PRIORITY_INHERITANCE */
 
+#define SEM_WAITLIST_INITIALIZER {NULL, NULL}
+
 /* This is the generic semaphore structure. */
 
 struct sem_s
@@ -104,13 +105,16 @@ struct sem_s
    * tasks hold references to the semaphore.
    */
 
+  uint8_t flags;                 /* See SEM_PRIO_* definitions */
+
+  dq_queue_t waitlist;
+
 #ifdef CONFIG_PRIORITY_INHERITANCE
-  uint8_t flags;                 /* See PRIOINHERIT_FLAGS_* definitions */
-# if CONFIG_SEM_PREALLOCHOLDERS > 0
+#  if CONFIG_SEM_PREALLOCHOLDERS > 0
   FAR struct semholder_s *hhead; /* List of holders of semaphore counts */
-# else
-  struct semholder_s holder[2];  /* Slot for old and new holder */
-# endif
+#  else
+  struct semholder_s holder;     /* Slot for old and new holder */
+#  endif
 #endif
 };
 
@@ -119,17 +123,25 @@ typedef struct sem_s sem_t;
 /* Initializers */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
-# if CONFIG_SEM_PREALLOCHOLDERS > 0
-#  define SEM_INITIALIZER(c) \
-    {(c), 0, NULL}               /* semcount, flags, hhead */
-# else
-#  define SEM_INITIALIZER(c) \
-    {(c), 0, {SEMHOLDER_INITIALIZER, SEMHOLDER_INITIALIZER}} /* semcount, flags, holder[2] */
-# endif
+#  if CONFIG_SEM_PREALLOCHOLDERS > 0
+/* semcount, flags, waitlist, hhead */
+
+#    define SEM_INITIALIZER(c) \
+       {(c), 0, SEM_WAITLIST_INITIALIZER, NULL}
+#  else
+/* semcount, flags, waitlist, holder[2] */
+
+#    define SEM_INITIALIZER(c) \
+       {(c), 0, SEM_WAITLIST_INITIALIZER, SEMHOLDER_INITIALIZER}
+#  endif
 #else
+/* semcount, flags, waitlist */
+
 #  define SEM_INITIALIZER(c) \
-    {(c)}                        /* semcount */
+     {(c), 0, SEM_WAITLIST_INITIALIZER}
 #endif
+
+#define SEM_WAITLIST(sem)       (&((sem)->waitlist))
 
 /****************************************************************************
  * Public Data

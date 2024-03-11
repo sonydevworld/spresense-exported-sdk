@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_LTE_LTE_FW_API_H
-#define __APPS_INCLUDE_LTE_LTE_FW_API_H
+#ifndef __APPS_INCLUDE_LTE_LTE_FWUPDATE_H
+#define __APPS_INCLUDE_LTE_LTE_FWUPDATE_H
 
 /* API call type
  *
@@ -77,7 +77,7 @@ extern "C"
  *
  */
 
-int ltefwupdate_initialize(const char *initial_data, int len);
+int ltefwupdate_initialize(FAR const char *initial_data, int len);
 
 /* Inject rest delta image to LTE modem.
  *
@@ -98,7 +98,7 @@ int ltefwupdate_initialize(const char *initial_data, int len);
  *
  */
 
-int ltefwupdate_injectrest(const char *rest_data, int len);
+int ltefwupdate_injectrest(FAR const char *rest_data, int len);
 
 /* Get length of injected delta image file.
  *
@@ -152,4 +152,4 @@ int ltefwupdate_result(void);
 }
 #endif
 
-#endif /* __APPS_INCLUDE_LTE_LTE_FW_API_H */
+#endif /* __APPS_INCLUDE_LTE_LTE_FWUPDATE_H */

@@ -1,4 +1,4 @@
-/********************************************************************************
+/****************************************************************************
  * include/limits.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -16,14 +16,14 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
- ********************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_LIMITS_H
 #define __INCLUDE_LIMITS_H
 
-/********************************************************************************
+/****************************************************************************
  * Included Files
- ********************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -31,11 +31,11 @@
 
 #include <arch/limits.h>
 
-/********************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ********************************************************************************/
+ ****************************************************************************/
 
-/* Default values for user configurable limits **********************************/
+/* Default values for user configurable limits ******************************/
 
 /* Maximum number of bytes in a filename (not including terminating null). */
 
@@ -62,7 +62,7 @@
 
 #define MB_LEN_MAX            4
 
-/* Configurable limits required by POSIX ****************************************
+/* Configurable limits required by POSIX ************************************
  *
  * Required for all implementations:
  *
@@ -74,15 +74,18 @@
  *   _POSIX_NAME_MAX       Number of bytes in a file or pathname component
  *   _POSIX_NGROUPS_MAX    Number supplementary group IDs
  *   _POSIX_OPEN_MAX       Number of files a task can have open at once
- *   _POSIX_PATH_MAX       Number of bytes in a full pathname (including NULL)
+ *   _POSIX_PATH_MAX       Number of bytes in a full pathname
+ *                         (including NULL)
  *   _POSIX_PIPE_BUF       Number of bytes for atomic write into pipe
- *   _POSIX_SSIZE_MAX      Largest filesystem write; also max value of ssize_t
+ *   _POSIX_SSIZE_MAX      Largest filesystem write; also max value
+ *                         of ssize_t
  *   _POSIX_STREAM_MAX     Number of std I/O streams open at once
  *   _POSIX_TZNAME_MAX     Max number of bytes of a timezone name
  *
  * Required for sigqueue
  *
- *   _POSIX_RTSIG_MAX      Difference between SIGRTMIN and SIGRTMAX
+ *   _POSIX_RTSIG_MAX      Number of realtime signals reserved
+ *                         for application
  *   _POSIX_SIGQUEUE_MAX   Max number signals a task can queue
  *
  * Required for POSIX timers
@@ -107,9 +110,9 @@
  *   _POSIX_SEM_VALUE_MAX  Max value a semaphore may have
  *
  * Required for symbolic links
- *   _POSIX_SYMLOOP_MAX   Maximum number of symbolic links that can be
- *                        reliably traversed in the resolution of a pathname
- *                        in the absence of a loop.
+ *   _POSIX_SYMLOOP_MAX    Maximum number of symbolic links that can be
+ *                         reliably traversed in the resolution of a pathname
+ *                         in the absence of a loop.
  *
  */
 
@@ -136,17 +139,17 @@
 
 #else /* CONFIG_SMALL_MEMORY */
 
-#define _POSIX_SIZE_MAX       4294967295UL /* See sys/types.h */
+#define _POSIX_SIZE_MAX       ULONG_MAX
 #define _POSIX_SIZE_MIN       0
 
-#define _POSIX_SSIZE_MAX      2147483647L  /* See sys/types.h */
-#define _POSIX_SSIZE_MIN      -2147483648L
+#define _POSIX_SSIZE_MAX      LONG_MAX
+#define _POSIX_SSIZE_MIN      LONG_MIN
 
 #endif /* CONFIG_SMALL_MEMORY */
 
 /* Required for sigqueue */
 
-#define _POSIX_RTSIG_MAX      31
+#define _POSIX_RTSIG_MAX      8   /*  Number of reserved realtime signals */
 #define _POSIX_SIGQUEUE_MAX   32
 
 /* Required for symbolic links */
@@ -171,9 +174,9 @@
 #define _POSIX_TIMER_MAX      32
 
 #ifdef CONFIG_USEC_PER_TICK
-# define _POSIX_CLOCKRES_MIN  ((CONFIG_USEC_PER_TICK)*1000)
+#  define _POSIX_CLOCKRES_MIN ((CONFIG_USEC_PER_TICK)*1000)
 #else
-# define _POSIX_CLOCKRES_MIN  (10*1000000)
+#  define _POSIX_CLOCKRES_MIN (10*1000000)
 #endif
 
 /* Required for asynchronous I/O */
@@ -220,7 +223,7 @@
 #define TZ_MAX_TIMES   CONFIG_LIBC_TZ_MAX_TIMES
 #define TZ_MAX_TYPES   CONFIG_LIBC_TZ_MAX_TYPES
 
-#define RTSIG_MAX      _POSIX_RTSIG_MAX
+#define RTSIG_MAX      32
 #define SIGQUEUE_MAX   _POSIX_SIGQUEUE_MAX
 
 #define SYMLOOP_MAX    _POSIX_SYMLOOP_MAX
@@ -281,10 +284,10 @@
 #define NL_TEXTMAX _POSIX2_LINE_MAX
 
 /* NZERO
- *   Default process priority. Minimum Acceptable Value: 128
+ *   Default process priority. Minimum Acceptable Value: 100
  */
 
-#define NZERO 128
+#define NZERO SCHED_PRIORITY_DEFAULT
 
 /* Required for asynchronous I/O */
 
@@ -308,5 +311,10 @@
 #define IOV_MAX        INT_MAX
 
 #define HOST_NAME_MAX  32
+
+/* ptrdiff_t limits */
+
+#define PTRDIFF_MAX PTR_MAX
+#define PTRDIFF_MIN PTR_MIN
 
 #endif /* __INCLUDE_LIMITS_H */

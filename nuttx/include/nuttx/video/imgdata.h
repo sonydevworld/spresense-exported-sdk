@@ -26,6 +26,7 @@
  ****************************************************************************/
 
 #include <sys/types.h>
+#include <sys/time.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -42,12 +43,32 @@
 #define IMGDATA_PIX_FMT_JPEG_WITH_SUBIMG (3)
 #define IMGDATA_PIX_FMT_SUBIMG_UYVY      (4)
 #define IMGDATA_PIX_FMT_SUBIMG_RGB565    (5)
+#define IMGDATA_PIX_FMT_YUYV             (6)
+#define IMGDATA_PIX_FMT_YUV420P          (7)
+#define IMGDATA_PIX_FMT_NV12             (8)
+
+/* Method access helper macros */
+
+#define IMGDATA_INIT(d) \
+  ((d)->ops->init ? (d)->ops->init(d) : -ENOTTY)
+#define IMGDATA_UNINIT(d) \
+  ((d)->ops->uninit ? (d)->ops->uninit(d) : -ENOTTY)
+#define IMGDATA_SET_BUF(d, a, s) \
+  ((d)->ops->set_buf ? (d)->ops->set_buf(d, a, s) : NULL)
+#define IMGDATA_VALIDATE_FRAME_SETTING(d, n, f, i) \
+  ((d)->ops->validate_frame_setting ? \
+   (d)->ops->validate_frame_setting(d, n, f, i) : -ENOTTY)
+#define IMGDATA_START_CAPTURE(d, n, f, i, c, a) \
+  ((d)->ops->start_capture ? \
+   (d)->ops->start_capture(d, n, f, i, c, a) : -ENOTTY)
+#define IMGDATA_STOP_CAPTURE(d) \
+  ((d)->ops->stop_capture ? (d)->ops->stop_capture(d) : -ENOTTY)
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-/* structure for validate_frame_setting() and start_capture() */
+/* Structure for validate_frame_setting() and start_capture() */
 
 typedef struct imgdata_format_s
 {
@@ -62,26 +83,42 @@ typedef struct imgdata_interval_s
   uint32_t denominator;
 } imgdata_interval_t;
 
-typedef int (*imgdata_capture_t)(uint8_t result, uint32_t size);
+typedef int (*imgdata_capture_t)(uint8_t result, uint32_t size,
+                                 FAR const struct timeval *ts,
+                                 FAR void *arg);
 
 /* Structure for Data Control I/F */
 
+struct imgdata_s;
 struct imgdata_ops_s
 {
-  CODE int (*init)(void);
-  CODE int (*uninit)(void);
+  CODE int (*init)(FAR struct imgdata_s *data);
+  CODE int (*uninit)(FAR struct imgdata_s *data);
 
-  CODE int (*validate_buf)(uint8_t *addr, uint32_t size);
-  CODE int (*set_buf)(uint8_t *addr, uint32_t size);
+  CODE int (*set_buf)(FAR struct imgdata_s *data,
+                      uint8_t *addr, uint32_t size);
 
-  CODE int (*validate_frame_setting)(uint8_t nr_datafmts,
+  CODE int (*validate_frame_setting)(FAR struct imgdata_s *data,
+                                     uint8_t nr_datafmts,
                                      FAR imgdata_format_t *datafmts,
                                      FAR imgdata_interval_t *interval);
-  CODE int (*start_capture)(uint8_t nr_datafmts,
+  CODE int (*start_capture)(FAR struct imgdata_s *data,
+                            uint8_t nr_datafmts,
                             FAR imgdata_format_t *datafmts,
                             FAR imgdata_interval_t *interval,
-                            FAR imgdata_capture_t callback);
-  CODE int (*stop_capture)(void);
+                            FAR imgdata_capture_t callback,
+                            FAR void *arg);
+  CODE int (*stop_capture)(FAR struct imgdata_s *data);
+};
+
+/* Image data private data.  This structure only defines the initial fields
+ * of the structure visible to the client.  The specific implementation may
+ * add additional, device specific fields after the vtable.
+ */
+
+struct imgdata_s
+{
+  FAR const struct imgdata_ops_s *ops;
 };
 
 #ifdef __cplusplus
@@ -98,7 +135,7 @@ extern "C"
 
 /* Register image data operations. */
 
-void imgdata_register(FAR const struct imgdata_ops_s *ops);
+void imgdata_register(FAR struct imgdata_s *data);
 
 #undef EXTERN
 #ifdef __cplusplus

@@ -34,6 +34,8 @@
 #include <nuttx/signal.h>
 #include <nuttx/wdog.h>
 
+#ifndef CONFIG_DISABLE_POSIX_TIMERS
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -81,8 +83,10 @@ extern volatile sq_queue_t g_alloctimers;
  * Public Function Prototypes
  ****************************************************************************/
 
-void weak_function timer_initialize(void);
-void weak_function timer_deleteall(pid_t pid);
+void timer_initialize(void);
+void timer_deleteall(pid_t pid);
 int timer_release(FAR struct posix_timer_s *timer);
+FAR struct posix_timer_s *timer_gethandle(timer_t timerid);
 
+#endif /* CONFIG_DISABLE_POSIX_TIMERS */
 #endif /* __SCHED_TIMER_TIMER_H */

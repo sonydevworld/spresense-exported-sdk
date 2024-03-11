@@ -74,18 +74,34 @@
 
 /* General Constants ********************************************************/
 
-#define INFINITY    (1.0/0.0)
-#define NAN         (0.0/0.0)
-#define HUGE_VAL    INFINITY
+#ifndef _HUGE_ENUF
+#  define _HUGE_ENUF (1e+300)  /* _HUGE_ENUF*_HUGE_ENUF must overflow */
+#endif
 
-#define INFINITY_F  (1.0F/0.0F)
-#define NAN_F       (0.0F/0.0F)
+#define INFINITY   ((double)(_HUGE_ENUF * _HUGE_ENUF))
+#define NAN        ((double)(INFINITY * 0.0F))
+#define HUGE_VAL   INFINITY
 
-#define isnan(x)    ((x) != (x))
-#define isinf(x)    (((x) == INFINITY) || ((x) == -INFINITY))
-#define isfinite(x) (!(isinf(x) || isnan(x)))
+#define INFINITY_F ((float)INFINITY)
+#define NAN_F      ((float)(INFINITY * 0.0F))
 
-#define isinf_f(x)  (((x) == INFINITY_F) || ((x) == -INFINITY_F))
+#define INFINITY_L ((long double)INFINITY)
+#define NAN_L      ((long double)(INFINITY * 0.0F))
+
+#define isnan(x)   ((x) != (x))
+#define isnanf(x)  ((x) != (x))
+#define isnanl(x)  ((x) != (x))
+#define isinf(x)   (((x) == INFINITY) || ((x) == -INFINITY))
+#define isinff(x)  (((x) == INFINITY_F) || ((x) == -INFINITY_F))
+#define isinfl(x)  (((x) == INFINITY_L) || ((x) == -INFINITY_L))
+
+#define finite(x)  (!(isinf(x) || isnan(x)))
+#define finitef(x) (!(isinff(x) || isnanf(x)))
+#define finitel(x) (!(isinfl(x) || isnanl(x)))
+
+#define isfinite(x) \
+  (sizeof(x) == sizeof(float) ? finitef(x) : \
+   sizeof(x) == sizeof(double) ? finite(x) : finitel(x))
 
 /* Exponential and Logarithmic constants ************************************/
 
@@ -381,6 +397,14 @@ long double frexpl(long double x, int *exp);
 #endif
 
 /* Trigonometric Functions **************************************************/
+
+void        sincosf(float, float *, float *);
+#ifdef CONFIG_HAVE_DOUBLE
+void        sincos(double, double *, double *);
+#endif
+#ifdef CONFIG_HAVE_LONG_DOUBLE
+void        sincosl(long double, long double *, long double *);
+#endif
 
 float       sinf  (float x);
 #ifdef CONFIG_HAVE_DOUBLE

@@ -68,6 +68,7 @@ bool mossfw_ringbuffarray_isfull(mossfw_ringbuffarray_t *ary);
 int mossfw_ringbuffarray_storednum(mossfw_ringbuffarray_t *ary);
 int mossfw_ringbuffarray_storedbytes(mossfw_ringbuffarray_t *ary);
 
+mossfw_data_t *mossfw_ringbuffarray_releasedata(mossfw_ringbuffarray_t *ary);
 mossfw_data_t *mossfw_ringbuffarray_getdata(mossfw_ringbuffarray_t *ary,
                                             int *used, bool nonblock);
 bool mossfw_ringbuffarray_setdata(mossfw_ringbuffarray_t *ary,

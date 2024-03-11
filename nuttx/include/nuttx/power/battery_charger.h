@@ -28,7 +28,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/fs/ioctl.h>
-#include <nuttx/semaphore.h>
+#include <nuttx/mutex.h>
 #include <nuttx/list.h>
 
 #include <stdbool.h>
@@ -93,43 +93,54 @@ struct battery_charger_operations_s
 {
   /* Return the current battery state (see enum battery_status_e) */
 
-  int (*state)(struct battery_charger_dev_s *dev, int *status);
+  CODE int (*state)(FAR struct battery_charger_dev_s *dev, FAR int *status);
 
   /* Return the current battery health (see enum battery_health_e) */
 
-  int (*health)(struct battery_charger_dev_s *dev, int *health);
+  CODE int (*health)(FAR struct battery_charger_dev_s *dev, FAR int *health);
 
   /* Return true if the battery is online */
 
-  int (*online)(struct battery_charger_dev_s *dev, bool *status);
+  CODE int (*online)(FAR struct battery_charger_dev_s *dev,
+                     FAR bool *status);
 
   /* Set the wished battery voltage for charging */
 
-  int (*voltage)(struct battery_charger_dev_s *dev, int value);
+  CODE int (*voltage)(FAR struct battery_charger_dev_s *dev, int value);
 
   /* Set the wished current rate used for charging */
 
-  int (*current)(struct battery_charger_dev_s *dev, int value);
+  CODE int (*current)(FAR struct battery_charger_dev_s *dev, int value);
 
   /* Set the input current limit of power supply */
 
-  int (*input_current)(struct battery_charger_dev_s *dev, int value);
+  CODE int (*input_current)(FAR struct battery_charger_dev_s *dev,
+                            int value);
 
   /* Do device specific operation */
 
-  int (*operate)(struct battery_charger_dev_s *dev, uintptr_t param);
+  CODE int (*operate)(FAR struct battery_charger_dev_s *dev,
+                      uintptr_t param);
 
   /* Get chip id */
 
-  int (*chipid)(struct battery_charger_dev_s *dev, unsigned int *value);
+  CODE int (*chipid)(FAR struct battery_charger_dev_s *dev,
+                     FAR unsigned int *value);
 
   /* Get the actual output voltage for charging */
 
-  int (*get_voltage)(struct battery_charger_dev_s *dev, FAR int *value);
+  CODE int (*get_voltage)(FAR struct battery_charger_dev_s *dev,
+                          FAR int *value);
+
+  /* the voltage information for charging */
+
+  CODE int (*voltage_info)(FAR struct battery_charger_dev_s *dev,
+                           FAR int *value);
 
   /* Get charge protocol */
 
-  int (*get_protocol)(struct battery_charger_dev_s *dev, FAR int *value);
+  CODE int (*get_protocol)(FAR struct battery_charger_dev_s *dev,
+                           FAR int *value);
 };
 
 /* This structure defines the battery driver state structure */
@@ -140,7 +151,7 @@ struct battery_charger_dev_s
 
   FAR const struct battery_charger_operations_s *ops; /* Battery operations */
 
-  sem_t batsem;  /* Enforce mutually exclusive access */
+  mutex_t batlock;  /* Enforce mutually exclusive access */
 
   struct list_node flist;
 

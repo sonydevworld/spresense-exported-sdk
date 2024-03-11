@@ -212,7 +212,6 @@
 
 #define SNIOC_DISTANCESHORT        _SNIOC(0x0060) /* Arg: None */
 #define SNIOC_DISTANCELONG         _SNIOC(0x0061) /* Arg: None */
-#define SNIOC_CALIBRATE            _SNIOC(0x0062) /* Arg: b16_t value */
 #define SNIOC_TEMPUPDATE           _SNIOC(0x0063) /* Arg: b16_t value */
 
 /* IOCTL commands unique to the ISL29023 */
@@ -233,6 +232,13 @@
 
 #define SNIOC_READROMCODE          _SNIOC(0x0067)  /* Arg: uint64_t* pointer */
 #define SNIOC_SETALARM             _SNIOC(0x0068)  /* Arg: struct ds18b20_alarm_s* */
+
+/* IOCTL commands for accelerators */
+
+#define SNIOC_SIMPLE_CHECK         _SNIOC(0x0069)  /* Simple check */
+#define SNIOC_FULL_CHECK           _SNIOC(0x006a)  /* Full check */
+#define SNIOC_FEAT_MANAGE          _SNIOC(0x006b)  /* Feature manage command */
+#define SNIOC_SET_SCALE_XL         _SNIOC(0x006c)  /* Set accelerator scale command */
 
 /* Command:      SNIOC_GET_STATE
  * Description:  Get state for all subscribers, include min_interval,
@@ -340,5 +346,64 @@
  */
 
 #define SNIOC_GET_USTATE           _SNIOC(0x0092)
+
+/* IOCTL commands unique to the APDS9922 sensor.
+ * The sensor detects both ambient light and proximity.
+ */
+
+                                                  /* Args:                 */
+
+/* SNIOC_RESET - as defined already, above           None                  */
+
+/* SNIOC_GET_DEV_ID - as defined already, above      uint8_t* pointer      */
+
+#define SNIOC_ALS_CONFIG           _SNIOC(0x0093) /* struct
+                                                   * apds9922_als_setup_s* */
+#define SNIOC_PS_CONFIG            _SNIOC(0x0094) /* struct
+                                                   * apds9922_ps_setup_s*  */
+
+/* Set proximity sensor cancellation level */
+
+#define SNIOC_PS_CANC_LVL          _SNIOC(0x0095) /* uint16_t level        */                                                  
+
+/* IOCTL commands for MPU60x0 IMU */
+
+/* Command:      SNIOC_SET_AFS_SEL
+ * Description:  Sets the accelerometer full scale range.
+ * Argument:     Accepts 0, 1, 2 or 3 (uint8_t).
+ */
+
+#define SNIOC_SET_AFS_SEL             _SNIOC(0x0096)
+
+/* Command:      SNIOC_SMPLRT_DIV
+ * Description:  Set the divider from the gyroscope output rate
+ *               used to generate the sample rate.
+ * Argument:     Sets the 8bit sample rate divider (uint8_t).
+ */
+
+#define SNIOC_SMPLRT_DIV              _SNIOC(0x0097)
+
+/* Command:      SNIOC_READ_SAMPLE_RATE
+ * Description:  Reads the current sample rate for the IMU.
+ * Argument:     Requires pointer *uint32_t as argument to
+ *               store integer approximation of current sample rate.
+ */
+
+#define SNIOC_READ_SAMPLE_RATE        _SNIOC(0x0098)
+
+/* Command:      SNIOC_READ_FIFO_COUNT
+ * Description:  Reads the current number of bytes in FIFO buffer.
+ * Argument:     Requires pointer *uint16_t as argument to
+ *               store current number of bytes available.
+ */
+
+#define SNIOC_READ_FIFO_COUNT         _SNIOC(0x0099)
+
+/* Command:      SNIOC_ENABLE_FIFO
+ * Description:  Enables or disabled FIFO buffer.
+ * Argument:     Bool value: true enables and false disables.
+ */
+
+#define SNIOC_ENABLE_FIFO             _SNIOC(0x009A)
 
 #endif /* __INCLUDE_NUTTX_SENSORS_IOCTL_H */

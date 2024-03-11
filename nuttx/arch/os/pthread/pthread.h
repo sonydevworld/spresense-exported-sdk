@@ -50,13 +50,13 @@
 struct join_s
 {
   FAR struct join_s *next;       /* Implements link list */
-  uint8_t        crefs;          /* Reference count */
-  bool           detached;       /* true: pthread_detached'ed */
-  bool           terminated;     /* true: detach'ed+exit'ed */
-  pthread_t      thread;         /* Includes pid */
-  sem_t          exit_sem;       /* Implements join */
-  sem_t          data_sem;       /* Implements join */
-  pthread_addr_t exit_value;     /* Returned data */
+  uint8_t            crefs;      /* Reference count */
+  bool               detached;   /* true: pthread_detached'ed */
+  bool               terminated; /* true: detach'ed+exit'ed */
+  pthread_t          thread;     /* Includes pid */
+  sem_t              exit_sem;   /* Implements join */
+  sem_t              data_sem;   /* Implements join */
+  pthread_addr_t     exit_value; /* Returned data */
 };
 
 /****************************************************************************
@@ -84,27 +84,26 @@ int pthread_setup_scheduler(FAR struct pthread_tcb_s *tcb, int priority,
 int pthread_completejoin(pid_t pid, FAR void *exit_value);
 void pthread_destroyjoin(FAR struct task_group_s *group,
                          FAR struct join_s *pjoin);
-FAR struct join_s *pthread_findjoininfo(FAR struct task_group_s *group,
-                                        pid_t pid);
+int pthread_findjoininfo(FAR struct task_group_s *group,
+                         pid_t pid, FAR struct join_s **join);
 void pthread_release(FAR struct task_group_s *group);
 
-int pthread_sem_take(FAR sem_t *sem, FAR const struct timespec *abs_timeout,
-                     bool intr);
+int pthread_sem_take(FAR sem_t *sem, FAR const struct timespec *abs_timeout);
 #ifdef CONFIG_PTHREAD_MUTEX_UNSAFE
-int pthread_sem_trytake(sem_t *sem);
+int pthread_sem_trytake(FAR sem_t *sem);
 #endif
-int pthread_sem_give(sem_t *sem);
+int pthread_sem_give(FAR sem_t *sem);
 
 #ifndef CONFIG_PTHREAD_MUTEX_UNSAFE
 int pthread_mutex_take(FAR struct pthread_mutex_s *mutex,
-                       FAR const struct timespec *abs_timeout, bool intr);
+                       FAR const struct timespec *abs_timeout);
 int pthread_mutex_trytake(FAR struct pthread_mutex_s *mutex);
 int pthread_mutex_give(FAR struct pthread_mutex_s *mutex);
 void pthread_mutex_inconsistent(FAR struct tcb_s *tcb);
 #else
-#  define pthread_mutex_take(m,abs_timeout,i)  pthread_sem_take(&(m)->sem,(abs_timeout),(i))
-#  define pthread_mutex_trytake(m)             pthread_sem_trytake(&(m)->sem)
-#  define pthread_mutex_give(m)                pthread_sem_give(&(m)->sem)
+#  define pthread_mutex_take(m,abs_timeout) pthread_sem_take(&(m)->sem,(abs_timeout))
+#  define pthread_mutex_trytake(m)          pthread_sem_trytake(&(m)->sem)
+#  define pthread_mutex_give(m)             pthread_sem_give(&(m)->sem)
 #endif
 
 #ifdef CONFIG_PTHREAD_MUTEX_TYPES

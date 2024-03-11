@@ -50,41 +50,49 @@
 #define IFF_UP             (1 << 1)  /* Interface is up */
 #define IFF_RUNNING        (1 << 2)  /* Carrier is available */
 #define IFF_IPv6           (1 << 3)  /* Configured for IPv6 packet (vs ARP or IPv4) */
-#define IFF_BOUND          (1 << 4)  /* Bound to a socket */
 #define IFF_LOOPBACK       (1 << 5)  /* Is a loopback net */
 #define IFF_POINTOPOINT    (1 << 6)  /* Is point-to-point link */
 #define IFF_NOARP          (1 << 7)  /* ARP is not required for this packet */
+#define IFF_NAT            (1 << 8)  /* NAT is enabled for this interface */
+#define IFF_SLAVE          (1 << 11) /* Slave of a load balancer. */
 #define IFF_MULTICAST      (1 << 12) /* Supports multicast. */
 #define IFF_BROADCAST      (1 << 13) /* Broadcast address valid. */
+#define IFF_DYNAMIC        (1 << 15) /* Dialup device with changing addresses. */
 
 /* Interface flag helpers */
 
 #define IFF_SET_UP(f)          do { (f) |= IFF_UP; } while (0)
 #define IFF_SET_RUNNING(f)     do { (f) |= IFF_RUNNING; } while (0)
-#define IFF_SET_BOUND(f)       do { (f) |= IFF_BOUND; } while (0)
 #define IFF_SET_NOARP(f)       do { (f) |= IFF_NOARP; } while (0)
+#define IFF_SET_NAT(f)         do { (f) |= IFF_NAT; } while (0)
 #define IFF_SET_LOOPBACK(f)    do { (f) |= IFF_LOOPBACK; } while (0)
 #define IFF_SET_POINTOPOINT(f) do { (f) |= IFF_POINTOPOINT; } while (0)
 #define IFF_SET_MULTICAST(f)   do { (f) |= IFF_MULTICAST; } while (0)
 #define IFF_SET_BROADCAST(f)   do { (f) |= IFF_BROADCAST; } while (0)
+#define IFF_SET_SLAVE(f)       do { (f) |= IFF_SLAVE; } while (0)
+#define IFF_SET_DYNAMIC(f)     do { (f) |= IFF_DYNAMIC; } while (0)
 
 #define IFF_CLR_UP(f)          do { (f) &= ~IFF_UP; } while (0)
 #define IFF_CLR_RUNNING(f)     do { (f) &= ~IFF_RUNNING; } while (0)
-#define IFF_CLR_BOUND(f)       do { (f) &= ~IFF_BOUND; } while (0)
 #define IFF_CLR_NOARP(f)       do { (f) &= ~IFF_NOARP; } while (0)
+#define IFF_CLR_NAT(f)         do { (f) &= ~IFF_NAT; } while (0)
 #define IFF_CLR_LOOPBACK(f)    do { (f) &= ~IFF_LOOPBACK; } while (0)
 #define IFF_CLR_POINTOPOINT(f) do { (f) &= ~IFF_POINTOPOINT; } while (0)
 #define IFF_CLR_MULTICAST(f)   do { (f) &= ~IFF_MULTICAST; } while (0)
 #define IFF_CLR_BROADCAST(f)   do { (f) &= ~IFF_BROADCAST; } while (0)
+#define IFF_CLR_SLAVE(f)       do { (f) &= ~IFF_SLAVE; } while (0)
+#define IFF_CLR_DYNAMIC(f)     do { (f) &= ~IFF_DYNAMIC; } while (0)
 
 #define IFF_IS_UP(f)          (((f) & IFF_UP) != 0)
 #define IFF_IS_RUNNING(f)     (((f) & IFF_RUNNING) != 0)
-#define IFF_IS_BOUND(f)       (((f) & IFF_BOUND) != 0)
 #define IFF_IS_NOARP(f)       (((f) & IFF_NOARP) != 0)
+#define IFF_IS_NAT(f)         (((f) & IFF_NAT) != 0)
 #define IFF_IS_LOOPBACK(f)    (((f) & IFF_LOOPBACK) != 0)
 #define IFF_IS_POINTOPOINT(f) (((f) & IFF_POINTOPOINT) != 0)
 #define IFF_IS_MULTICAST(f)   (((f) & IFF_MULTICAST) != 0)
 #define IFF_IS_BROADCAST(f)   (((f) & IFF_BROADCAST) != 0)
+#define IFF_IS_SLAVE(f)       (((f) & IFF_SLAVE) != 0)
+#define IFF_IS_DYNAMIC(f)     (((f) & IFF_DYNAMIC) != 0)
 
 /* We only need to manage the IPv6 bit if both IPv6 and IPv4 are supported.
  * Otherwise, we can save a few bytes by ignoring it.
@@ -117,6 +125,19 @@
 #  define IFF_CLR_IPv4(f)
 #  define IFF_IS_IPv4(f)   (1)
 #endif
+
+/* RFC 2863 operational status */
+
+enum
+{
+  IF_OPER_UNKNOWN,
+  IF_OPER_NOTPRESENT,
+  IF_OPER_DOWN,
+  IF_OPER_LOWERLAYERDOWN,
+  IF_OPER_TESTING,
+  IF_OPER_DORMANT,
+  IF_OPER_UP,
+};
 
 /****************************************************************************
  * Public Type Definitions

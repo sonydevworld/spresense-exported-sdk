@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-#include <nuttx/semaphore.h>
+#include <nuttx/mutex.h>
 #include <nuttx/wqueue.h>
 
 #if defined(CONFIG_DRVR_WRITEBUFFER) || defined(CONFIG_DRVR_READAHEAD)
@@ -127,9 +127,9 @@ struct rwbuffer_s
   /* This is the state of the write buffering */
 
 #ifdef CONFIG_DRVR_WRITEBUFFER
-  sem_t         wrsem;           /* Enforces exclusive access to the write buffer */
+  mutex_t       wrlock;          /* Enforces exclusive access to the write buffer */
   struct work_s work;            /* Delayed work to flush buffer after a delay with no activity */
-  uint8_t      *wrbuffer;        /* Allocated write buffer */
+  FAR uint8_t  *wrbuffer;        /* Allocated write buffer */
   uint16_t      wrnblocks;       /* Number of blocks in write buffer */
   off_t         wrblockstart;    /* First block in write buffer */
 #endif
@@ -137,8 +137,8 @@ struct rwbuffer_s
   /* This is the state of the read-ahead buffering */
 
 #ifdef CONFIG_DRVR_READAHEAD
-  sem_t         rhsem;           /* Enforces exclusive access to the write buffer */
-  uint8_t      *rhbuffer;        /* Allocated read-ahead buffer */
+  mutex_t       rhlock;          /* Enforces exclusive access to the write buffer */
+  FAR uint8_t  *rhbuffer;        /* Allocated read-ahead buffer */
   uint16_t      rhnblocks;       /* Number of blocks in read-ahead buffer */
   off_t         rhblockstart;    /* First block in read-ahead buffer */
 #endif

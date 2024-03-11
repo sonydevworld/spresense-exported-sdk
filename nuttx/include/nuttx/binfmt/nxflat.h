@@ -84,13 +84,10 @@ struct nxflat_loadinfo_s
    *
    * addrenv - This is the handle created by up_addrenv_create() that can be
    *   used to manage the tasks address space.
-   * oldenv  - This is a value returned by up_addrenv_select() that must be
-   *   used to restore the current address environment.
    */
 
 #ifdef CONFIG_ARCH_ADDRENV
-  group_addrenv_t addrenv; /* Task group address environment */
-  save_addrenv_t oldenv;   /* Saved address environment */
+  addrenv_t addrenv;       /* Address environment */
 #endif
 
   /* File descriptors */
@@ -114,51 +111,6 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
-
-/****************************************************************************
- * Name: nxflat_initialize
- *
- * Description:
- *   In order to use the NxFLAT binary format, this function must be called
- *   during system initialization to register the NXFLAT binary
- *   format.
- *
- * Returned Value:
- *   This is a NuttX internal function so it follows the convention that
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-int nxflat_initialize(void);
-
-/****************************************************************************
- * Name: nxflat_uninitialize
- *
- * Description:
- *   Unregister the NXFLAT binary loader
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void nxflat_uninitialize(void);
-
-/****************************************************************************
- * Name: nxflat_verifyheader
- *
- * Description:
- *   Given the header from a possible NXFLAT executable, verify that it is
- *   an NXFLAT executable.
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-int nxflat_verifyheader(const struct nxflat_hdr_s *header);
 
 /****************************************************************************
  * Name: nxflat_init

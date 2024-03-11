@@ -29,9 +29,9 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <queue.h>
 
 #include <nuttx/clock.h>
+#include <nuttx/queue.h>
 #include <nuttx/wdog.h>
 
 /****************************************************************************
@@ -57,8 +57,6 @@
  *   priority worker thread.  Default: 224
  * CONFIG_SCHED_HPWORKSTACKSIZE - The stack size allocated for the worker
  *   thread.  Default: 2048.
- * CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
- *   the worker thread.  Default: 17
  *
  * CONFIG_SCHED_LPWORK. If CONFIG_SCHED_LPWORK is selected then a lower-
  *   priority work queue will be created.  This lower priority work queue
@@ -249,7 +247,7 @@ struct work_s
   {
     struct
     {
-      struct sq_entry_s sq; /* Implements a single linked list */
+      struct dq_entry_s dq; /* Implements a double linked list */
       clock_t qtime;        /* Time work queued */
     } s;
     struct wdog_s timer;    /* Delay expiry timer */
@@ -384,6 +382,29 @@ int work_queue(int qid, FAR struct work_s *work, worker_t worker,
  ****************************************************************************/
 
 int work_cancel(int qid, FAR struct work_s *work);
+
+/****************************************************************************
+ * Name: work_cancel_sync
+ *
+ * Description:
+ *   Blocked cancel previously queued user-mode work.  This removes work
+ *   from the user mode work queue.  After work has been cancelled, it may
+ *   be requeued by calling work_queue() again.
+ *
+ * Input Parameters:
+ *   qid    - The work queue ID (must be HPWORK or LPWORK)
+ *   work   - The previously queued work structure to cancel
+ *
+ * Returned Value:
+ *   Zero (OK) on success, a negated errno on failure.  This error may be
+ *   reported:
+ *
+ *   -ENOENT - There is no such work queued.
+ *   -EINVAL - An invalid work queue was specified
+ *
+ ****************************************************************************/
+
+int work_cancel_sync(int qid, FAR struct work_s *work);
 
 /****************************************************************************
  * Name: work_foreach

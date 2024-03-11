@@ -29,7 +29,6 @@
 
 #include <mqueue.h>
 #include <pthread.h>
-#include <semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -43,17 +42,17 @@
 
 struct nxrecorder_s
 {
-  int         state;                   /* Current recorder state */
-  int         dev_fd;                  /* File descriptor of active device */
-  mqd_t       mq;                      /* Message queue for the recordthread */
-  char        mqname[16];              /* Name of our message queue */
-  pthread_t   record_id;               /* Thread ID of the recordthread */
-  int         crefs;                   /* Number of references to the recorder */
-  sem_t       sem;                     /* Thread sync semaphore */
-  int         fd;                      /* File descriptor of open file */
-  char        device[CONFIG_NAME_MAX]; /* Preferred audio device */
+  int             state;                   /* Current recorder state */
+  int             dev_fd;                  /* File descriptor of active device */
+  mqd_t           mq;                      /* Message queue for the recordthread */
+  char            mqname[32];              /* Name of our message queue */
+  pthread_t       record_id;               /* Thread ID of the recordthread */
+  int             crefs;                   /* Number of references to the recorder */
+  pthread_mutex_t mutex;                   /* Thread sync mutex */
+  int             fd;                      /* File descriptor of open file */
+  char            device[CONFIG_NAME_MAX]; /* Preferred audio device */
 #ifdef CONFIG_AUDIO_MULTI_SESSION
-  FAR void    *session;                /* Session assignment from device */
+  FAR void        *session;                /* Session assignment from device */
 #endif
 };
 
@@ -154,7 +153,7 @@ int nxrecorder_setdevice(FAR struct nxrecorder_s *precorder,
                          FAR const char *device);
 
 /****************************************************************************
- * Name: nxrecorder_recordraw
+ * Name: nxrecorder_recordinternal
  *
  *   Plays the specified media file (from the filesystem) using the
  *   Audio system.  If a preferred device has been set, that device
@@ -174,9 +173,10 @@ int nxrecorder_setdevice(FAR struct nxrecorder_s *precorder,
  *
  ****************************************************************************/
 
-int nxrecorder_recordraw(FAR struct nxrecorder_s *precorder,
-                         FAR const char *filename, uint8_t nchannels,
-                         uint8_t bpsamp, uint32_t samprate, uint8_t chmap);
+int nxrecorder_recordinternal(FAR struct nxrecorder_s *precorder,
+                              FAR const char *filename, int filefmt,
+                              uint8_t nchannels, uint8_t bpsamp,
+                              uint32_t samprate, uint8_t chmap);
 
 /****************************************************************************
  * Name: nxrecorder_stop

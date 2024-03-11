@@ -25,31 +25,36 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdbool.h>
-#include <errno.h>
 #include <assert.h>
-#include <unistd.h>
+#include <stdbool.h>
+
 #include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define NXRMUTEX_NO_HOLDER     (pid_t)-1
-#define NXMUTEX_INITIALIZER    SEM_INITIALIZER(1)
-#define NXRMUTEX_INITIALIZER   {SEM_INITIALIZER(1), NXRMUTEX_NO_HOLDER, 0}
+#define NXMUTEX_NO_HOLDER      ((pid_t)-1)
+#define NXMUTEX_INITIALIZER    {NXSEM_INITIALIZER(1, SEM_TYPE_MUTEX | \
+                                SEM_PRIO_INHERIT), NXMUTEX_NO_HOLDER}
+#define NXRMUTEX_INITIALIZER   {NXMUTEX_INITIALIZER, 0}
 
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
 
-typedef sem_t mutex_t;
+struct mutex_s
+{
+  sem_t sem;
+  pid_t holder;
+};
+
+typedef struct mutex_s mutex_t;
 
 struct rmutex_s
 {
   mutex_t mutex;
-  pid_t holder;
-  uint16_t count;
+  unsigned int count;
 };
 
 typedef struct rmutex_s rmutex_t;
@@ -87,17 +92,7 @@ extern "C"
  *
  ****************************************************************************/
 
-static inline int nxmutex_init(FAR mutex_t *mutex)
-{
-  int ret = _SEM_INIT(mutex, 0, 1);
-
-  if (ret < 0)
-    {
-      return _SEM_ERRVAL(ret);
-    }
-
-  return ret;
-}
+int nxmutex_init(FAR mutex_t *mutex);
 
 /****************************************************************************
  * Name: nxmutex_destroy
@@ -118,17 +113,38 @@ static inline int nxmutex_init(FAR mutex_t *mutex)
  *
  ****************************************************************************/
 
-static inline int nxmutex_destroy(FAR mutex_t *mutex)
-{
-  int ret = _SEM_DESTROY(mutex);
+int nxmutex_destroy(FAR mutex_t *mutex);
 
-  if (ret < 0)
-    {
-      return _SEM_ERRVAL(ret);
-    }
+/****************************************************************************
+ * Name: nxmutex_is_hold
+ *
+ * Description:
+ *   This function check whether the caller hold the mutex
+ *   referenced by 'mutex'.
+ *
+ * Parameters:
+ *   mutex - mutex descriptor.
+ *
+ * Return Value:
+ *
+ ****************************************************************************/
 
-  return ret;
-}
+bool nxmutex_is_hold(FAR mutex_t *mutex);
+
+/****************************************************************************
+ * Name: nxmutex_is_locked
+ *
+ * Description:
+ *   This function get the lock state the mutex referenced by 'mutex'.
+ *
+ * Parameters:
+ *   mutex - mutex descriptor.
+ *
+ * Return Value:
+ *
+ ****************************************************************************/
+
+bool nxmutex_is_locked(FAR mutex_t *mutex);
 
 /****************************************************************************
  * Name: nxmutex_lock
@@ -150,29 +166,7 @@ static inline int nxmutex_destroy(FAR mutex_t *mutex)
  *
  ****************************************************************************/
 
-static inline int nxmutex_lock(FAR mutex_t *mutex)
-{
-  int ret;
-
-  for (; ; )
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = _SEM_WAIT(mutex);
-      if (ret >= 0)
-        {
-          break;
-        }
-
-      ret = _SEM_ERRVAL(ret);
-      if (ret != -EINTR && ret != -ECANCELED)
-        {
-          break;
-        }
-    }
-
-  return ret;
-}
+int nxmutex_lock(FAR mutex_t *mutex);
 
 /****************************************************************************
  * Name: nxmutex_trylock
@@ -195,42 +189,33 @@ static inline int nxmutex_lock(FAR mutex_t *mutex)
  *
  ****************************************************************************/
 
-static inline int nxmutex_trylock(FAR mutex_t *mutex)
-{
-  int ret = _SEM_TRYWAIT(mutex);
-
-  if (ret < 0)
-    {
-      return _SEM_ERRVAL(ret);
-    }
-
-  return ret;
-}
+int nxmutex_trylock(FAR mutex_t *mutex);
 
 /****************************************************************************
- * Name: nxmutex_is_locked
+ * Name: nxmutex_timedlock
  *
  * Description:
- *   This function get the lock state the mutex referenced by 'mutex'.
+ *   This function attempts to lock the mutex .  If the mutex value
+ *   is (<=) zero,then the calling task will not return until it
+ *   successfully acquires the lock or timed out
  *
- * Parameters:
- *   mutex - mutex descriptor.
+ * Input Parameters:
+ *   mutex   - Mutex object
+ *   timeout - The time when mutex lock timed out
  *
- * Return Value:
+ * Returned Value:
+ *   OK        The mutex successfully acquires
+ *   EINVAL    The mutex argument does not refer to a valid mutex.  Or the
+ *             thread would have blocked, and the abstime parameter specified
+ *             a nanoseconds field value less than zero or greater than or
+ *             equal to 1000 million.
+ *   ETIMEDOUT The mutex could not be locked before the specified timeout
+ *             expired.
+ *   EDEADLK   A deadlock condition was detected.
  *
  ****************************************************************************/
 
-static inline bool nxmutex_is_locked(FAR mutex_t *mutex)
-{
-  int cnt;
-  int ret;
-
-  ret = _SEM_GETVALUE(mutex, &cnt);
-
-  DEBUGASSERT(ret == OK);
-
-  return cnt < 1;
-}
+int nxmutex_timedlock(FAR mutex_t *mutex, unsigned int timeout);
 
 /****************************************************************************
  * Name: nxmutex_unlock
@@ -252,18 +237,61 @@ static inline bool nxmutex_is_locked(FAR mutex_t *mutex)
  *
  ****************************************************************************/
 
-static inline int nxmutex_unlock(FAR mutex_t *mutex)
-{
-  int ret;
+int nxmutex_unlock(FAR mutex_t *mutex);
 
-  ret = _SEM_POST(mutex);
-  if (ret < 0)
-    {
-      return _SEM_ERRVAL(ret);
-    }
+/****************************************************************************
+ * Name: nxmutex_reset
+ *
+ * Description:
+ *   This function reset lock state.
+ *
+ * Parameters:
+ *   mutex - mutex descriptor.
+ *
+ ****************************************************************************/
 
-  return ret;
-}
+#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+void nxmutex_reset(FAR mutex_t *mutex);
+#endif
+
+/****************************************************************************
+ * Name: nxmutex_breaklock
+ *
+ * Description:
+ *   This function attempts to break the mutex
+ *
+ * Parameters:
+ *   mutex   - Mutex descriptor.
+ *   locked  - Is the mutex break success
+ *
+ * Return Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   Possible returned errors:
+ *
+ ****************************************************************************/
+
+int nxmutex_breaklock(FAR mutex_t *mutex, FAR bool *locked);
+
+/****************************************************************************
+ * Name: nxmutex_restorelock
+ *
+ * Description:
+ *   This function attempts to restore the mutex.
+ *
+ * Parameters:
+ *   mutex   - mutex descriptor.
+ *   locked  - true: it's mean that the mutex is broke success
+ *
+ * Return Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure
+ *
+ ****************************************************************************/
+
+int nxmutex_restorelock(FAR mutex_t *mutex, bool locked);
 
 /****************************************************************************
  * Name: nxrmutex_init
@@ -285,12 +313,7 @@ static inline int nxmutex_unlock(FAR mutex_t *mutex)
  *
  ****************************************************************************/
 
-static inline int nxrmutex_init(FAR rmutex_t *rmutex)
-{
-  rmutex->count = 0;
-  rmutex->holder = NXRMUTEX_NO_HOLDER;
-  return nxmutex_init(&rmutex->mutex);
-}
+int nxrmutex_init(FAR rmutex_t *rmutex);
 
 /****************************************************************************
  * Name: nxrmutex_destroy
@@ -308,10 +331,39 @@ static inline int nxrmutex_init(FAR rmutex_t *rmutex)
  *
  ****************************************************************************/
 
-static inline int nxrmutex_destroy(FAR rmutex_t *rmutex)
-{
-  return nxmutex_destroy(&rmutex->mutex);
-}
+int nxrmutex_destroy(FAR rmutex_t *rmutex);
+
+/****************************************************************************
+ * Name: nxrmutex_is_hold
+ *
+ * Description:
+ *   This function check whether the caller hold the recursive mutex
+ *   referenced by 'rmutex'.
+ *
+ * Parameters:
+ *   rmutex - Recursive mutex descriptor.
+ *
+ * Return Value:
+ *
+ ****************************************************************************/
+
+bool nxrmutex_is_hold(FAR rmutex_t *rmutex);
+
+/****************************************************************************
+ * Name: nxrmutex_is_locked
+ *
+ * Description:
+ *   This function get the lock state the recursive mutex
+ *   referenced by 'rmutex'.
+ *
+ * Parameters:
+ *   rmutex - Recursive mutex descriptor.
+ *
+ * Return Value:
+ *
+ ****************************************************************************/
+
+bool nxrmutex_is_locked(FAR rmutex_t *rmutex);
 
 /****************************************************************************
  * Name: nrxmutex_lock
@@ -332,29 +384,7 @@ static inline int nxrmutex_destroy(FAR rmutex_t *rmutex)
  *
  ****************************************************************************/
 
-static inline int nxrmutex_lock(FAR rmutex_t *rmutex)
-{
-  pid_t tid = gettid();
-  int ret;
-
-  if (rmutex->holder == tid)
-    {
-      DEBUGASSERT(rmutex->count < UINT16_MAX);
-      rmutex->count++;
-      ret = OK;
-    }
-  else
-    {
-      ret = nxmutex_lock(&rmutex->mutex);
-      if (ret == OK)
-        {
-          rmutex->holder = tid;
-          rmutex->count = 1;
-        }
-    }
-
-  return ret;
-}
+int nxrmutex_lock(FAR rmutex_t *rmutex);
 
 /****************************************************************************
  * Name: nxrmutex_trylock
@@ -379,67 +409,34 @@ static inline int nxrmutex_lock(FAR rmutex_t *rmutex)
  *
  ****************************************************************************/
 
-static inline int nxrmutex_trylock(FAR rmutex_t *rmutex)
-{
-  pid_t tid = gettid();
-  int ret;
-
-  if (rmutex->holder == tid)
-    {
-      DEBUGASSERT(rmutex->count < UINT16_MAX);
-      rmutex->count++;
-      ret = OK;
-    }
-  else
-    {
-      ret = nxmutex_trylock(&rmutex->mutex);
-      if (ret == OK)
-        {
-          rmutex->holder = tid;
-          rmutex->count = 1;
-        }
-    }
-
-  return ret;
-}
+int nxrmutex_trylock(FAR rmutex_t *rmutex);
 
 /****************************************************************************
- * Name: nxrmutex_is_locked
+ * Name: nxrmutex_timedlock
  *
  * Description:
- *   This function get the lock state the recursive mutex
- *   referenced by 'rmutex'.
+ *   This function attempts to lock the mutex .  If the mutex value
+ *   is (<=) zero,then the calling task will not return until it
+ *   successfully acquires the lock or timed out
  *
- * Parameters:
- *   rmutex - Recursive mutex descriptor.
+ * Input Parameters:
+ *   rmutex  - Rmutex object
+ *   timeout - The time when mutex lock timed out
  *
- * Return Value:
+ * Returned Value:
+ *   OK        The mutex successfully acquires
+ *   EINVAL    The mutex argument does not refer to a valid mutex.  Or the
+ *             thread would have blocked, and the abstime parameter specified
+ *             a nanoseconds field value less than zero or greater than or
+ *             equal to 1000 million.
+ *   ETIMEDOUT The mutex could not be locked before the specified timeout
+ *             expired.
+ *   EDEADLK   A deadlock condition was detected.
+ *   ECANCELED May be returned if the thread is canceled while waiting.
  *
  ****************************************************************************/
 
-static inline bool nxrmutex_is_locked(FAR rmutex_t *rmutex)
-{
-  return rmutex->count > 0;
-}
-
-/****************************************************************************
- * Name: nxrmutex_is_hold
- *
- * Description:
- *   This function check whether the caller hold the recursive mutex
- *   referenced by 'rmutex'.
- *
- * Parameters:
- *   rmutex - Recursive mutex descriptor.
- *
- * Return Value:
- *
- ****************************************************************************/
-
-static inline bool nxrmutex_is_hold(FAR rmutex_t *rmutex)
-{
-  return rmutex->holder == gettid();
-}
+int nxrmutex_timedlock(FAR rmutex_t *rmutex, unsigned int timeout);
 
 /****************************************************************************
  * Name: nxrmutex_unlock
@@ -462,27 +459,59 @@ static inline bool nxrmutex_is_hold(FAR rmutex_t *rmutex)
  *
  ****************************************************************************/
 
-static inline int nxrmutex_unlock(FAR rmutex_t *rmutex)
-{
-  pid_t tid = gettid();
-  int ret = OK;
+int nxrmutex_unlock(FAR rmutex_t *rmutex);
 
-  DEBUGASSERT(rmutex->holder == tid);
-  DEBUGASSERT(rmutex->count > 0);
+/****************************************************************************
+ * Name: nxrmutex_reset
+ *
+ * Description:
+ *   This function reset lock state.
+ *
+ * Parameters:
+ *   rmutex - rmutex descriptor.
+ *
+ ****************************************************************************/
+#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+void nxrmutex_reset(FAR rmutex_t *rmutex);
+#endif
 
-  if (rmutex->count == 1)
-    {
-      rmutex->count = 0;
-      rmutex->holder = NXRMUTEX_NO_HOLDER;
-      ret = nxmutex_unlock(&rmutex->mutex);
-    }
-  else
-    {
-      rmutex->count--;
-    }
+/****************************************************************************
+ * Name: nrxmutex_breaklock
+ *
+ * Description:
+ *   This function attempts to break the recursive mutex
+ *
+ * Parameters:
+ *   rmutex - Recursive mutex descriptor.
+ *
+ * Return Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   Possible returned errors:
+ *
+ ****************************************************************************/
 
-  return ret;
-}
+int nxrmutex_breaklock(FAR rmutex_t *rmutex, FAR unsigned int *count);
+
+/****************************************************************************
+ * Name: nxrmutex_restorelock
+ *
+ * Description:
+ *   This function attempts to restore the recursive mutex.
+ *
+ * Parameters:
+ *   rmutex - Recursive mutex descriptor.
+ *
+ * Return Value:
+ *   This is an internal OS interface and should not be used by applications.
+ *   It follows the NuttX internal error return policy:  Zero (OK) is
+ *   returned on success.  A negated errno value is returned on failure.
+ *   Possible returned errors:
+ *
+ ****************************************************************************/
+
+int nxrmutex_restorelock(FAR rmutex_t *rmutex, unsigned int count);
 
 #undef EXTERN
 #ifdef __cplusplus

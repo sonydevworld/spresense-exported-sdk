@@ -547,7 +547,7 @@ void board_lcd_uninitialize(void);
 #ifdef CONFIG_ARCH_LEDS
 void board_autoled_initialize(void);
 #else
-# define board_autoled_initialize()
+#  define board_autoled_initialize()
 #endif
 
 /****************************************************************************
@@ -582,7 +582,7 @@ void board_autoled_initialize(void);
 #ifdef CONFIG_ARCH_LEDS
 void board_autoled_on(int led);
 #else
-# define board_autoled_on(led)
+#  define board_autoled_on(led)
 #endif
 
 /****************************************************************************
@@ -613,7 +613,7 @@ void board_autoled_on(int led);
 #ifdef CONFIG_ARCH_LEDS
 void board_autoled_off(int led);
 #else
-# define board_autoled_off(led)
+#  define board_autoled_off(led)
 #endif
 
 /****************************************************************************
@@ -802,9 +802,10 @@ int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg);
  ****************************************************************************/
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-void board_crashdump(uintptr_t currentsp, FAR void *tcb,
-                     FAR const char *filename,
-                     int lineno);
+struct tcb_s;
+void board_crashdump(uintptr_t sp, FAR struct tcb_s *tcb,
+                     FAR const char *filename, int lineno,
+                     FAR const char *msg, FAR void *regs);
 #endif
 
 /****************************************************************************

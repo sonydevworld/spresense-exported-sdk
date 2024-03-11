@@ -36,7 +36,7 @@
  * Public Types
  ****************************************************************************/
 
- #ifdef __cplusplus
+#ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
 {
@@ -71,7 +71,7 @@ int lapi_evtyield(int timeout_ms);
  ****************************************************************************/
 
 int lapi_req(uint32_t cmdid, FAR void *inp, size_t insz, FAR void *outp,
-  size_t outsz, FAR void *cb);
+             size_t outsz, FAR void *cb);
 
 #undef EXTERN
 #ifdef __cplusplus

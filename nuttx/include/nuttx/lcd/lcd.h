@@ -47,6 +47,19 @@
 
 struct lcd_dev_s;
 
+/* Some special LCD drivers require input data to be aligned.
+ * Such as starting row and column, width, height, data address, etc.
+ */
+
+struct lcddev_area_align_s
+{
+  uint16_t row_start_align; /* Start row index alignment */
+  uint16_t height_align;    /* Height alignment */
+  uint16_t col_start_align; /* Start column index alignment */
+  uint16_t width_align;     /* Width alignment */
+  uint16_t buf_align;       /* Buffer addr alignment */
+};
+
 /* This structure describes one color plane.  Some YUV formats may support
  * up to 4 planes (although they probably wouldn't be used on LCD hardware).
  * The framebuffer driver provides the video memory address in its
@@ -79,9 +92,11 @@ struct lcd_planeinfo_s
    *  col_start - Starting column to write to (range: 0 <= col <= xres)
    *  col_end   - Ending column to write to
    *              (range: col_start <= col_end < xres)
-   *  buffer    - The buffer containing the complete frame to be written to
-   *              the display (the correct rows and columns have to be
-   *              selected from it)
+   *  buffer    - The buffer containing the area to be written to the LCD
+   *  stride    - Length of a line in bytes. This parameter may be necessary
+   *              to allow the LCD driver to calculate the offset for partial
+   *              writes when the buffer needs to be splited for row-by-row
+   *              writing.
    *
    * NOTE: this operation may not be supported by the device, in which case
    * the callback pointer will be NULL. In that case, putrun() should be
@@ -90,7 +105,8 @@ struct lcd_planeinfo_s
 
   int (*putarea)(FAR struct lcd_dev_s *dev, fb_coord_t row_start,
                  fb_coord_t row_end, fb_coord_t col_start,
-                 fb_coord_t col_end, FAR const uint8_t *buffer);
+                 fb_coord_t col_end, FAR const uint8_t *buffer,
+                 fb_coord_t stride);
 
   /* This method can be used to read a partial raster line from the LCD:
    *
@@ -115,6 +131,7 @@ struct lcd_planeinfo_s
    *  col_end   - Ending column to read from
    *              (range: col_start <= col_end < xres)
    *  buffer    - The buffer where the data will be written
+   *  stride    - Length of a line in bytes.
    *
    * NOTE: this operation may not be supported by the device, in which case
    * the callback pointer will be NULL. In that case, getrun() should be
@@ -123,7 +140,8 @@ struct lcd_planeinfo_s
 
   int (*getarea)(FAR struct lcd_dev_s *dev, fb_coord_t row_start,
                  fb_coord_t row_end, fb_coord_t col_start,
-                 fb_coord_t col_end, FAR uint8_t *buffer);
+                 fb_coord_t col_end, FAR uint8_t *buffer,
+                 fb_coord_t stride);
 
   /* This method can be used to redraw display's content.
    *
@@ -241,6 +259,15 @@ struct lcd_dev_s
   /* Get LCD panel frame rate (0: disable refresh) */
 
   int (*getframerate)(struct lcd_dev_s *dev);
+
+  /* Get LCD panel area alignment */
+
+  int (*getareaalign)(FAR struct lcd_dev_s *dev,
+                      FAR struct lcddev_area_align_s *align);
+
+  /* Passthrough unknown ioctl commands. */
+
+  int (*ioctl)(FAR struct lcd_dev_s *dev, int cmd, unsigned long arg);
 };
 
 /****************************************************************************

@@ -64,7 +64,7 @@ namespace NxWM
    * Forward references
    */
 
-  struct CTouchscreen;
+  class CTouchscreen;
 
   /**
    * Touchscreen calibration data
@@ -164,7 +164,6 @@ namespace NxWM
     struct nxgl_point_s        m_touchPos;        /**< This is the last touch position */
     volatile uint8_t           m_calthread;       /**< Current calibration display state (See ECalibThreadState)*/
     uint8_t                    m_calphase;        /**< Current calibration display state (See ECalibrationPhase)*/
-    bool                       m_stop;            /**< True: We have been asked to stop the calibration */
     bool                       m_touched;         /**< True: The screen is touched */
     uint8_t                    m_touchId;         /**< The ID of the touch */
 #ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
@@ -396,8 +395,8 @@ namespace NxWM
   class CCalibrationFactory : public IApplicationFactory
   {
   private:
-    CTaskbar      *m_taskbar;      /**< The taskbar */
-    CTouchscreen  *m_touchscreen;  /**< The touchscreen device */
+    CTaskbar     *m_taskbar;      /**< The taskbar */
+    CTouchscreen *m_touchscreen;  /**< The touchscreen device */
 
   public:
     /**

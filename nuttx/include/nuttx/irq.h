@@ -28,8 +28,8 @@
 #include <nuttx/config.h>
 
 #ifndef __ASSEMBLY__
-# include <stdint.h>
-# include <stdbool.h>
+#  include <stdint.h>
+#  include <stdbool.h>
 #endif
 
 /* Now include architecture-specific types */
@@ -217,6 +217,26 @@ irqstate_t enter_critical_section(void);
 void leave_critical_section(irqstate_t flags);
 #else
 #  define leave_critical_section(f) up_irq_restore(f)
+#endif
+
+/****************************************************************************
+ * Name: restore_critical_section
+ *
+ * Description:
+ *   Restore the critical_section
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SMP
+void restore_critical_section(void);
+#else
+#  define restore_critical_section()
 #endif
 
 #undef EXTERN

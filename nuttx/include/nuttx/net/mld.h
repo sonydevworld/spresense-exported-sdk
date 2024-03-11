@@ -28,8 +28,8 @@
 
 #include <nuttx/config.h>
 #include <stdint.h>
-#include <queue.h>
 
+#include <nuttx/queue.h>
 #include <nuttx/wdog.h>
 #include <nuttx/net/ip.h>
 #include <nuttx/net/icmpv6.h>
@@ -391,9 +391,9 @@ struct mld_stats_s
   net_stats_t done_received;         /* DONE packets received */
 };
 
-# define MLD_STATINCR(p) ((p)++)
+#  define MLD_STATINCR(p) ((p)++)
 #else
-# define MLD_STATINCR(p)
+#  define MLD_STATINCR(p)
 #endif
 
 /****************************************************************************

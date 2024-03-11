@@ -26,7 +26,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <queue.h>
+
+#include <signal.h>
 
 #ifdef CONFIG_PAGING
 
@@ -51,6 +52,8 @@
 #ifndef CONFIG_PAGING_STACKSIZE
 #  define CONFIG_PAGING_STACKSIZE  CONFIG_IDLETHREAD_STACKSIZE
 #endif
+
+#define SIGPAGING SIGRTMIN
 
 /****************************************************************************
  * Public Data
@@ -96,7 +99,7 @@ extern FAR struct tcb_s *g_pftcb;
  *
  ****************************************************************************/
 
-int pg_worker(int argc, char *argv[]);
+int pg_worker(int argc, FAR char *argv[]);
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_PAGING */

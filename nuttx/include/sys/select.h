@@ -27,9 +27,15 @@
 
 #include <nuttx/config.h>
 
+#include <limits.h>
 #include <stdint.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/time.h>
+
+#ifdef CONFIG_FDCHECK
+#  include <nuttx/fdcheck.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -37,7 +43,7 @@
 
 /* Get the total number of descriptors that we will have to support */
 
-#define FD_SETSIZE 256
+#define FD_SETSIZE OPEN_MAX
 
 /* We will use a 32-bit bitsets to represent the set of descriptors.  How
  * many uint32_t's do we need to span all descriptors?
@@ -70,12 +76,21 @@
 
 /* Standard helper macros */
 
-#define FD_CLR(fd,set) \
+#ifdef CONFIG_FDCHECK
+#  define FD_CLR(fd,set) \
+  ((((fd_set*)(set))->arr)[_FD_NDX(fdcheck_restore(fd))] &= ~(UINT32_C(1)<< _FD_BIT(fdcheck_restore(fd))))
+#  define FD_SET(fd,set) \
+  ((((fd_set*)(set))->arr)[_FD_NDX(fdcheck_restore(fd))] |= (UINT32_C(1) << _FD_BIT(fdcheck_restore(fd))))
+#  define FD_ISSET(fd,set) \
+ (((((fd_set*)(set))->arr)[_FD_NDX(fdcheck_restore(fd))] & (UINT32_C(1) << _FD_BIT(fdcheck_restore(fd)))) != 0)
+#else
+#  define FD_CLR(fd,set) \
   ((((fd_set*)(set))->arr)[_FD_NDX(fd)] &= ~(UINT32_C(1)<< _FD_BIT(fd)))
-#define FD_SET(fd,set) \
+#  define FD_SET(fd,set) \
   ((((fd_set*)(set))->arr)[_FD_NDX(fd)] |= (UINT32_C(1) << _FD_BIT(fd)))
-#define FD_ISSET(fd,set) \
+#  define FD_ISSET(fd,set) \
  (((((fd_set*)(set))->arr)[_FD_NDX(fd)] & (UINT32_C(1) << _FD_BIT(fd))) != 0)
+#endif
 #define FD_ZERO(set) \
    memset((set), 0, sizeof(fd_set))
 

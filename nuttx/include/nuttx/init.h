@@ -94,15 +94,11 @@ EXTERN uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
  * Public Function Prototypes
  ****************************************************************************/
 
-/* This entry point must be supplied by the application */
-
-int CONFIG_INIT_ENTRYPOINT(int argc, char *argv[]);
-
 /* Functions contained in nx_task.c *****************************************/
 
 /* OS entry point called by boot logic */
 
-void nx_start(void) noreturn_function;
+void nx_start(void);
 
 #undef EXTERN
 #ifdef __cplusplus

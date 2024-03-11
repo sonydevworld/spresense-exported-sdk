@@ -45,7 +45,7 @@
 #define PDC_RGB   1
 
 #ifdef CONFIG_PDCURSES_WIDE
-# include <wchar.h>
+#  include <wchar.h>
 #endif
 
 /****************************************************************************
@@ -67,9 +67,9 @@
 #endif
 
 #ifdef CONFIG_PDCURSES_CHTYPE_LONG
-# define PDC_COLOR_PAIRS 256
+#  define PDC_COLOR_PAIRS 256
 #else
-# define PDC_COLOR_PAIRS  32
+#  define PDC_COLOR_PAIRS  32
 #endif
 
 #define BUTTON_RELEASED         0x0000
@@ -163,14 +163,14 @@
 #define REPORT_MOUSE_POSITION   0x20000000L
 
 #ifdef NCURSES_MOUSE_VERSION
-# define BUTTON_SHIFT   BUTTON_MODIFIER_SHIFT
-# define BUTTON_CONTROL BUTTON_MODIFIER_CONTROL
-# define BUTTON_CTRL    BUTTON_MODIFIER_CONTROL
-# define BUTTON_ALT     BUTTON_MODIFIER_ALT
+#  define BUTTON_SHIFT   BUTTON_MODIFIER_SHIFT
+#  define BUTTON_CONTROL BUTTON_MODIFIER_CONTROL
+#  define BUTTON_CTRL    BUTTON_MODIFIER_CONTROL
+#  define BUTTON_ALT     BUTTON_MODIFIER_ALT
 #else
-# define BUTTON_SHIFT   PDC_BUTTON_SHIFT
-# define BUTTON_CONTROL PDC_BUTTON_CONTROL
-# define BUTTON_ALT     PDC_BUTTON_ALT
+#  define BUTTON_SHIFT   PDC_BUTTON_SHIFT
+#  define BUTTON_CONTROL PDC_BUTTON_CONTROL
+#  define BUTTON_ALT     PDC_BUTTON_ALT
 #endif
 
 /* PDCurses Text Attributes
@@ -1165,8 +1165,8 @@ int     mvinsch(int, int, chtype);
 int     mvinsnstr(int, int, const char *, int);
 int     mvinsstr(int, int, const char *);
 int     mvinstr(int, int, char *);
-int     mvprintw(int, int, const char *, ...) printflike(3, 4);
-int     mvscanw(int, int, const char *, ...) scanflike(3, 4);
+int     mvprintw(int, int, const char *, ...) printf_like(3, 4);
+int     mvscanw(int, int, const char *, ...) scanf_like(3, 4);
 int     mvvline(int, int, chtype, int);
 int     mvwaddchnstr(WINDOW *, int, int, const chtype *, int);
 int     mvwaddchstr(WINDOW *, int, int, const chtype *);
@@ -1188,8 +1188,8 @@ int     mvwinsnstr(WINDOW *, int, int, const char *, int);
 int     mvwinsstr(WINDOW *, int, int, const char *);
 int     mvwinstr(WINDOW *, int, int, char *);
 int     mvwin(WINDOW *, int, int);
-int     mvwprintw(WINDOW *, int, int, const char *, ...) printflike(4, 5);
-int     mvwscanw(WINDOW *, int, int, const char *, ...) scanflike(4, 5);
+int     mvwprintw(WINDOW *, int, int, const char *, ...) printf_like(4, 5);
+int     mvwscanw(WINDOW *, int, int, const char *, ...) scanf_like(4, 5);
 int     mvwvline(WINDOW *, int, int, chtype, int);
 int     napms(int);
 WINDOW *newpad(int, int);
@@ -1209,7 +1209,7 @@ int     pair_content(short, short *, short *);
 int     pechochar(WINDOW *, chtype);
 int     pnoutrefresh(WINDOW *, int, int, int, int, int, int);
 int     prefresh(WINDOW *, int, int, int, int, int, int);
-int     printw(const char *, ...) printflike(1, 2);
+int     printw(const char *, ...) printf_like(1, 2);
 int     putwin(WINDOW *, FILE *);
 void    qiflush(void);
 int     raw(void);
@@ -1220,7 +1220,7 @@ int     reset_shell_mode(void);
 int     resetty(void);
 int     ripoffline(int, int (*)(WINDOW *, int));
 int     savetty(void);
-int     scanw(const char *, ...) scanflike(1, 2);
+int     scanw(const char *, ...) scanf_like(1, 2);
 int     scr_dump(const char *);
 int     scr_init(const char *);
 int     scr_restore(const char *);
@@ -1265,10 +1265,10 @@ int     vid_attr(attr_t, short, void *);
 int     vidputs(chtype, int (*)(int));
 int     vid_puts(attr_t, short, void *, int (*)(int));
 int     vline(chtype, int);
-int     vw_printw(WINDOW *, const char *, va_list) printflike(2, 0);
-int     vwprintw(WINDOW *, const char *, va_list) printflike(2, 0);
-int     vw_scanw(WINDOW *, const char *, va_list) scanflike(2, 0);
-int     vwscanw(WINDOW *, const char *, va_list) scanflike(2, 0);
+int     vw_printw(WINDOW *, const char *, va_list) printf_like(2, 0);
+int     vwprintw(WINDOW *, const char *, va_list) printf_like(2, 0);
+int     vw_scanw(WINDOW *, const char *, va_list) scanf_like(2, 0);
+int     vwscanw(WINDOW *, const char *, va_list) scanf_like(2, 0);
 int     waddchnstr(WINDOW *, const chtype *, int);
 int     waddchstr(WINDOW *, const chtype *);
 int     waddch(WINDOW *, const chtype);
@@ -1311,10 +1311,10 @@ int     winsstr(WINDOW *, const char *);
 int     winstr(WINDOW *, char *);
 int     wmove(WINDOW *, int, int);
 int     wnoutrefresh(WINDOW *);
-int     wprintw(WINDOW *, const char *, ...) printflike(2, 3);
+int     wprintw(WINDOW *, const char *, ...) printf_like(2, 3);
 int     wredrawln(WINDOW *, int, int);
 int     wrefresh(WINDOW *);
-int     wscanw(WINDOW *, const char *, ...) scanflike(2, 3);
+int     wscanw(WINDOW *, const char *, ...) scanf_like(2, 3);
 int     wscrl(WINDOW *, int);
 int     wsetscrreg(WINDOW *, int, int);
 int     wstandend(WINDOW *);
@@ -1497,7 +1497,7 @@ char    wordchar(void);
 wchar_t *slk_wlabel(int);
 #endif
 
-void    PDC_debug(const char *, ...) printflike(1, 2);
+void    PDC_debug(const char *, ...) printf_like(1, 2);
 int     PDC_ungetch(int);
 int     PDC_set_blink(bool);
 int     PDC_set_line_color(short);

@@ -48,16 +48,17 @@
  */
 
 #if CONFIG_PAGING_PAGESIZE == 1024
-#  define PAGESIZE                 1024
 #  define PAGESHIFT                10
-#  define PAGEMASK                 0x000003ff
 #elif CONFIG_PAGING_PAGESIZE == 4096
-#  define PAGESIZE                 4096
 #  define PAGESHIFT                12
-#  define PAGEMASK                 0x00000fff
 #else
 #  error "Need extended definitions for CONFIG_PAGING_PAGESIZE"
 #endif
+
+/* Common page macros */
+
+#  define PAGESIZE                 (1 << PAGESHIFT)
+#  define PAGEMASK                 (PAGESIZE - 1)
 
 /* Alignment macros */
 
@@ -243,9 +244,9 @@ extern "C"
  *        is resolved and all logic associated with the page fill worker
  *        must be "locked" and always present in memory.
  *   2) Block the currently executing task.
- *      - Call up_block_task() to block the task at the head of the ready-
- *        to-run list.  This should cause an interrupt level context switch
- *        to the next highest priority task.
+ *      - Call up_switch_context() to block the task at the head of the
+ *        ready-to-run list.  This should cause an interrupt level context
+ *        switch to the next highest priority task.
  *      - The blocked task will be marked with state TSTATE_WAIT_PAGEFILL
  *        and will be retained in the g_waitingforfill prioritized task
  *        list.

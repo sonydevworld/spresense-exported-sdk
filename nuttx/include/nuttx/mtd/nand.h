@@ -46,7 +46,7 @@
 
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/mtd/nand_raw.h>
-#include <nuttx/semaphore.h>
+#include <nuttx/mutex.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -66,7 +66,7 @@ struct nand_dev_s
 {
   struct mtd_dev_s mtd;       /* Externally visible part of the driver */
   FAR struct nand_raw_s *raw; /* Retained reference to the lower half */
-  sem_t exclsem;              /* For exclusive access to the NAND FLASH */
+  mutex_t lock;               /* For exclusive access to the NAND FLASH */
 };
 
 /****************************************************************************
@@ -86,6 +86,23 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: nand_raw_initialize
+ *
+ * Description:
+ *   Initialize NAND without probing.
+ *
+ * Input Parameters:
+ *   raw      - Lower-half, raw NAND FLASH interface
+ *
+ * Returned Value:
+ *   A non-NULL MTD driver instance is returned on success.  NULL is
+ *   returned on any failaure.
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *nand_raw_initialize(FAR struct nand_raw_s *raw);
 
 /****************************************************************************
  * Name: nand_initialize

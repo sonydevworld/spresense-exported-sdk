@@ -33,6 +33,24 @@
 
 #define MAXHOSTNAMELEN HOST_NAME_MAX
 
+/* Macros for min/max. */
+
+#ifndef MIN
+#  define MIN(a,b)      (((a) < (b)) ? (a) : (b))
+#endif  /* MIN */
+
+#ifndef MAX
+#  define MAX(a,b)      (((a) > (b)) ? (a) : (b))
+#endif  /* MAX */
+
+/* Macros for number of items.
+ * (aka. ARRAY_SIZE, ArraySize, Size of an Array)
+ */
+
+#ifndef nitems
+#  define nitems(_a)    (sizeof(_a) / sizeof(0[(_a)]))
+#endif /* nitems */
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/

@@ -287,7 +287,7 @@ struct boardioc_romdisk_s
 struct symtab_s;  /* Forward reference */
 struct boardioc_symtab_s
 {
-  FAR struct symtab_s *symtab;
+  FAR const struct symtab_s *symtab;
   int nsymbols;
 };
 
@@ -331,6 +331,9 @@ struct boardioc_builtin_s
 enum boardioc_usbdev_identifier_e
 {
   BOARDIOC_USBDEV_NONE = 0        /* Not valid */
+#ifdef CONFIG_USBADB
+  , BOARDIOC_USBDEV_ADB           /* ADB */
+#endif
 #ifdef CONFIG_CDCACM
   , BOARDIOC_USBDEV_CDCACM        /* CDC/ACM */
 #endif
@@ -410,7 +413,7 @@ struct boardioc_boot_info_s
 };
 #endif
 
-#ifdef CONFIG_BOARDCTL_RESET_CAUSE
+#if defined(CONFIG_BOARDCTL_RESET) || defined(CONFIG_BOARDCTL_RESET_CAUSE)
 /* Describes the reason of last reset */
 
 enum boardioc_reset_cause_e
@@ -425,16 +428,21 @@ enum boardioc_reset_cause_e
   BOARDIOC_RESETCAUSE_CORE_RWDT,        /* RTC watchdog core reset */
   BOARDIOC_RESETCAUSE_CPU_MWDT,         /* main watchdog cpu reset */
   BOARDIOC_RESETCAUSE_CPU_SOFT,         /* software cpu reset */
-  BOARDIOC_RESETCAUSE_CPU_RWDT          /* RTC watchdog cpu reset */
+  BOARDIOC_RESETCAUSE_CPU_RWDT,         /* RTC watchdog cpu reset */
+  BOARDIOC_RESETCAUSE_PIN,              /* Pin reset */
+  BOARDIOC_RESETCAUSE_LOWPOWER,         /* Low power reset */
+  BOARDIOC_RESETCAUSE_UNKOWN            /* Unknown reset cause */
 };
 
 enum boardioc_softreset_subreason_e
 {
   BOARDIOC_SOFTRESETCAUSE_USER_REBOOT = 0,
-  BOARDIOC_SOFTRESETCAUSE_PANIC,
   BOARDIOC_SOFTRESETCAUSE_ASSERT,
+  BOARDIOC_SOFTRESETCAUSE_PANIC,
+  BOARDIOC_SOFTRESETCAUSE_ENTER_BOOTLOADER,
   BOARDIOC_SOFTRESETCAUSE_ENTER_RECOVERY,
-  BOARDIOC_SOFTRESETCAUSE_RESTORE_FACTORY
+  BOARDIOC_SOFTRESETCAUSE_RESTORE_FACTORY,
+  BOARDIOC_SOFTRESETCAUSE_RESTORE_FACTORY_INQUIRY
 };
 
 struct boardioc_reset_cause_s

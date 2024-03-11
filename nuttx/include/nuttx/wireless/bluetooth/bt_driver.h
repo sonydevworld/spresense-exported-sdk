@@ -79,9 +79,22 @@ struct bt_driver_s
                       enum bt_buf_type_e type,
                       FAR void *data, size_t len);
 
-  /* Filled by register function, shouldn't be touched by bt_driver_s */
+  /* Lower-half logic may support platform-specific ioctl commands */
+
+  CODE int (*ioctl)(FAR struct bt_driver_s *btdev, int cmd,
+                    unsigned long arg);
+
+  /* For private use by device drivers.
+   * Should NOT be touched by the bluetooth stack.
+   */
 
   FAR void *priv;
+
+  /* Reserved for the bluetooth stack.
+   * Should NOT be touched by drivers.
+   */
+
+  FAR void *bt_net;
 };
 
 /****************************************************************************
@@ -105,5 +118,22 @@ struct bt_driver_s
  ****************************************************************************/
 
 int bt_netdev_register(FAR struct bt_driver_s *btdev);
+
+/****************************************************************************
+ * Name: bt_netdev_unregister
+ *
+ * Description:
+ *   Unregister a network driver registered by bt_netdev_register.
+ *
+ * Input Parameters:
+ *   btdev - An instance of the low-level driver interface structure.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success.  Otherwise a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+int bt_netdev_unregister(FAR struct bt_driver_s *btdev);
 
 #endif /* __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_DRIVER_H */

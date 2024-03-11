@@ -64,6 +64,14 @@
  *   debug the PWM driver.
  */
 
+/* Channel Numbers **********************************************************/
+
+/* PWM channels should use numbers from 1 to CONFIG_PWM_NCHANNELS. Channel
+ * number 0 indicates the channel not used and therefore is skipped by
+ * the driver (its output remains at the value defined by the peripheral),
+ * number -1 indicates the channel and all following channels are not used.
+ */
+
 /* IOCTL Commands ***********************************************************/
 
 /* The PWM module uses a standard character driver framework.  However, since
@@ -71,12 +79,10 @@
  * interface, the majority of the functionality is implemented in driver
  * ioctl calls.  The PWM ioctl commands are listed below:
  *
- * PWMIOC_SETCHARACTERISTICS - Set the characteristics of the next pulsed
- *  output.  This command will neither start nor stop the pulsed output.
- *  It will either setup the configuration that will be used when the
- *  output is started; or it will change the characteristics of the pulsed
- *  output on the fly if the timer is already started.  This command will
- *  set the PWM characteristics and return immediately.
+ * PWMIOC_SETCHARACTERISTICS - Set the characteristics of the next
+ *  pulsed output and start the pulsed output. It will change the
+ *  characteristics of the pulsed output on the fly if the timer is
+ *  already started.
  *
  *  ioctl argument: A read-only reference to struct pwm_info_s that provides
  *  the characteristics of the pulsed output.
@@ -108,6 +114,17 @@
 #define PWMIOC_START              _PWMIOC(3)
 #define PWMIOC_STOP               _PWMIOC(4)
 
+/* PWM channel polarity *****************************************************/
+
+/* These are helper definitions for setting PWM channel output polarity to
+ * logical low or high level. The pulsed output should start with this
+ * logical value and should return to it when the output is disabled.
+ */
+
+#define PWM_CPOL_NDEF             0   /* Not defined, default value by arch driver should be used */
+#define PWM_CPOL_LOW              1   /* Logical zero */
+#define PWM_CPOL_HIGH             2   /* Logical one */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -120,6 +137,15 @@
 struct pwm_chan_s
 {
   ub16_t duty;
+#ifdef CONFIG_PWM_OVERWRITE
+  bool ch_outp_ovrwr;
+  bool ch_outp_ovrwr_val;
+#endif
+#ifdef CONFIG_PWM_DEADTIME
+  ub16_t dead_time_a;
+  ub16_t dead_time_b;
+#endif
+  uint8_t cpol;
   int8_t channel;
 };
 #endif
@@ -139,11 +165,19 @@ struct pwm_info_s
   ub16_t             duty;      /* Duty of the pulse train, "1"-to-"0" duration.
                                  * Maximum: 65535/65536 (0x0000ffff)
                                  * Minimum:     1/65536 (0x00000001) */
+#ifdef CONFIG_PWM_DEADTIME
+  ub16_t dead_time_a;           /* Dead time value for main output */
+  ub16_t dead_time_b;           /* Dead time value for complementary output */
+#endif
 #  ifdef CONFIG_PWM_PULSECOUNT
   uint32_t           count;     /* The number of pulse to generate.  0 means to
                                  * generate an indefinite number of pulses */
 #  endif
+  uint8_t cpol;                 /* Channel polarity */
 #endif /* CONFIG_PWM_MULTICHAN */
+
+  FAR void           *arg;      /* User provided argument to be used in the
+                                 * lower half */
 };
 
 /* This structure is a set a callback functions used to call from the upper-

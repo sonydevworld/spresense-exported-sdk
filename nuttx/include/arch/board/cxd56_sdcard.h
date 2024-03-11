@@ -132,16 +132,18 @@ void board_sdcard_set_high_voltage(void);
 void board_sdcard_set_low_voltage(void);
 
 /****************************************************************************
- * Name: board_sdcard_set_state_cb
+ * Name: board_sdcard_inserted
  *
  * Description:
- *   Register callback function to notify state change of card slot.
- *   This function is called by board_ioctl()
- *    as BOARDIOC_SDCARD_SETNOTIFYCB command.
+ *   Check if a card is inserted into the selected SD Card slot
  *
  ****************************************************************************/
 
-int board_sdcard_set_state_cb(uintptr_t cb);
+#ifdef CONFIG_MMCSD_HAVE_CARDDETECT
+bool board_sdcard_inserted(int slotno);
+#else
+#  define board_sdcard_inserted(slotno) true
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

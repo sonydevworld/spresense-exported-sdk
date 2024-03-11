@@ -59,6 +59,10 @@
  * abilities
  */
 
+/* AR8031: */
+
+#define MII_AR8031_PSSR              0x11      /* Phy-Specific Status Register */
+
 /* National Semiconductor DP83840: 0x07-0x11, 0x14, 0x1a, 0x1d-0x1f
  * reserved
  */
@@ -207,6 +211,20 @@
 #define MII_LAN8740_ISR              0x1d      /* Interrupt Source Register */
 #define MII_LAN8740_IMR              0x1e      /* Interrupt Mask Register */
 #define MII_LAN8740_SCSR             0x1f      /* PHY Special Control/Status Register */
+
+/* Motorcomm YT8512C/YT8512H Extended Registers */
+
+#define MII_YT8512_PHYSFC            0x10      /* PHY Function conrtol Register */
+#define MII_YT8512_PHYSTS            0x11      /* PHY Status Register */
+#define MII_YT8512_IMR               0x12      /* Interrupt Mask Register */
+#define MII_YT8512_ISR               0x13      /* Interrupt Source Register */
+#define MII_YT8512_SADC              0x14      /* Speed auto downgrade control Register */
+#define MII_YT8512_REC               0x15      /* Rx Error Counter Register */
+#define MII_YT8512_DEBUG_ADDR_OFFSET 0x1E      /* Debug Register's Address Offset Register */
+#define MII_YT8512_DEBUG_DATA        0x1F      /* Debug Register's Data Register */
+
+#define MII_YT8512_LED0              0x40c0    /* LED0 control */
+#define MII_YT8512_LED1              0x40c3    /* LED1 control */
 
 /* MII register bit settings ************************************************/
 
@@ -700,6 +718,9 @@
 #define MII_PHYID1_TJA1101                0x0180  /* ID1 value for NXP TJA1101 */
 #define MII_PHYID2_TJA1101                0xdd00  /* ID2 value for NXP TJA1101 */
 
+#define MII_PHYID1_TJA1103                0x01b   /* ID1 value for NXP TJA1103 */
+#define MII_PHYID2_TJA1103                0xB013  /* ID2 value for NXP TJA1103 */
+
 #define MII_TJA110X_BCR                   0x0     /* Basic Control register */
 #define MII_TJA110X_BSR                   0x1     /* Basic Status register */
 #define MII_TJA110X_EXT_CNTRL             0x11    /* Extra control register */
@@ -837,6 +858,42 @@
 #define MII_DP83848C_ANC_INT_EN       (1 << 2)  /* Enable Interrupt on Auto-negotiation complete event. */
 #define MII_DP83848C_FHF_INT_EN       (1 << 1)  /* Enable Interrupt on False Carrier Counter Register half-full event. */
 #define MII_DP83848C_RHF_INT_EN       (1 << 0)  /* Enable Interrupt on Receive Error Counter Register half-full event. */
+
+/* Atheros AR8031 MII ID1/2 register bits */
+
+#define MII_PHYID1_AR8031             0x004d     /* ID1 value for AR8031 */
+#define MII_PHYID2_AR8031             0xd074     /* ID2 value for AR8031 */
+
+#define MII_AR8031_PSSR_SPEEDMASK     (3 << 14)  /* Bit 14-15: Speed */
+#define MII_AR8031_PSSR_10MBPS        (0 << 14)
+#define MII_AR8031_PSSR_100MBPS       (1 << 14)
+#define MII_AR8031_PSSR_1000MBPS      (2 << 14)
+#define MII_AR8031_PSSR_DUPLEX        (1 << 13)  /* Bit 13:  Full duplex mode */
+
+/* YT8512 register bit settings *********************************************/
+
+/* YT8512 MII ID1/2 register bits */
+
+#define MII_PHYID1_YT8512             0x0000    /* ID1 value for YT8512 */
+#define MII_PHYID2_YT8512             0x0128    /* ID2 value for YT8512 */
+
+/* YT8512 Register 0x10: Specific function control register */
+
+/* YT8512 Register 0x11: Specific status */
+
+#define MII_YT8512_PHYSTS_SPEED       (1 << 14)
+#define MII_YT8512_PHYSTS_DUPLEX      (1 << 13)
+/* YT8512 Register 0x12: Interrupt mask */
+#define MII_YT8512_IMR_SPD_EN         (1 << 14)
+#define MII_YT8512_IMR_DUP_EN         (1 << 13)
+#define MII_YT8512_IMR_LD_EN          (1 << 11)
+#define MII_YT8512_IMR_LU_EN          (1 << 10)
+
+/* YT8512 Register 0x13: Interrupt status */
+
+/* YT8512 Register 0x14: Speed auto downgrade control */
+
+/* YT8512 Register 0x15: Rx error counter */
 
 /****************************************************************************
  * Type Definitions

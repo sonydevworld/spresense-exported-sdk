@@ -365,7 +365,7 @@ int lte_radio_off(radio_off_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_netinfo_sync(uint8_t pdn_num, lte_netinfo_t *info);
+int lte_get_netinfo_sync(uint8_t pdn_num, FAR lte_netinfo_t *info);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -416,7 +416,7 @@ int lte_get_netinfo(get_netinfo_cb_t callback);
  * If canceling, -ECANCELED is returned.
  */
 
-int lte_activate_pdn_sync(lte_apn_setting_t *apn, lte_pdn_t *pdn);
+int lte_activate_pdn_sync(FAR lte_apn_setting_t *apn, FAR lte_pdn_t *pdn);
 
 /* Constructs a PDN with the specified APN settings.
  *
@@ -443,7 +443,7 @@ int lte_activate_pdn_sync(lte_apn_setting_t *apn, lte_pdn_t *pdn);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_activate_pdn(lte_apn_setting_t *apn, activate_pdn_cb_t callback);
+int lte_activate_pdn(FAR lte_apn_setting_t *apn, activate_pdn_cb_t callback);
 
 /* Cancel PDN construction.
  *
@@ -561,7 +561,7 @@ int lte_data_allow(uint8_t session_id, uint8_t allow,
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_imscap_sync(bool *imscap);
+int lte_get_imscap_sync(FAR bool *imscap);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -589,7 +589,7 @@ int lte_get_imscap(get_imscap_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_version_sync(lte_version_t *version);
+int lte_get_version_sync(FAR lte_version_t *version);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -621,9 +621,9 @@ int lte_get_version(get_ver_cb_t callback);
  */
 
 #ifdef CONFIG_LTE_LAPI_KEEP_COMPATIBILITY
-int lte_get_phoneno_sync(char *phoneno);
+int lte_get_phoneno_sync(FAR char *phoneno);
 #else
-int lte_get_phoneno_sync(char *phoneno, size_t len);
+int lte_get_phoneno_sync(FAR char *phoneno, size_t len);
 #endif
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
@@ -656,9 +656,9 @@ int lte_get_phoneno(get_phoneno_cb_t callback);
  */
 
 #ifdef CONFIG_LTE_LAPI_KEEP_COMPATIBILITY
-int lte_get_imsi_sync(char *imsi);
+int lte_get_imsi_sync(FAR char *imsi);
 #else
-int lte_get_imsi_sync(char *imsi, size_t len);
+int lte_get_imsi_sync(FAR char *imsi, size_t len);
 #endif
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
@@ -691,9 +691,9 @@ int lte_get_imsi(get_imsi_cb_t callback);
  */
 
 #ifdef CONFIG_LTE_LAPI_KEEP_COMPATIBILITY
-int lte_get_imei_sync(char *imei);
+int lte_get_imei_sync(FAR char *imei);
 #else
-int lte_get_imei_sync(char *imei, size_t len);
+int lte_get_imei_sync(FAR char *imei, size_t len);
 #endif
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
@@ -722,7 +722,7 @@ int lte_get_imei(get_imei_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_pinset_sync(lte_getpin_t *pinset);
+int lte_get_pinset_sync(FAR lte_getpin_t *pinset);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -759,8 +759,8 @@ int lte_get_pinset(get_pinset_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_pinenable_sync(bool enable, char *pincode,
-                           uint8_t *attemptsleft);
+int lte_set_pinenable_sync(bool enable, FAR char *pincode,
+                           FAR uint8_t *attemptsleft);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -784,7 +784,7 @@ int lte_set_pinenable_sync(bool enable, char *pincode,
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_pinenable(bool enable, char *pincode,
+int lte_set_pinenable(bool enable, FAR char *pincode,
                       set_pinenable_cb_t callback);
 
 #endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
@@ -813,8 +813,8 @@ int lte_set_pinenable(bool enable, char *pincode,
  * negative value is returned according to <errno.h>.
  */
 
-int lte_change_pin_sync(int8_t target_pin, char *pincode,
-                        char *new_pincode, uint8_t *attemptsleft);
+int lte_change_pin_sync(int8_t target_pin, FAR char *pincode,
+                        FAR char *new_pincode, FAR uint8_t *attemptsleft);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -844,8 +844,8 @@ int lte_change_pin_sync(int8_t target_pin, char *pincode,
  * negative value is returned according to <errno.h>.
  */
 
-int lte_change_pin(int8_t target_pin, char *pincode,
-                   char *new_pincode, change_pin_cb_t callback);
+int lte_change_pin(int8_t target_pin, FAR char *pincode,
+                   FAR char *new_pincode, change_pin_cb_t callback);
 
 #endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
@@ -893,8 +893,8 @@ int lte_change_pin(int8_t target_pin, char *pincode,
  * deprecated This API will be removed in a future version
  */
 
-int lte_enter_pin_sync(char *pincode, char *new_pincode,
-                       uint8_t *simstat, uint8_t *attemptsleft);
+int lte_enter_pin_sync(FAR char *pincode, FAR char *new_pincode,
+                       FAR uint8_t *simstat, FAR uint8_t *attemptsleft);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -923,7 +923,7 @@ int lte_enter_pin_sync(char *pincode, char *new_pincode,
  * deprecated This API will be removed in a future version
  */
 
-int lte_enter_pin(char *pincode, char *new_pincode,
+int lte_enter_pin(FAR char *pincode, FAR char *new_pincode,
                   enter_pin_cb_t callback);
 
 #endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
@@ -936,7 +936,7 @@ int lte_enter_pin(char *pincode, char *new_pincode,
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_localtime_sync(lte_localtime_t *localtime);
+int lte_get_localtime_sync(FAR lte_localtime_t *localtime);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -969,9 +969,9 @@ int lte_get_localtime(get_localtime_cb_t callback);
  */
 
 #ifdef CONFIG_LTE_LAPI_KEEP_COMPATIBILITY
-int lte_get_operator_sync(char *oper);
+int lte_get_operator_sync(FAR char *oper);
 #else
-int lte_get_operator_sync(char *oper, size_t len);
+int lte_get_operator_sync(FAR char *oper, size_t len);
 #endif
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
@@ -999,7 +999,7 @@ int lte_get_operator(get_operator_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_edrx_sync(lte_edrx_setting_t *settings);
+int lte_get_edrx_sync(FAR lte_edrx_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1026,7 +1026,7 @@ int lte_get_edrx(get_edrx_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_edrx_sync(lte_edrx_setting_t *settings);
+int lte_set_edrx_sync(FAR lte_edrx_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1043,7 +1043,7 @@ int lte_set_edrx_sync(lte_edrx_setting_t *settings);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_edrx(lte_edrx_setting_t *settings, set_edrx_cb_t callback);
+int lte_set_edrx(FAR lte_edrx_setting_t *settings, set_edrx_cb_t callback);
 
 #endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
@@ -1055,8 +1055,7 @@ int lte_set_edrx(lte_edrx_setting_t *settings, set_edrx_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_psm_sync(lte_psm_setting_t *settings);
-
+int lte_get_psm_sync(FAR lte_psm_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1083,7 +1082,7 @@ int lte_get_psm(get_psm_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_psm_sync(lte_psm_setting_t *settings);
+int lte_set_psm_sync(FAR lte_psm_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1100,7 +1099,7 @@ int lte_set_psm_sync(lte_psm_setting_t *settings);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_psm(lte_psm_setting_t *settings, set_psm_cb_t callback);
+int lte_set_psm(FAR lte_psm_setting_t *settings, set_psm_cb_t callback);
 
 #endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
@@ -1112,7 +1111,7 @@ int lte_set_psm(lte_psm_setting_t *settings, set_psm_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_ce_sync(lte_ce_setting_t *settings);
+int lte_get_ce_sync(FAR lte_ce_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1139,7 +1138,7 @@ int lte_get_ce(get_ce_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_ce_sync(lte_ce_setting_t *settings);
+int lte_set_ce_sync(FAR lte_ce_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1156,7 +1155,7 @@ int lte_set_ce_sync(lte_ce_setting_t *settings);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_set_ce(lte_ce_setting_t *settings, set_ce_cb_t callback);
+int lte_set_ce(FAR lte_ce_setting_t *settings, set_ce_cb_t callback);
 
 #endif /* CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API */
 
@@ -1255,7 +1254,7 @@ int lte_set_report_netinfo(netinfo_report_cb_t netinfo_callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_errinfo(lte_errinfo_t *info);
+int lte_get_errinfo(FAR lte_errinfo_t *info);
 
 /* Get SIM information such as Mobile Country Code/Mobile Network Code.
  *
@@ -1274,7 +1273,7 @@ int lte_get_errinfo(lte_errinfo_t *info);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_siminfo_sync(uint32_t option, lte_siminfo_t *siminfo);
+int lte_get_siminfo_sync(uint32_t option, FAR lte_siminfo_t *siminfo);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1332,7 +1331,7 @@ int lte_get_dynamic_edrx_param(get_dynamic_edrx_param_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_current_edrx_sync(lte_edrx_setting_t *settings);
+int lte_get_current_edrx_sync(FAR lte_edrx_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1386,7 +1385,7 @@ int lte_get_dynamic_psm_param(get_dynamic_psm_param_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_current_psm_sync(lte_psm_setting_t *settings);
+int lte_get_current_psm_sync(FAR lte_psm_setting_t *settings);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1418,7 +1417,7 @@ int lte_get_current_psm(get_current_psm_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_quality_sync(lte_quality_t *quality);
+int lte_get_quality_sync(FAR lte_quality_t *quality);
 
 #ifdef CONFIG_LTE_LAPI_ENABLE_DEPRECATED_API
 
@@ -1448,7 +1447,7 @@ int lte_get_quality(get_quality_cb_t callback);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_cellinfo_sync(lte_cellinfo_t *cellinfo);
+int lte_get_cellinfo_sync(FAR lte_cellinfo_t *cellinfo);
 
 /* Get RAT type
  *
@@ -1487,7 +1486,7 @@ int lte_set_rat_sync(uint8_t rat, bool persistent);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_get_ratinfo_sync(lte_ratinfo_t *info);
+int lte_get_ratinfo_sync(FAR lte_ratinfo_t *info);
 
 /* Acquire the modem wakelock. If any wakelock is acquired, modem can't
  * enter to the sleep state.
@@ -1538,8 +1537,9 @@ int lte_get_wakelock_count(void);
  * negative value is returned according to <errno.h>.
  */
 
-int lte_send_atcmd_sync(const char *cmd, int cmdlen,
-  char *respbuff, int respbufflen, int *resplen);
+int lte_send_atcmd_sync(FAR const char *cmd, int cmdlen,
+                        FAR char *respbuff, int respbufflen,
+                        FAR int *resplen);
 
 /* Run factory reset on the modem.
  *

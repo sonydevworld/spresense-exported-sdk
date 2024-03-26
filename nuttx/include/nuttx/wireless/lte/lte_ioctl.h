@@ -27,8 +27,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <nuttx/wireless/wireless.h>
+#include <sys/types.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/net/sms.h>
+#include <nuttx/wireless/wireless.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -36,36 +38,33 @@
 
 /* LTE network device IOCTL commands. */
 
-#if !defined(WL_NLTECMDS) || WL_NLTECMDS != 4
-#  error Incorrect setting for number of LTE IOCTL commands
-#endif
-
 /* SIOCLTECMD
  *   Description:   Perform LTE command
  */
 
-#define SIOCLTECMD            _WLIOC(WL_LTEFIRST + 0)
+#define SIOCLTECMD            _LTEIOC(0)
 
 /* SIOCSMSENSTREP
  *   Description:   Enable or disable the function to confirm whether or not
  *                  the SMS has been delivered to the destination device.
  */
 
-#define SIOCSMSENSTREP        _WLIOC(WL_LTEFIRST + 1)
+#define SIOCSMSENSTREP        _LTEIOC(1)
 
 /* SIOCSMSGREFID
  *   Description:   Obtain the ID associated with the submitted SMS.
  *                  If the submitted SMS is a concatenated SMS, multiple IDs
- *                  will be obtained; otherwise, a single ID will be obtained.
+ *                  will be obtained;
+ *                  otherwise, a single ID will be obtained.
  */
 
-#define SIOCSMSGREFID         _WLIOC(WL_LTEFIRST + 2)
+#define SIOCSMSGREFID         _LTEIOC(2)
 
 /* SIOCSMSSSCA
  *   Description:   Set the service center address of the destination.
  */
 
-#define SIOCSMSSSCA           _WLIOC(WL_LTEFIRST + 3)
+#define SIOCSMSSSCA           _LTEIOC(3)
 
 /* for cmdid */
 
@@ -159,6 +158,7 @@
 #define LTE_CMDID_SETCTXCB                       _CMDGRP_NOMDM(0x40)
 #define LTE_CMDID_COUNTWLOCK                     _CMDGRP_POWER(0x41)
 #define LTE_CMDID_REPEVT_DUMMY                   _CMDGRP_EVENT(0x42)
+#define LTE_CMDID_RESTARTAPI                     _CMDGRP_NORMAL(0x43)
 
 #define LTE_CMDID_ACCEPT                         _CMDGRP_NORMAL(0x50)
 #define LTE_CMDID_BIND                           _CMDGRP_NORMAL(0x51)
@@ -389,7 +389,6 @@ struct lte_smsreq_s
       /* Using for SIOCSMSSSCA command */
 
       struct sms_sc_addr_s scaddr;
-
     } smsru;
 };
 

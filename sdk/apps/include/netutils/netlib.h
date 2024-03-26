@@ -268,14 +268,16 @@ int netlib_setessid(FAR const char *ifname, FAR const char *essid);
 #ifdef CONFIG_NET_ARP
 /* ARP Table Support */
 
-int netlib_del_arpmapping(FAR const struct sockaddr_in *inaddr);
+int netlib_del_arpmapping(FAR const struct sockaddr_in *inaddr,
+                          FAR const char *ifname);
 int netlib_get_arpmapping(FAR const struct sockaddr_in *inaddr,
-                          FAR uint8_t *macaddr);
+                          FAR uint8_t *macaddr, FAR const char *ifname);
 int netlib_set_arpmapping(FAR const struct sockaddr_in *inaddr,
-                          FAR const uint8_t *macaddr);
+                          FAR const uint8_t *macaddr,
+                          FAR const char *ifname);
 #ifdef CONFIG_NETLINK_ROUTE
-struct arp_entry_s;
-ssize_t netlib_get_arptable(FAR struct arp_entry_s *arptab,
+struct arpreq;
+ssize_t netlib_get_arptable(FAR struct arpreq *arptab,
                             unsigned int nentries);
 #endif
 #endif
@@ -311,11 +313,35 @@ ssize_t netlib_get_route(FAR struct rtentry *rtelist,
 int netlib_icmpv6_autoconfiguration(FAR const char *ifname);
 #endif
 
+#ifdef CONFIG_NET_IPTABLES
+/* iptables interface support */
+
+struct ipt_replace;  /* Forward reference */
+struct ipt_entry;    /* Forward reference */
+enum nf_inet_hooks;  /* Forward reference */
+
+FAR struct ipt_replace *netlib_ipt_prepare(FAR const char *table);
+int netlib_ipt_commit(FAR const struct ipt_replace *repl);
+int netlib_ipt_flush(FAR const char *table, enum nf_inet_hooks hook);
+int netlib_ipt_append(FAR struct ipt_replace **repl,
+                      FAR const struct ipt_entry *entry,
+                      enum nf_inet_hooks hook);
+int netlib_ipt_insert(FAR struct ipt_replace **repl,
+                      FAR const struct ipt_entry *entry,
+                      enum nf_inet_hooks hook, int rulenum);
+int netlib_ipt_delete(FAR struct ipt_replace *repl,
+                      FAR const struct ipt_entry *entry,
+                      enum nf_inet_hooks hook, int rulenum);
+#  ifdef CONFIG_NET_NAT
+FAR struct ipt_entry *netlib_ipt_masquerade_entry(FAR const char *ifname);
+#  endif
+#endif
+
 /* HTTP support */
 
-int  netlib_parsehttpurl(FAR const char *url, uint16_t *port,
-                      FAR char *hostname, int hostlen,
-                      FAR char *filename, int namelen);
+int netlib_parsehttpurl(FAR const char *url, uint16_t *port,
+                        FAR char *hostname, int hostlen,
+                        FAR char *filename, int namelen);
 
 #ifdef CONFIG_NETUTILS_NETLIB_GENERICURLPARSER
 int netlib_parseurl(FAR const char *str, FAR struct url_s *url);
@@ -325,7 +351,7 @@ int netlib_parseurl(FAR const char *str, FAR struct url_s *url);
 
 int netlib_listenon(uint16_t portno);
 void netlib_server(uint16_t portno, pthread_startroutine_t handler,
-                int stacksize);
+                   int stacksize);
 
 int netlib_getifstatus(FAR const char *ifname, FAR uint8_t *flags);
 int netlib_ifup(FAR const char *ifname);
@@ -340,6 +366,8 @@ int netlib_set_ipv4dnsaddr(FAR const struct in_addr *inaddr);
 #if defined(CONFIG_NET_IPv6) && defined(CONFIG_NETDB_DNSCLIENT)
 int netlib_set_ipv6dnsaddr(FAR const struct in6_addr *inaddr);
 #endif
+
+int netlib_set_mtu(FAR const char *ifname, int mtu);
 
 #undef EXTERN
 #ifdef __cplusplus

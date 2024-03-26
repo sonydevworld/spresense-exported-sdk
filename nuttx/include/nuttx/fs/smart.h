@@ -114,6 +114,8 @@ struct smart_procfs_data_s
 #ifdef CONFIG_MTD_SMART_ERASE_DEBUG
   const uint16_t  *erasecounts;   /* Pointer to the erase counts array */
   uint16_t        erasesize;      /* Number of entries in the erase counts array */
+#else
+  uint8_t         __pad;
 #endif
 };
 #endif
@@ -151,6 +153,10 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+#ifdef CONFIG_SMART_DEV_LOOP
+int smart_loop_register_driver(void);
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

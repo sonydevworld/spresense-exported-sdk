@@ -122,7 +122,7 @@
 #define st_ctime     st_ctim.tv_sec
 #define st_mtime     st_mtim.tv_sec
 
-#if defined(CONFIG_FS_LARGEFILE) && defined(CONFIG_HAVE_LONG_LONG)
+#if defined(CONFIG_FS_LARGEFILE)
 #  define stat64     stat
 #  define fstat64    fstat
 #  define lstat64    lstat
@@ -171,15 +171,23 @@ extern "C"
 #endif
 
 int mkdir(FAR const char *pathname, mode_t mode);
+int mkdirat(int dirfd, FAR const char *pathname, mode_t mode);
 int mkfifo(FAR const char *pathname, mode_t mode);
+int mkfifoat(int dirfd, FAR const char *pathname, mode_t mode);
 int mknod(FAR const char *path, mode_t mode, dev_t dev);
+int mknodat(int dirfd, FAR const char *path, mode_t mode, dev_t dev);
 int stat(FAR const char *path, FAR struct stat *buf);
 int lstat(FAR const char *path, FAR struct stat *buf);
 int fstat(int fd, FAR struct stat *buf);
+int fstatat(int dirfd, FAR const char *path, FAR struct stat *buf,
+            int flags);
 int chmod(FAR const char *path, mode_t mode);
 int lchmod(FAR const char *path, mode_t mode);
 int fchmod(int fd, mode_t mode);
+int fchmodat(int dirfd, FAR const char *path, mode_t mode, int flags);
 int utimens(FAR const char *path, const struct timespec times[2]);
+int utimensat(int dirfd, FAR const char *path,
+              const struct timespec times[2], int flags);
 int lutimens(FAR const char *path, const struct timespec times[2]);
 int futimens(int fd, const struct timespec times[2]);
 

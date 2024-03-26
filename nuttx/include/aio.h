@@ -97,7 +97,7 @@
 #define LIO_NOWAIT      0
 #define LIO_WAIT        1
 
-#if defined(CONFIG_FS_LARGEFILE) && defined(CONFIG_HAVE_LONG_LONG)
+#if defined(CONFIG_FS_LARGEFILE)
 #  define aiocb64       aiocb
 #  define aio_read64    aio_read
 #  define aio_write64   aio_write
@@ -121,7 +121,7 @@ struct aiocb
   FAR volatile void *aio_buf;    /* Location of buffer */
   off_t aio_offset;              /* File offset */
   size_t aio_nbytes;             /* Length of transfer */
-  int16_t aio_fildes;            /* File descriptor (should be int) */
+  int aio_fildes;                /* File descriptor */
   int8_t aio_reqprio;            /* Request priority offset (not used, should be int) */
   uint8_t aio_lio_opcode;        /* Operation to be performed (should be int) */
 

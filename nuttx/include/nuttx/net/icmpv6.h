@@ -102,11 +102,12 @@
 
 /* Option types */
 
-#define ICMPv6_OPT_SRCLLADDR  1 /* Source Link-Layer Address */
-#define ICMPv6_OPT_TGTLLADDR  2 /* Target Link-Layer Address */
-#define ICMPv6_OPT_PREFIX     3 /* Prefix Information */
-#define ICMPv6_OPT_REDIRECT   4 /* Redirected Header */
-#define ICMPv6_OPT_MTU        5 /* MTU */
+#define ICMPv6_OPT_SRCLLADDR  1  /* Source Link-Layer Address */
+#define ICMPv6_OPT_TGTLLADDR  2  /* Target Link-Layer Address */
+#define ICMPv6_OPT_PREFIX     3  /* Prefix Information */
+#define ICMPv6_OPT_REDIRECT   4  /* Redirected Header */
+#define ICMPv6_OPT_MTU        5  /* MTU */
+#define ICMPv6_OPT_RDNSS      25 /* DNS */
 
 /* ICMPv6 Neighbor Advertisement message flags */
 
@@ -140,6 +141,11 @@
 #define ICMPv6_PORT_UNREACH   4
 #define ICMPv6_POLICY_FAIL    5
 #define ICMPv6_REJECT_ROUTE   6
+
+/* Codes for Time Exceeded */
+
+#define ICMPV6_EXC_HOPLIMIT   0
+#define ICMPV6_EXC_FRAGTIME   1
 
 /****************************************************************************
  * Public Type Definitions
@@ -253,8 +259,8 @@ struct icmpv6_router_advertise_s
   uint8_t  hoplimit;         /* Current hop limit */
   uint8_t  flags;            /* See ICMPv6_RADV_FLAG_* definitions */
   uint16_t lifetime;         /* Router lifetime */
-  uint32_t reachable;        /* Reachable time */
-  uint32_t retrans;          /* Retransmission timer */
+  uint16_t reachable[2];     /* Reachable time */
+  uint16_t retrans[2];       /* Retransmission timer */
                              /* Options begin here */
 };
 
@@ -263,7 +269,7 @@ struct icmpv6_router_advertise_s
 
 /* This the message format for the ICMPv6 Echo Request message */
 
-struct icmpv6_echo_request_s
+begin_packed_struct struct icmpv6_echo_request_s
 {
   uint8_t  type;             /* Message Type: ICMPv6_ECHO_REQUEST */
   uint8_t  code;             /* Further qualifies the ICMP messages */
@@ -271,14 +277,14 @@ struct icmpv6_echo_request_s
   uint16_t id;               /* Identifier */
   uint16_t seqno;            /* Sequence Number */
   uint8_t  data[1];          /* Data follows */
-};
+} end_packed_struct;
 
 #define SIZEOF_ICMPV6_ECHO_REQUEST_S(n) \
   (sizeof(struct icmpv6_echo_request_s) - 1 + (n))
 
 /* This the message format for the ICMPv6 Echo Reply message */
 
-struct icmpv6_echo_reply_s
+begin_packed_struct struct icmpv6_echo_reply_s
 {
   uint8_t  type;             /* Message Type: ICMPv6_ECHO_REQUEST */
   uint8_t  code;             /* Further qualifies the ICMP messages */
@@ -286,7 +292,7 @@ struct icmpv6_echo_reply_s
   uint16_t id;               /* Identifier */
   uint16_t seqno;            /* Sequence Number */
   uint8_t  data[1];          /* Data follows */
-};
+} end_packed_struct;
 
 #define SIZEOF_ICMPV6_ECHO_REPLY_S(n) \
   (sizeof(struct icmpv6_echo_reply_s) - 1 + (n))
@@ -324,8 +330,8 @@ struct icmpv6_prefixinfo_s
   uint8_t  optlen;           /* "   " ": Option length: 4 octets */
   uint8_t  preflen;          /* "   " ": Prefix length */
   uint8_t  flags;            /* "   " ": Flags */
-  uint32_t vlifetime;        /* "   " ": Valid lifetime */
-  uint32_t plifetime;        /* Octet 2: Preferred lifetime */
+  uint16_t vlifetime[2];     /* "   " ": Valid lifetime */
+  uint16_t plifetime[2];     /* Octet 2: Preferred lifetime */
   uint16_t reserved[2];      /* "   " ": Reserved */
   uint16_t prefix[8];        /* Octets 3-4: Prefix */
 };
@@ -343,7 +349,16 @@ struct icmpv6_mtu_s
   uint8_t  opttype;          /* Octet 1: Option Type: ICMPv6_OPT_MTU */
   uint8_t  optlen;           /* "   " ": Option length: 1 octet */
   uint16_t reserved;         /* "   " ": Reserved */
-  uint32_t mtu;              /* "   " ": MTU */
+  uint16_t mtu[2];           /* "   " ": MTU */
+};
+
+struct icmpv6_rdnss_s
+{
+  uint8_t  opttype;          /* Octet 1: Option Type: ICMPv6_OPT_RNDSS */
+  uint8_t  optlen;           /* "   " ": Option length: 1 octet */
+  uint16_t reserved;         /* "   " ": Reserved */
+  uint16_t lifetime[2];      /* "   " ": lifetime */
+  uint8_t  servers[1];       /* Octets 2-: Beginning of the DNS Servers */
 };
 
 /* The structure holding the ICMP statistics that are gathered if

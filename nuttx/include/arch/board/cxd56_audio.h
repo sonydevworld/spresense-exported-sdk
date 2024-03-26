@@ -155,7 +155,7 @@ void board_audio_finalize(void);
  *
  ****************************************************************************/
 
-int board_audio_initialize_driver(int minor);
+int board_audio_initialize_driver(void);
 
 #undef EXTERN
 #if defined(__cplusplus)

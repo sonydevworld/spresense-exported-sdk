@@ -42,10 +42,9 @@
 #include <nuttx/compiler.h>
 
 #include <nuttx/fs/ioctl.h>
-#include <nuttx/semaphore.h>
+#include <nuttx/mutex.h>
 #include <nuttx/spi/spi.h>
-
-#include <queue.h>
+#include <nuttx/queue.h>
 
 #ifdef CONFIG_AUDIO
 
@@ -112,6 +111,10 @@
 #define AUDIOIOC_UNREGISTERMQ       _AUDIOIOC(15)
 #define AUDIOIOC_HWRESET            _AUDIOIOC(16)
 #define AUDIOIOC_SETBUFFERINFO      _AUDIOIOC(17)
+#define AUDIOIOC_SETPARAMTER        _AUDIOIOC(18)
+#define AUDIOIOC_GETLATENCY         _AUDIOIOC(19)
+#define AUDIOIOC_FLUSH              _AUDIOIOC(20)
+#define AUDIOIOC_VENDORSPECIFIC     _AUDIOIOC(255)
 
 /* Audio Device Types *******************************************************/
 
@@ -152,6 +155,10 @@
 #define AUDIO_FMT_MIDI              0x09
 #define AUDIO_FMT_OGG_VORBIS        0x0a
 #define AUDIO_FMT_FLAC              0x0b
+#define AUDIO_FMT_SBC               0x0c
+#define AUDIO_FMT_AAC               0x0d
+#define AUDIO_FMT_MSBC              0x0e
+#define AUDIO_FMT_CVSD              0x0f
 
 /* Audio Sub-Format Types ***************************************************/
 
@@ -167,9 +174,13 @@
 #define AUDIO_SUBFMT_PCM_S16_BE     0x09
 #define AUDIO_SUBFMT_PCM_S16_LE     0x0a
 #define AUDIO_SUBFMT_PCM_U16_BE     0x0b
-#define AUDIO_SUBFMT_MIDI_0         0x0c
-#define AUDIO_SUBFMT_MIDI_1         0x0d
-#define AUDIO_SUBFMT_MIDI_2         0x0e
+#define AUDIO_SUBFMT_PCM_U32_LE     0x0c
+#define AUDIO_SUBFMT_PCM_U32_BE     0x0d
+#define AUDIO_SUBFMT_PCM_S32_LE     0x0e
+#define AUDIO_SUBFMT_PCM_S32_BE     0x0f
+#define AUDIO_SUBFMT_MIDI_0         0x10
+#define AUDIO_SUBFMT_MIDI_1         0x11
+#define AUDIO_SUBFMT_MIDI_2         0x12
 
 /* Audio Hardware-Format Types **********************************************/
 
@@ -202,14 +213,23 @@
 #define AUDIO_SAMP_RATE_11K         0x0002
 #define AUDIO_SAMP_RATE_16K         0x0004
 #define AUDIO_SAMP_RATE_22K         0x0008
-#define AUDIO_SAMP_RATE_32K         0x0010
-#define AUDIO_SAMP_RATE_44K         0x0020
-#define AUDIO_SAMP_RATE_48K         0x0040
-#define AUDIO_SAMP_RATE_96K         0x0080
-#define AUDIO_SAMP_RATE_128K        0x0100
-#define AUDIO_SAMP_RATE_160K        0x0200
-#define AUDIO_SAMP_RATE_172K        0x0400
-#define AUDIO_SAMP_RATE_192K        0x0800
+#define AUDIO_SAMP_RATE_24K         0x0010
+#define AUDIO_SAMP_RATE_32K         0x0020
+#define AUDIO_SAMP_RATE_44K         0x0040
+#define AUDIO_SAMP_RATE_48K         0x0080
+#define AUDIO_SAMP_RATE_88K         0x0100
+#define AUDIO_SAMP_RATE_96K         0x0200
+#define AUDIO_SAMP_RATE_128K        0x0400
+#define AUDIO_SAMP_RATE_160K        0x0800
+#define AUDIO_SAMP_RATE_172K        0x1000
+#define AUDIO_SAMP_RATE_192K        0x2000
+#define AUDIO_SAMP_RATE_DEF_ALL    (AUDIO_SAMP_RATE_8K   | AUDIO_SAMP_RATE_11K  | \
+                                    AUDIO_SAMP_RATE_16K  | AUDIO_SAMP_RATE_22K  | \
+                                    AUDIO_SAMP_RATE_24K  | AUDIO_SAMP_RATE_32K  | \
+                                    AUDIO_SAMP_RATE_44K  | AUDIO_SAMP_RATE_48K  | \
+                                    AUDIO_SAMP_RATE_88K  | AUDIO_SAMP_RATE_96K  | \
+                                    AUDIO_SAMP_RATE_128K | AUDIO_SAMP_RATE_160K | \
+                                    AUDIO_SAMP_RATE_172K | AUDIO_SAMP_RATE_192K )
 
 /* Audio Sub-sampling Ratios  ***********************************************/
 
@@ -232,6 +252,26 @@
 #define AUDIO_BIT_RATE_160K         0x20
 #define AUDIO_BIT_RATE_172K         0x40
 #define AUDIO_BIT_RATE_192K         0x80
+
+/* Audio Volume Limits ******************************************************/
+
+/* As nxplayer passes a value in the range (0..1000) to the ioctl, all audio
+ * drivers that implement volume expect a value from 0 to 1000 from the ioctl
+ */
+
+#define AUDIO_VOLUME_MAX            1000
+#define AUDIO_VOLUME_MIN            0
+
+/* Audio Balance Limits *****************************************************/
+
+/* As nxplayer passes a value in the range (0..1000) to the ioctl, all audio
+ * drivers that implement balance expect a value from 0 to 1000 from the
+ * ioctl
+ */
+
+#define AUDIO_BALANCE_RIGHT          1000
+#define AUDIO_BALANCE_CENTER         500
+#define AUDIO_BALANCE_LEFT           0
 
 /* Supported Feature Units controls *****************************************/
 
@@ -313,6 +353,7 @@
 #define AUDIO_MSG_COMMAND          10
 #define AUDIO_MSG_SLIENCE          11
 #define AUDIO_MSG_UNDERRUN         12
+#define AUDIO_MSG_IOERROR          13
 #define AUDIO_MSG_USER             64
 
 /* Audio Pipeline Buffer flags */
@@ -321,6 +362,10 @@
 #define AUDIO_APB_OUTPUT_PROCESS    (1 << 1)
 #define AUDIO_APB_DEQUEUED          (1 << 2)
 #define AUDIO_APB_FINAL             (1 << 3) /* Last buffer in the stream */
+
+/* Audio channels range wrapper macro */
+
+#define AUDIO_CHANNELS_RANGE(min, max) ((uint8_t)(((min) << 4) | ((max) & 0xf)))
 
 /****************************************************************************
  * Public Types
@@ -341,7 +386,8 @@ struct audio_caps_s
   uint8_t ac_len;           /* Length of the structure */
   uint8_t ac_type;          /* Capabilities (device) type */
   uint8_t ac_subtype;       /* Capabilities sub-type, if needed */
-  uint8_t ac_channels;      /* Number of channels (1, 2, 3, ... 8) */
+  uint8_t ac_channels;      /* Number of channels (1, 2, 3, ... 15) upper 4 bits for minimum channels,
+                             * lower 4 bits for maximum channels */
   uint8_t ac_chmap;         /* Channel map, each ch for each bit,
                              * zero means don't care */
   uint8_t reserved;         /* Reserved for future use */
@@ -414,7 +460,7 @@ struct ap_buffer_s
   apb_samp_t            nmaxbytes;  /* The maximum number of bytes */
   apb_samp_t            nbytes;     /* The number of bytes used */
   apb_samp_t            curbyte;    /* Next byte to be processed */
-  sem_t                 sem;        /* Reference locking semaphore */
+  mutex_t               lock;       /* Reference locking mutex */
   uint16_t              flags;      /* Buffer flags */
   uint16_t              crefs;      /* Number of reference counts */
   FAR uint8_t           *samp;      /* Offset of the first sample */
@@ -463,7 +509,7 @@ struct audio_buf_desc_s
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void            *session;           /* Associated channel */
 #endif
-  uint16_t            numbytes;           /* Number of bytes to allocate */
+  apb_samp_t          numbytes;           /* Number of bytes to allocate */
   union
   {
     FAR struct ap_buffer_s  *buffer;     /* Buffer to free / enqueue */
@@ -489,6 +535,10 @@ typedef CODE void (*audio_callback_t)(FAR void *priv, uint16_t reason,
 struct audio_lowerhalf_s;
 struct audio_ops_s
 {
+  /* This method is called when the related device file is opened. */
+
+  CODE int (*setup)(FAR struct audio_lowerhalf_s *dev, int opencnt);
+
   /* This method is called to retrieve the lower-half device capabilities.
    * It will be called with device type AUDIO_TYPE_QUERY to request the
    * overall capabilities, such as to determine the types of devices
@@ -526,7 +576,7 @@ struct audio_ops_s
    * processed / dequeued should be dequeued by this function.
    */
 
-  CODE int (*shutdown)(FAR struct audio_lowerhalf_s *dev);
+  CODE int (*shutdown)(FAR struct audio_lowerhalf_s *dev, int opencnt);
 
   /* Start audio streaming in the configured mode.  For input and synthesis
    * devices, this means it should begin sending streaming audio data.

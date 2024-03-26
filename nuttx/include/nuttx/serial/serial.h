@@ -120,7 +120,7 @@
 
 struct uart_buffer_s
 {
-  sem_t            sem;    /* Used to control exclusive access to the buffer */
+  mutex_t          lock;   /* Used to control exclusive access to the buffer */
   volatile int16_t head;   /* Index to the head [IN] index in the buffer */
   volatile int16_t tail;   /* Index to the tail [OUT] index in the buffer */
   int16_t          size;   /* The allocated size of the buffer */
@@ -271,8 +271,7 @@ struct uart_dev_s
   /* State data */
 
   uint8_t              open_count;   /* Number of times the device has been opened */
-  volatile bool        xmitwaiting;  /* true: User waiting for space in xmit.buffer */
-  volatile bool        recvwaiting;  /* true: User waiting for data in recv.buffer */
+  uint8_t              escape;       /* Number of the character to be escaped */
 #ifdef CONFIG_SERIAL_REMOVABLE
   volatile bool        disconnected; /* true: Removable device is not connected */
 #endif
@@ -283,20 +282,18 @@ struct uart_dev_s
   pid_t                pid;          /* Thread PID to receive signals (-1 if none) */
 #endif
 
-#ifdef CONFIG_SERIAL_TERMIOS
   /* Terminal control flags */
 
   tcflag_t             tc_iflag;     /* Input modes */
   tcflag_t             tc_oflag;     /* Output modes */
   tcflag_t             tc_lflag;     /* Local modes */
-#endif
 
-  /* Semaphores */
+  /* Semaphores & mutex */
 
-  sem_t                closesem;     /* Locks out new open while close is in progress */
   sem_t                xmitsem;      /* Wakeup user waiting for space in xmit.buffer */
   sem_t                recvsem;      /* Wakeup user waiting for data in recv.buffer */
-  sem_t                pollsem;      /* Manages exclusive access to fds[] */
+  mutex_t              closelock;    /* Locks out new open while close is in progress */
+  mutex_t              polllock;     /* Manages exclusive access to fds[] */
 
   /* I/O buffers */
 
@@ -321,6 +318,12 @@ struct uart_dev_s
    * driver events. The 'struct pollfd' reference for each open is also
    * retained in the f_priv field of the 'struct file'.
    */
+
+#ifdef CONFIG_SERIAL_TERMIOS
+  uint8_t minrecv;                   /* Minimum received bytes */
+  uint8_t minread;                   /* c_cc[VMIN] */
+  uint8_t timeout;                   /* c_cc[VTIME] */
+#endif
 
   struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
 };
@@ -368,7 +371,7 @@ int uart_register(FAR const char *path, FAR uart_dev_t *dev);
 void uart_xmitchars(FAR uart_dev_t *dev);
 
 /****************************************************************************
- * Name: uart_receivechars
+ * Name: uart_recvchars
  *
  * Description:
  *  This function is called from the UART interrupt handler when an interrupt

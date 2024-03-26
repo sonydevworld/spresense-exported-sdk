@@ -346,7 +346,7 @@
 #define ADC_UD_CONTROL_OVERFLOW     0x05
 #define ADC_UD_CONTROL_LATENCY      0x06
 
-/* Dolby Prologic™ Processing Unit Control Selectors */
+/* Dolby Prologicâ„¢ Processing Unit Control Selectors */
 
 #define ADC_DP_CONTROL_UNDEF        0x00
 #define ADC_DP_CONTROL_ENABLE       0x01
@@ -550,7 +550,7 @@
 /* Input Terminal Types */
 
 #define ADC_INTERM_UNDEF            0x0200     /* Undefined Type */
-#define ADC_INTERM_MIC              0x0201     /* A generic microhpone */
+#define ADC_INTERM_MIC              0x0201     /* A generic microphone */
 #define ADC_INTERM_DESKTOP_MIC      0x0202     /* A desktop microphone */
 #define ADC_INTERM_PERSONAL_MIC     0x0203     /* Head-mounted or clip-on microphone */
 #define ADC_INTERM_OMNI_MIC         0x0204     /* Omni-directional microphone */
@@ -1155,7 +1155,7 @@ struct adc_mpeg_decoder_desc_s
                                  *      00 = Not supported
                                  *      01 = Supported at Fs
                                  *      10 = Reserved
-                                 *      11 = Supported at Fs and ½Fs.
+                                 *      11 = Supported at Fs and Â½Fs.
                                  *    Bit 10:
                                  *    Bit 11-15: Reserved */
   uint8_t md_features;          /* 7: MPEG features
@@ -1583,11 +1583,11 @@ struct adc_hires_timestamp_s
 
 #undef EXTERN
 #if defined(__cplusplus)
-# define EXTERN extern "C"
+#  define EXTERN extern "C"
 extern "C"
 {
 #else
-# define EXTERN extern
+#  define EXTERN extern
 #endif
 
 #undef EXTERN

@@ -1,4 +1,4 @@
-/********************************************************************************
+/****************************************************************************
  * include/fcntl.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -16,23 +16,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
- ********************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_FCNTL_H
 #define __INCLUDE_FCNTL_H
 
-/********************************************************************************
+/****************************************************************************
  * Included Files
- ********************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
 
-/********************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ********************************************************************************/
+ ****************************************************************************/
 
 /* open flag settings for open() (and related APIs) */
 
@@ -52,6 +52,9 @@
 #define O_TEXT      (1 << 8)        /* Open the file in text (translated) mode. */
 #define O_DIRECT    (1 << 9)        /* Avoid caching, write directly to hardware */
 #define O_CLOEXEC   (1 << 10)       /* Close on execute */
+#define O_DIRECTORY (1 << 11)       /* Must be a directory */
+#define O_NOFOLLOW  (1 << 12)       /* Don't follow links */
+#define O_NOATIME   (1 << 18)       /* Don't update the file last access time */
 
 /* Unsupported, but required open flags */
 
@@ -80,22 +83,25 @@
 
 /* fcntl() commands */
 
-#define F_DUPFD     0  /* Duplicate a file descriptor */
-#define F_GETFD     1  /* Read the file descriptor flags */
-#define F_GETFL     2  /* Read the file status flags */
-#define F_GETLEASE  3  /* Indicates what type of lease is held on fd (linux) */
-#define F_GETLK     4  /* Check if we could place a lock */
-#define F_GETOWN    5  /* Get the pid receiving  SIGIO and SIGURG signals for fd */
-#define F_GETSIG    6  /* Get the signal sent */
-#define F_NOTIFY    7  /* Provide notification when directory referred to by fd changes (linux)*/
-#define F_SETFD     8  /* Set the file descriptor flags to value */
-#define F_SETFL     9  /* Set the file status flags to the value */
-#define F_SETLEASE  10 /* Set or remove file lease (linux) */
-#define F_SETLK     11 /* Acquire or release a lock on range of bytes */
-#define F_SETLKW    12 /* Like F_SETLK, but wait for lock to become available */
-#define F_SETOWN    13 /* Set pid that will receive SIGIO and SIGURG signals for fd */
-#define F_SETSIG    14 /* Set the signal to be sent */
-#define F_GETPATH   15 /* Get the path of the file descriptor(BSD/macOS) */
+#define F_DUPFD         0  /* Duplicate a file descriptor */
+#define F_GETFD         1  /* Read the file descriptor flags */
+#define F_GETFL         2  /* Read the file status flags */
+#define F_GETLEASE      3  /* Indicates what type of lease is held on fd (linux) */
+#define F_GETLK         4  /* Check if we could place a lock */
+#define F_GETOWN        5  /* Get the pid receiving SIGIO and SIGURG signals for fd */
+#define F_GETSIG        6  /* Get the signal sent */
+#define F_NOTIFY        7  /* Provide notification when directory referred to by fd changes (linux) */
+#define F_SETFD         8  /* Set the file descriptor flags to value */
+#define F_SETFL         9  /* Set the file status flags to the value */
+#define F_SETLEASE      10 /* Set or remove file lease (linux) */
+#define F_SETLK         11 /* Acquire or release a lock on range of bytes */
+#define F_SETLKW        12 /* Like F_SETLK, but wait for lock to become available */
+#define F_SETOWN        13 /* Set pid that will receive SIGIO and SIGURG signals for fd */
+#define F_SETSIG        14 /* Set the signal to be sent */
+#define F_GETPATH       15 /* Get the path of the file descriptor(BSD/macOS) */
+#define F_ADD_SEALS     16 /* Add the bit-mask argument arg to the set of seals of the inode */
+#define F_GET_SEALS     17 /* Get (as the function result) the current set of seals of the inode */
+#define F_DUPFD_CLOEXEC 18 /* Duplicate file descriptor with close-on-exit set.  */
 
 /* For posix fcntl() and lockf() */
 
@@ -107,6 +113,18 @@
 
 #define FD_CLOEXEC  1
 
+/* The flag for openat, faccessat, ... */
+
+#define AT_FDCWD              -100   /* Special value used to indicate openat should use the current
+                                      * working directory.
+                                      */
+#define AT_SYMLINK_NOFOLLOW   0x0100 /* Do not follow symbolic links. */
+#define AT_EACCESS            0x0200 /* Test access permitted for effective IDs, not real IDs. */
+#define AT_REMOVEDIR          0x0200 /* Remove directory instead of unlinking file. */
+#define AT_SYMLINK_FOLLOW     0x0400 /* Follow symbolic links. */
+#define AT_NO_AUTOMOUNT       0x0800 /* Suppress terminal automount traversal */
+#define AT_EMPTY_PATH         0x1000 /* Allow empty relative pathname */
+
 /* These are the notifications that can be received from F_NOTIFY (linux) */
 
 #define DN_ACCESS   0  /* A file was accessed */
@@ -116,6 +134,14 @@
 #define DN_RENAME   4  /* A file was renamed */
 #define DN_ATTRIB   5  /* Attributes of a file were changed */
 
+/* Types of seals */
+
+#define F_SEAL_SEAL         0x0001 /* Prevent further seals from being set */
+#define F_SEAL_SHRINK       0x0002 /* Prevent file from shrinking */
+#define F_SEAL_GROW         0x0004 /* Prevent file from growing */
+#define F_SEAL_WRITE        0x0008 /* Prevent writes */
+#define F_SEAL_FUTURE_WRITE 0x0010 /* Prevent future writes while mapped */
+
 /* int creat(const char *path, mode_t mode);
  *
  * is equivalent to open with O_WRONLY|O_CREAT|O_TRUNC.
@@ -123,7 +149,7 @@
 
 #define creat(path, mode) open(path, O_WRONLY|O_CREAT|O_TRUNC, mode)
 
-#if defined(CONFIG_FS_LARGEFILE) && defined(CONFIG_HAVE_LONG_LONG)
+#if defined(CONFIG_FS_LARGEFILE)
 #  define F_GETLK64         F_GETLK
 #  define F_SETLK64         F_SETLK
 #  define F_SETLKW64        F_SETLKW
@@ -137,9 +163,9 @@
 #  define posix_fallocate64 posix_fallocate
 #endif
 
-/********************************************************************************
+/****************************************************************************
  * Public Type Definitions
- ********************************************************************************/
+ ****************************************************************************/
 
 /* struct flock is the third argument for F_GETLK, F_SETLK and F_SETLKW */
 
@@ -152,9 +178,9 @@ struct flock
   pid_t   l_pid;     /* PID of process blocking our lock (F_GETLK only) */
 };
 
-/********************************************************************************
+/****************************************************************************
  * Public Function Prototypes
- ********************************************************************************/
+ ****************************************************************************/
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -165,13 +191,14 @@ extern "C"
 #define EXTERN extern
 #endif
 
-/********************************************************************************
+/****************************************************************************
  * Public Data
- ********************************************************************************/
+ ****************************************************************************/
 
 /* POSIX-like File System Interfaces */
 
 int open(FAR const char *path, int oflag, ...);
+int openat(int dirfd, FAR const char *path, int oflag, ...);
 int fcntl(int fd, int cmd, ...);
 
 int posix_fallocate(int fd, off_t offset, off_t len);

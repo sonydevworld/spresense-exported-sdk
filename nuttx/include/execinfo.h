@@ -25,26 +25,17 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/sched.h>
+
 #include <sys/types.h>
-#include <sched.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#if defined(CONFIG_SCHED_BACKTRACE)
-
-/* Store up to SIZE return address of the current back trace in
- * ARRAY and return the exact number of values stored.
- */
-
-# define backtrace(buffer, size) sched_backtrace(gettid(), buffer, size, 0)
-# define dump_stack()            sched_dumpstack(gettid())
-
-#else
-# define backtrace(buffer, size) 0
-# define dump_stack()
-#endif
+#define backtrace(buffer, size) sched_backtrace(_SCHED_GETTID(), \
+                                                buffer, size, 0)
+#define dump_stack()            sched_dumpstack(_SCHED_GETTID())
 
 /****************************************************************************
  * Public Function Prototypes

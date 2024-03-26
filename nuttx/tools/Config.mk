@@ -22,12 +22,9 @@
 
 .SUFFIXES:
 
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-export SHELL=cmd
-endif
-
 # Control build verbosity
 #
+#  V=0:   Exit silent mode
 #  V=1,2: Enable echo of commands
 #  V=2:   Enable bug/verbose options in tools and scripts
 
@@ -37,6 +34,22 @@ else ifeq ($(V),2)
 export Q :=
 else
 export Q := @
+endif
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  export SHELL=cmd
+else ifeq ($(V),)
+  BASHCMD := $(shell command -v bash 2> /dev/null)
+  ifneq ($(BASHCMD),)
+    export SHELL=$(BASHCMD)
+    export ECHO_BEGIN=@echo -ne "\033[1K\r"
+    export ECHO_END=$(ECHO_BEGIN)
+  endif
+endif
+
+ifeq ($(ECHO_BEGIN),)
+  export ECHO_BEGIN=@echo # keep a trailing space here
+  export ECHO_END=
 endif
 
 # These are configuration variables that are quoted by configuration tool
@@ -53,10 +66,16 @@ MODULECC ?= $(CC)
 MODULELD ?= $(LD)
 MODULESTRIP ?= $(STRIP)
 
+# ccache configuration.
+
+ifeq ($(CONFIG_CCACHE),y)
+  CCACHE ?= ccache
+endif
+
 # Define HOSTCC on the make command line if it differs from these defaults
 # Define HOSTCFLAGS with -g on the make command line to build debug versions
 
-ifeq ($(CONFIG_WINDOWS_MSYS),y)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 
 # In the Windows native environment, the MinGW GCC compiler is used
 
@@ -100,7 +119,7 @@ endif
 # This define is passed as EXTRAFLAGS for kernel-mode builds.  It is also passed
 # during PASS1 (but not PASS2) context and depend targets.
 
-KDEFINE ?= ${shell $(DEFINE) "$(CC)" __KERNEL__}
+KDEFINE ?= ${DEFINE_PREFIX}__KERNEL__
 
 # DELIM - Path segment delimiter character
 #
@@ -113,6 +132,12 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   DELIM ?= $(strip \)
 else
   DELIM ?= $(strip /)
+endif
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  EMPTYFILE := "NUL"
+else
+  EMPTYFILE := "/dev/null"
 endif
 
 # Process chip-specific directories
@@ -231,8 +256,8 @@ OBJPATH ?= .
 #   CONFIG_WINDOWS_NATIVE - Defined for a Windows native build
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  DEFINE ?= "$(TOPDIR)\tools\define.bat"
-  INCDIR ?= "$(TOPDIR)\tools\incdir.bat"
+  DEFINE ?= $(TOPDIR)\tools\define.bat
+  INCDIR ?= $(TOPDIR)\tools\incdir.bat
 else ifeq ($(CONFIG_CYGWIN_WINTOOL),y)
   DEFINE ?= "$(TOPDIR)/tools/define.sh" -w
   INCDIR ?= "$(TOPDIR)/tools/incdir$(HOSTEXEEXT)" -w
@@ -255,12 +280,13 @@ endif
 # <filename>.S)
 
 define PREPROCESS
-	@echo "CPP: $1->$2"
+	$(ECHO_BEGIN)"CPP: $1->$2 "
 	$(Q) $(CPP) $(CPPFLAGS) $($(strip $1)_CPPFLAGS) $1 -o $2
+	$(ECHO_END)
 endef
 
 # COMPILE - Default macro to compile one C file
-# Example: $(call COMPILE, in-file, out-file)
+# Example: $(call COMPILE, in-file, out-file, flags)
 #
 # Depends on these settings defined in board-specific Make.defs file
 # installed at $(TOPDIR)/Make.defs:
@@ -272,12 +298,13 @@ endef
 # change the options used with the single file <filename>.c
 
 define COMPILE
-	@echo "CC: $1"
-	$(Q) $(CC) -c $(CFLAGS) $($(strip $1)_CFLAGS) $1 -o $2
+	$(ECHO_BEGIN)"CC: $1 "
+	$(Q) $(CCACHE) $(CC) -c $(CFLAGS) $3 $($(strip $1)_CFLAGS) $1 -o $2
+	$(ECHO_END)
 endef
 
 # COMPILEXX - Default macro to compile one C++ file
-# Example: $(call COMPILEXX, in-file, out-file)
+# Example: $(call COMPILEXX, in-file, out-file, flags)
 #
 # Depends on these settings defined in board-specific Make.defs file
 # installed at $(TOPDIR)/Make.defs:
@@ -290,8 +317,9 @@ endef
 # extension .cpp could also be used.  The same applies mutatis mutandis.
 
 define COMPILEXX
-	@echo "CXX: $1"
-	$(Q) $(CXX) -c $(CXXFLAGS) $($(strip $1)_CXXFLAGS) $1 -o $2
+	$(ECHO_BEGIN)"CXX: $1 "
+	$(Q) $(CCACHE) $(CXX) -c $(CXXFLAGS) $3 $($(strip $1)_CXXFLAGS) $1 -o $2
+	$(ECHO_END)
 endef
 
 # COMPILERUST - Default macro to compile one Rust file
@@ -308,8 +336,28 @@ endef
 # applies mutatis mutandis.
 
 define COMPILERUST
-	@echo "RUSTC: $1"
+	$(ECHO_BEGIN)"RUSTC: $1 "
 	$(Q) $(RUSTC) --emit obj $(RUSTFLAGS) $($(strip $1)_RUSTFLAGS) $1 -o $2
+	$(ECHO_END)
+endef
+
+# COMPILEZIG - Default macro to compile one Zig file
+# Example: $(call COMPILEZIG, in-file, out-file)
+#
+# Depends on these settings defined in board-specific Make.defs file
+# installed at $(TOPDIR)/Make.defs:
+#
+#   ZIG - The command to invoke the Zig compiler
+#   ZIGFLAGS - Options to pass to the Zig compiler
+#
+# '<filename>.zig_ZIGFLAGS += <options>' may also be used, as an example, to
+# change the options used with the single file <filename>.zig. The same
+# applies mutatis mutandis.
+
+define COMPILEZIG
+	$(ECHO_BEGIN)"ZIG: $1 "
+	$(Q) $(ZIG) build-obj $(ZIGFLAGS) $($(strip $1)_ZIGFLAGS) --name $(basename $2) $1
+	$(ECHO_END)
 endef
 
 # ASSEMBLE - Default macro to assemble one assembly language file
@@ -333,20 +381,22 @@ endef
 # is used by some toolchains.  The same applies mutatis mutandis.
 
 define ASSEMBLE
-	@echo "AS: $1"
-	$(Q) $(CC) -c $(AFLAGS) $1 $($(strip $1)_AFLAGS) -o $2
+	$(ECHO_BEGIN)"AS: $1 "
+	$(Q) $(CCACHE) $(CC) -c $(AFLAGS) $1 $($(strip $1)_AFLAGS) -o $2
+	$(ECHO_END)
 endef
 
 # INSTALL_LIB - Install a library $1 into target $2
 # Example: $(call INSTALL_LIB, libabc.a, $(TOPDIR)/staging/)
 
 define INSTALL_LIB
-	@echo "IN: $1 -> $2"
+	$(ECHO_BEGIN)"IN: $1 -> $2 "
 	$(Q) install -m 0644 $1 $2
+	$(ECHO_END)
 endef
 
-# ARCHIVE_ADD - Add a list of files to an archive
-# Example: $(call ARCHIVE_ADD, archive-file, "file1 file2 file3 ...")
+# ARCHIVE - Add a list of files to an archive
+# Example: $(call ARCHIVE, archive-file, "file1 file2 file3 ...")
 #
 # Note: The fileN strings may not contain spaces or  characters that may be
 # interpreted strangely by the shell
@@ -361,18 +411,8 @@ endef
 #
 #   CONFIG_WINDOWS_NATIVE - Defined for a Windows native build
 
-define ARCHIVE_ADD
-	@echo "AR (add): ${shell basename $(1)} $(2)"
-	$(Q) $(AR) $1 $(2)
-endef
-
-# ARCHIVE - Same as above, but ensure the archive is
-# created from scratch
-
 define ARCHIVE
-	@echo "AR (create): ${shell basename $(1)} $(2)"
-	$(Q) $(RM) $1
-	$(Q) $(AR) $1 $(2)
+	$(AR) $1  $2
 endef
 
 # PRELINK - Prelink a list of files
@@ -408,6 +448,15 @@ define PRELINK
 endef
 endif
 
+# PREBUILD -- Perform pre build operations
+# Some architectures require the use of special tools and special handling
+# BEFORE building NuttX. The `Make.defs` files for those architectures
+# should override the following define with the correct operations for
+# that platform.
+
+define PREBUILD
+endef
+
 # POSTBUILD -- Perform post build operations
 # Some architectures require the use of special tools and special handling
 # AFTER building the NuttX binary.  Make.defs files for those architectures
@@ -420,8 +469,12 @@ endef
 # DELFILE - Delete one file
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define NEWLINE
+
+
+endef
 define DELFILE
-	$(Q) if exist $1 (del /f /q $1)
+	$(foreach FILE, $(1), $(NEWLINE) $(Q) if exist $(FILE) (del /f /q  $(FILE)))
 endef
 else
 define DELFILE
@@ -433,7 +486,7 @@ endif
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define DELDIR
-	$(Q) if exist $1 (rmdir /q /s $1)
+	$(Q) if exist $1 (rmdir /q /s $1) $(NEWLINE)
 endef
 else
 define DELDIR
@@ -471,7 +524,7 @@ endif
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define CATFILE
-	$(Q) type $(2) > $1
+	$(foreach FILE, $(2), $(NEWLINE) $(Q) type $(FILE) >> $1)
 endef
 else
 define CATFILE
@@ -492,10 +545,35 @@ define RWILDCARD
   $(foreach d,$(wildcard $1/*),$(call RWILDCARD,$d,$2)$(filter $(subst *,%,$2),$d))
 endef
 
+# FINDSCRIPT - Find a given linker script. Prioritize the version from currently
+#              configured board. If not provided, use the linker script from the
+#              board common directory.
+# Example: $(call FINDSCRIPT,script.ld)
+
+define FINDSCRIPT
+	$(if $(wildcard $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(1)),$(BOARD_DIR)$(DELIM)scripts$(DELIM)$(1),$(BOARD_COMMON_DIR)$(DELIM)scripts$(DELIM)$(1))
+endef
+
+# DOWNLOAD - Download file. The URL base is joined with TARBALL by '/' and
+#            downloaded to the TARBALL file.
+#            The third argument is an output path. The second argument is used
+#            if it is not provided or is empty.
+# Example: $(call DOWNLOAD,$(FOO_URL_BASE),$(FOO_TARBALL),foo.out,foo-)
+
+define DOWNLOAD
+	$(ECHO_BEGIN)"Downloading: $(if $3,$3,$2) "
+	$(Q) curl -L $(if $(V),,-Ss) $(1)/$(2) -o $(if $(3),$(3),$(2))
+	$(ECHO_END)
+endef
+
 # CLEAN - Default clean target
 
 ifeq ($(CONFIG_ARCH_COVERAGE),y)
 	EXTRA = *.gcno *.gcda
+endif
+
+ifeq ($(CONFIG_STACK_USAGE),y)
+	EXTRA += *.su
 endif
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
@@ -504,13 +582,14 @@ define CLEAN
 	$(Q) if exist *$(LIBEXT) (del /f /q *$(LIBEXT))
 	$(Q) if exist *~ (del /f /q *~)
 	$(Q) if exist (del /f /q  .*.swp)
-	$(Q) if exist $(OBJS) (del /f /q $(OBJS))
-	$(Q) if exist $(BIN) (del /f /q  $(BIN))
-	$(Q) if exist $(EXTRA) (del /f /q  $(EXTRA))
+	$(call DELFILE,$(subst /,\,$(OBJS)))
+	$(Q) if exist $(BIN) (del /f /q  $(subst /,\,$(BIN)))
+	$(Q) if exist $(BIN).lock (del /f /q  $(subst /,\,$(BIN).lock))
+	$(Q) if exist $(EXTRA) (del /f /q  $(subst /,\,$(EXTRA)))
 endef
 else
 define CLEAN
-	$(Q) rm -f *$(OBJEXT) *$(LIBEXT) *~ .*.swp $(OBJS) $(BIN) $(EXTRA)
+	$(Q) rm -f *$(OBJEXT) *$(LIBEXT) *~ .*.swp $(OBJS) $(BIN) $(BIN).lock $(EXTRA)
 endef
 endif
 
@@ -553,28 +632,49 @@ $(1)_$(2):
 
 endef
 
-# ARCHxxx means the predefined setting(either toolchain, arch, or system specific)
+export DEFINE_PREFIX ?= $(subst X,,${shell $(DEFINE) "$(CC)" X 2> ${EMPTYFILE}})
+export INCDIR_PREFIX ?= $(subst "X",,${shell $(INCDIR) "$(CC)" X 2> ${EMPTYFILE}})
+export INCSYSDIR_PREFIX ?= $(subst "X",,${shell $(INCDIR) -s "$(CC)" X 2> ${EMPTYFILE}})
 
-ARCHDEFINES += ${shell $(DEFINE) "$(CC)" __NuttX__}
+# ARCHxxx means the predefined setting(either toolchain, arch, or system specific)
+ARCHDEFINES += ${DEFINE_PREFIX}__NuttX__
 ifeq ($(CONFIG_NDEBUG),y)
-  ARCHDEFINES += ${shell $(DEFINE) "$(CC)" NDEBUG}
+  ARCHDEFINES += ${DEFINE_PREFIX}NDEBUG
 endif
 
 # The default C/C++ search path
 
-ARCHINCLUDES += ${shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include}
+ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include
 
 ifeq ($(CONFIG_LIBCXX),y)
-  ARCHXXINCLUDES += ${shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include$(DELIM)libcxx}
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)libcxx
 else ifeq ($(CONFIG_UCLIBCXX),y)
-  ARCHXXINCLUDES += ${shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include$(DELIM)uClibc++}
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)uClibc++
 else
-  ARCHXXINCLUDES += ${shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include$(DELIM)cxx}
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)cxx
   ifeq ($(CONFIG_ETL),y)
-    ARCHXXINCLUDES += ${shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include$(DELIM)etl}
+    ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)etl
   endif
 endif
-ARCHXXINCLUDES += ${shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include}
+
+ifeq ($(CONFIG_LIBM_NEWLIB),y)
+  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)newlib
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)newlib
+endif
+
+#libmcs`s math.h should include after libcxx, or it will override libcxx/include/math.h and build error
+ifeq ($(CONFIG_LIBM_LIBMCS),y)
+  ARCHDEFINES += ${DEFINE_PREFIX}LIBMCS_LONG_DOUBLE_IS_64BITS
+  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)libmcs
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)libmcs
+endif
+
+ifeq ($(CONFIG_LIBM_OPENLIBM),y)
+  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)openlibm
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)openlibm
+endif
+
+ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include
 
 # Convert filepaths to their proper system format (i.e. Windows/Unix)
 
@@ -583,3 +683,14 @@ ifeq ($(CONFIG_CYGWIN_WINTOOL),y)
 else
   CONVERT_PATH = $1
 endif
+
+# Upper/Lower case string, add the `UL` prefix to private function 
+
+ULPOP = $(wordlist 3,$(words $(1)),$(1))
+ULSUB = $(subst $(word 1,$(1)),$(word 2,$(1)),$(2))
+ULMAP = $(if $(1),$(call ULSUB,$(1),$(call ULMAP,$(call ULPOP,$(1)),$(2))),$(2))
+UPPERMAP = a A b B c C d D e E f F g G h H i I j J k K l L m M n N o O p P q Q r R s S t T u U v V w W x X y Y z Z
+LOWERMAP = A a B b C c D d E e F f G g H h I i J j K k L l M m N n O o P p Q q R r S s T t U u V v W w X x Y y Z z
+
+UPPER_CASE = $(call ULMAP,$(UPPERMAP),$(1))
+LOWER_CASE = $(call ULMAP,$(LOWERMAP),$(1))

@@ -42,19 +42,68 @@
 #undef DEBUGASSERT  /* Like ASSERT, but only if CONFIG_DEBUG_ASSERTIONS is defined */
 #undef DEBUGVERIFY  /* Like VERIFY, but only if CONFIG_DEBUG_ASSERTIONS is defined */
 
+/* Macro to define the assertions file name and file line
+ * | Function         |CONFIG                            | Show name/line |
+ * | ---              | ---                              | ---            |
+ * |assert(), ASSERT()|CONFIG_ASSERTIONS_FILENAME=y      | Yes            |
+ * |assert(), ASSERT()|CONFIG_ASSERTIONS_FILENAME=n      | No             |
+ * |DEBUGASSERT()     |CONFIG_DEBUG_ASSERTIONS_FILENAME=y| Yes            |
+ * |DEBUGASSERT()     |CONFIG_DEBUG_ASSERTIONS_FILENAME=n| No             |
+ */
+
 #ifdef CONFIG_HAVE_FILENAME
-#  define PANIC()        _assert(__FILE__, __LINE__)
-#else
-#  define PANIC()        _assert("unknown", 0)
+#  ifdef CONFIG_DEBUG_ASSERTIONS_FILENAME
+#    define __DEBUG_ASSERT_FILE__ __FILE__
+#    define __DEBUG_ASSERT_LINE__ __LINE__
+#  endif
+#  ifdef CONFIG_ASSERTIONS_FILENAME
+#    define __ASSERT_FILE__ __FILE__
+#    define __ASSERT_LINE__ __LINE__
+#  endif
 #endif
 
-#define ASSERT(f)        do { if (!(f)) PANIC(); } while (0)
-#define VERIFY(f)        do { if ((f) < 0) PANIC(); } while (0)
+#ifndef __DEBUG_ASSERT_FILE__
+#  define __DEBUG_ASSERT_FILE__ 0
+#  define __DEBUG_ASSERT_LINE__ 0
+#endif
+
+#ifndef __ASSERT_FILE__
+#  define __ASSERT_FILE__ 0
+#  define __ASSERT_LINE__ 0
+#endif
+
+#define PANIC() __assert(__ASSERT_FILE__, __ASSERT_LINE__, "panic")
+#define PANIC_WITH_REGS(msg, regs) _assert(__ASSERT_FILE__, \
+                                           __ASSERT_LINE__, msg, regs)
+
+#define __ASSERT(f, file, line, _f) \
+  do                                \
+    {                               \
+      if (predict_false(!(f)))      \
+        __assert(file, line, _f);   \
+    }                               \
+  while (0)
+
+#define __VERIFY(f, file, line, _f) \
+  do                                \
+    {                               \
+      if (predict_false((f) < 0))   \
+        __assert(file, line, _f);   \
+    }                               \
+  while (0)
+
+#ifdef CONFIG_DEBUG_ASSERTIONS_EXPRESSION
+#  define _ASSERT(f,file,line) __ASSERT(f, file, line, #f)
+#  define _VERIFY(f,file,line) __VERIFY(f, file, line, #f)
+#else
+#  define _ASSERT(f,file,line) __ASSERT(f, file, line, NULL)
+#  define _VERIFY(f,file,line) __VERIFY(f, file, line, NULL)
+#endif
 
 #ifdef CONFIG_DEBUG_ASSERTIONS
-#  define DEBUGPANIC()   PANIC()
-#  define DEBUGASSERT(f) ASSERT(f)
-#  define DEBUGVERIFY(f) VERIFY(f)
+#  define DEBUGPANIC()   __assert(__DEBUG_ASSERT_FILE__, __DEBUG_ASSERT_LINE__, "panic")
+#  define DEBUGASSERT(f) _ASSERT(f, __DEBUG_ASSERT_FILE__, __DEBUG_ASSERT_LINE__)
+#  define DEBUGVERIFY(f) _VERIFY(f, __DEBUG_ASSERT_FILE__, __DEBUG_ASSERT_LINE__)
 #else
 #  define DEBUGPANIC()
 #  define DEBUGASSERT(f) ((void)(1 || (f)))
@@ -68,9 +117,18 @@
 
 #ifdef NDEBUG
 #  define assert(f) ((void)(1 || (f)))
+#  define VERIFY(f) assert(f)
 #else
-#  define assert(f) ASSERT(f)
+#  define assert(f) _ASSERT(f, __ASSERT_FILE__, __ASSERT_LINE__)
+#  define VERIFY(f) _VERIFY(f, __ASSERT_FILE__, __ASSERT_LINE__)
 #endif
+
+#define ASSERT(f) assert(f)
+
+/* Suppress 3rd party library redefine _assert/__assert */
+
+#define _assert _assert
+#define __assert __assert
 
 /* Definition required for C11 compile-time assertion checking.  The
  * static_assert macro simply expands to the _Static_assert keyword.
@@ -86,9 +144,13 @@
 #  endif
 #endif
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/* Force a compilation error if condition is true, but also produce a
+ * result (of value 0 and type int), so the expression can be used
+ * e.g. in a structure initializer (or where-ever else comma expressions
+ * aren't permitted).
+ */
+
+#define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
 
 /****************************************************************************
  * Public Data
@@ -106,7 +168,28 @@ extern "C"
  * Public Function Prototypes
  ****************************************************************************/
 
-void _assert(FAR const char *filename, int linenum) noreturn_function;
+/****************************************************************************
+ * Name: _assert
+ *
+ * Description:
+ *   This is the assert system call that performs the core dump etc. Function
+ *   might not return if it is not safe to do so (in IRQ or in IDLE task).
+ *
+ ****************************************************************************/
+
+void _assert(FAR const char *filename, int linenum,
+             FAR const char *msg, FAR void *regs);
+
+/****************************************************************************
+ * Name: __assert
+ *
+ * Description:
+ *   This is the user space assert procedure.
+ *
+ ****************************************************************************/
+
+void __assert(FAR const char *filename, int linenum,
+              FAR const char *msg) noreturn_function;
 
 #undef EXTERN
 #ifdef __cplusplus

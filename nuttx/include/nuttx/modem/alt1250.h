@@ -28,7 +28,8 @@
 #include <nuttx/config.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/spi/spi.h>
-#include <queue.h>
+#include <nuttx/queue.h>
+#include <nuttx/mutex.h>
 #include <semaphore.h>
 #include <debug.h>
 #include <nuttx/irq.h>
@@ -47,9 +48,9 @@
 #  define m_warn    _warn
 #  define m_info    _info
 #else
-#  define m_err(x...)
-#  define m_warn(x...)
-#  define m_info(x...)
+#  define m_err(...)
+#  define m_warn(...)
+#  define m_info(...)
 #endif
 
 #define ALT1250_IOC_POWER           _MODEMIOC(1)
@@ -57,10 +58,11 @@
 #define ALT1250_IOC_SETEVTBUFF      _MODEMIOC(3)
 #define ALT1250_IOC_EXCHGCONTAINER  _MODEMIOC(4)
 
-#define ALT1250_EVTBIT_RESET   (1ULL << 63)
-#define ALT1250_EVTBIT_REPLY   (1ULL << 62)
-#define ALT1250_EVTBIT_STOPAPI (1ULL << 61)
-#define ALT1250_EVTBIT_SUSPEND (1ULL << 60)
+#define ALT1250_EVTBIT_RESET      (1ULL << 63)
+#define ALT1250_EVTBIT_REPLY      (1ULL << 62)
+#define ALT1250_EVTBIT_STOPAPI    (1ULL << 61)
+#define ALT1250_EVTBIT_SUSPEND    (1ULL << 60)
+#define ALT1250_EVTBIT_RESTARTAPI (1ULL << 59)
 
 /* Number of sockets */
 
@@ -288,7 +290,7 @@ typedef struct alt_evtbuf_inst_s
   uint16_t altcid;
   FAR void **outparam;
   size_t outparamlen;
-  sem_t stat_lock;
+  mutex_t stat_lock;
   alt_evtbuf_state_t stat;
 } alt_evtbuf_inst_t;
 
@@ -306,7 +308,7 @@ struct alt_readdata_s
 
 struct alt1250_lower_s
 {
-  FAR struct spi_dev_s * (*poweron)(void);
+  FAR struct spi_dev_s * (*poweron)(bool keep_on);
   void (*poweroff)(void);
   bool (*powerstatus)(void);
   int  (*hiber_mode)(bool);
@@ -328,26 +330,26 @@ typedef struct altcom_fd_set_s altcom_fd_set;
 struct alt_queue_s
 {
   sq_queue_t queue;
-  sem_t lock;
+  mutex_t lock;
 };
 
 struct alt1250_dev_s
 {
   FAR struct spi_dev_s *spi;
   FAR const struct alt1250_lower_s *lower;
-  sem_t refslock;
+  mutex_t refslock;
   uint8_t crefs;
   struct alt_queue_s waitlist;
   struct alt_queue_s replylist;
   uint64_t evtbitmap;
-  sem_t evtmaplock;
-  sem_t pfdlock;
+  mutex_t evtmaplock;
+  mutex_t pfdlock;
   FAR struct pollfd *pfd;
   int rxthread_pid;
   sem_t rxthread_sem;
   FAR struct alt_evtbuffer_s *evtbuff;
   uint32_t discardcnt;
-  sem_t senddisablelock;
+  mutex_t senddisablelock;
   bool senddisable;
   FAR alt_container_t *select_container;
   struct alt_evtbuf_inst_s select_inst;

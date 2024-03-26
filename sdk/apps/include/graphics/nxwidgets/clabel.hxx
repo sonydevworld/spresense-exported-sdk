@@ -204,7 +204,7 @@ namespace NXWidgets
 
     CLabel(CWidgetControl *pWidgetControl, nxgl_coord_t x, nxgl_coord_t y,
            nxgl_coord_t width, nxgl_coord_t height, const CNxString &text,
-           CWidgetStyle *style = (CWidgetStyle *)NULL);
+           CWidgetStyle *style = NULL);
 
     /**
      * Destructor.
@@ -285,7 +285,7 @@ namespace NXWidgets
      * @param index Index at which to insert the text.
      */
 
-    virtual void insertText(const CNxString &text, const int index);
+    virtual void insertText(const CNxString &text, const unsigned int index);
 
     /**
      * Control the highlight state.

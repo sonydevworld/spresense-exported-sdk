@@ -29,6 +29,7 @@
 
 #include <stdint.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 
 #include <nuttx/fs/ioctl.h>
 

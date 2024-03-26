@@ -28,6 +28,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -79,6 +80,21 @@
 #ifndef CONFIG_HAVE_LONG_LONG
 #  undef CONFIG_SYSTEM_TIME64
 #endif
+
+/* The following are the bit fields of the clockid_t
+ * bit 0~2: the clock type
+ * CLOCK_REALTIME           - 0
+ * CLOCK_MONOTONIC          - 1
+ * CLOCK_PROCESS_CPUTIME_ID - 2
+ * CLOCK_THREAD_CPUTIME_ID  - 3
+ * CLOCK_BOOTTIME           - 4
+ * bit 3~32: the pid or tid value
+ *
+ * The CLOCK_MASK are using to extract the clock_type from the clockid_t
+ */
+
+#define CLOCK_MASK            7
+#define CLOCK_SHIFT           3
 
 /* Timing constants *********************************************************/
 
@@ -135,9 +151,9 @@
  */
 
 #ifdef CONFIG_USEC_PER_TICK
-# define USEC_PER_TICK        (CONFIG_USEC_PER_TICK)
+#  define USEC_PER_TICK       (CONFIG_USEC_PER_TICK)
 #else
-# define USEC_PER_TICK        (10000)
+#  define USEC_PER_TICK       (10000)
 #endif
 
 /* MSEC_PER_TICK can be very inaccurate if CONFIG_USEC_PER_TICK is not an
@@ -145,41 +161,49 @@
  * preferred for that reason (at the risk of overflow)
  */
 
-#define TICK_PER_HOUR         (USEC_PER_HOUR / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_MIN          (USEC_PER_MIN  / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_SEC          (USEC_PER_SEC  / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_MSEC         (USEC_PER_MSEC / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_DSEC         (USEC_PER_DSEC / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_HSEC         (USEC_PER_HSEC / USEC_PER_TICK)            /* Truncates! */
+/* TICK_PER_* truncates! */
 
-#define MSEC_PER_TICK         (USEC_PER_TICK / USEC_PER_MSEC)            /* Truncates! */
-#define NSEC_PER_TICK         (USEC_PER_TICK * NSEC_PER_USEC)            /* Exact */
+#define TICK_PER_HOUR         (USEC_PER_HOUR / USEC_PER_TICK)
+#define TICK_PER_MIN          (USEC_PER_MIN  / USEC_PER_TICK)
+#define TICK_PER_SEC          (USEC_PER_SEC  / USEC_PER_TICK)
+#define TICK_PER_MSEC         (USEC_PER_MSEC / USEC_PER_TICK)
+#define TICK_PER_DSEC         (USEC_PER_DSEC / USEC_PER_TICK)
+#define TICK_PER_HSEC         (USEC_PER_HSEC / USEC_PER_TICK)
 
-#define NSEC2TICK(nsec)       (((nsec)+(NSEC_PER_TICK/2))/NSEC_PER_TICK) /* Rounds */
-#define USEC2TICK(usec)       (((usec)+(USEC_PER_TICK/2))/USEC_PER_TICK) /* Rounds */
+/* MSEC_PER_TICK truncates! */
 
-#if (MSEC_PER_TICK * USEC_PER_MSEC) == USEC_PER_TICK
-#  define MSEC2TICK(msec)     (((msec)+(MSEC_PER_TICK/2))/MSEC_PER_TICK) /* Rounds */
-#else
-#  define MSEC2TICK(msec)     USEC2TICK((msec) * USEC_PER_MSEC)          /* Rounds */
-#endif
+#define MSEC_PER_TICK         (USEC_PER_TICK / USEC_PER_MSEC)
+#define NSEC_PER_TICK         (USEC_PER_TICK * NSEC_PER_USEC)
 
-#define DSEC2TICK(dsec)       MSEC2TICK((dsec) * MSEC_PER_DSEC)          /* Rounds */
-#define HSEC2TICK(dsec)       MSEC2TICK((dsec) * MSEC_PER_HSEC)          /* Rounds */
-#define SEC2TICK(sec)         MSEC2TICK((sec)  * MSEC_PER_SEC)           /* Rounds */
+/* ?SEC2TIC rounds up */
 
-#define TICK2NSEC(tick)       ((tick) * NSEC_PER_TICK)                   /* Exact */
-#define TICK2USEC(tick)       ((tick) * USEC_PER_TICK)                   /* Exact */
+#define NSEC2TICK(nsec)       (((nsec) + (NSEC_PER_TICK - 1)) / NSEC_PER_TICK)
+#define USEC2TICK(usec)       (((usec) + (USEC_PER_TICK - 1)) / USEC_PER_TICK)
 
 #if (MSEC_PER_TICK * USEC_PER_MSEC) == USEC_PER_TICK
-#  define TICK2MSEC(tick)     ((tick)*MSEC_PER_TICK)                     /* Exact */
+#  define MSEC2TICK(msec)     (((msec) + (MSEC_PER_TICK - 1)) / MSEC_PER_TICK)
 #else
-#  define TICK2MSEC(tick)     (((tick)*USEC_PER_TICK)/USEC_PER_MSEC)     /* Rounds */
+#  define MSEC2TICK(msec)     USEC2TICK((msec) * USEC_PER_MSEC)
 #endif
 
-#define TICK2DSEC(tick)       (((tick)+(TICK_PER_DSEC/2))/TICK_PER_DSEC) /* Rounds */
-#define TICK2HSEC(tick)       (((tick)+(TICK_PER_HSEC/2))/TICK_PER_HSEC) /* Rounds */
-#define TICK2SEC(tick)        (((tick)+(TICK_PER_SEC/2))/TICK_PER_SEC)   /* Rounds */
+#define DSEC2TICK(dsec)       MSEC2TICK((dsec) * MSEC_PER_DSEC)
+#define HSEC2TICK(dsec)       MSEC2TICK((dsec) * MSEC_PER_HSEC)
+#define SEC2TICK(sec)         MSEC2TICK((sec)  * MSEC_PER_SEC)
+
+#define TICK2NSEC(tick)       ((tick) * NSEC_PER_TICK)
+#define TICK2USEC(tick)       ((tick) * USEC_PER_TICK)
+
+#if (MSEC_PER_TICK * USEC_PER_MSEC) == USEC_PER_TICK
+#  define TICK2MSEC(tick)     ((tick) * MSEC_PER_TICK)
+#else
+#  define TICK2MSEC(tick)     (((tick) * USEC_PER_TICK) / USEC_PER_MSEC)
+#endif
+
+/* TIC2?SEC rounds to nearest */
+
+#define TICK2DSEC(tick)       (((tick) + (TICK_PER_DSEC / 2)) / TICK_PER_DSEC)
+#define TICK2HSEC(tick)       (((tick) + (TICK_PER_HSEC / 2)) / TICK_PER_HSEC)
+#define TICK2SEC(tick)        (((tick) + (TICK_PER_SEC / 2)) / TICK_PER_SEC)
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_SYSTEM_TIME64) && \
     !defined(CONFIG_SCHED_TICKLESS)
@@ -193,6 +217,56 @@
 #else
 #  define INITIAL_SYSTEM_TIMER_TICKS 0
 #endif
+
+/* If Gregorian time is not supported, then neither is Julian */
+
+#ifndef CONFIG_GREGORIAN_TIME
+#  undef CONFIG_JULIAN_TIME
+#else
+#  define JD_OF_EPOCH         2440588    /* Julian Date of noon, J1970 */
+
+#  ifdef CONFIG_JULIAN_TIME
+#    define GREG_DUTC         -141427    /* Default is October 15, 1582 */
+#    define GREG_YEAR         1582
+#    define GREG_MONTH        10
+#    define GREG_DAY          15
+#  endif /* CONFIG_JULIAN_TIME */
+#endif /* !CONFIG_GREGORIAN_TIME */
+
+#define SECSPERMIN            60
+#define MINSPERHOUR           60
+#define HOURSPERDAY           24
+#define DAYSPERWEEK           7
+#define DAYSPERNYEAR          365
+#define DAYSPERLYEAR          366
+#define MONSPERYEAR           12
+
+#define TM_SUNDAY             0
+#define TM_MONDAY             1
+#define TM_TUESDAY            2
+#define TM_WEDNESDAY          3
+#define TM_THURSDAY           4
+#define TM_FRIDAY             5
+#define TM_SATURDAY           6
+
+#define TM_JANUARY            0
+#define TM_FEBRUARY           1
+#define TM_MARCH              2
+#define TM_APRIL              3
+#define TM_MAY                4
+#define TM_JUNE               5
+#define TM_JULY               6
+#define TM_AUGUST             7
+#define TM_SEPTEMBER          8
+#define TM_OCTOBER            9
+#define TM_NOVEMBER           10
+#define TM_DECEMBER           11
+
+#define TM_YEAR_BASE          (1900)
+#define TM_WDAY_BASE          TM_MONDAY
+
+#define EPOCH_YEAR            1970
+#define EPOCH_WDAY            TM_THURSDAY
 
 /****************************************************************************
  * Public Types
@@ -240,16 +314,29 @@ extern "C"
  */
 
 #ifdef __HAVE_KERNEL_GLOBALS
-EXTERN volatile clock_t g_system_timer;
+EXTERN volatile clock_t g_system_ticks;
 
-#ifndef CONFIG_SYSTEM_TIME64
-#  define clock_systime_ticks() g_system_timer
-#endif
+#  ifndef CONFIG_SYSTEM_TIME64
+#    define clock_systime_ticks() g_system_ticks
+#  endif
 #endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+#define timespec_from_tick(ts, tick) \
+  do \
+    { \
+      clock_t _tick = (tick); \
+      (ts)->tv_sec = _tick / TICK_PER_SEC; \
+      _tick -= (clock_t)(ts)->tv_sec * TICK_PER_SEC; \
+      (ts)->tv_nsec = _tick * NSEC_PER_TICK; \
+    } \
+  while (0)
+
+#define timespec_to_tick(ts) \
+  ((clock_t)(ts)->tv_sec * TICK_PER_SEC + (ts)->tv_nsec / NSEC_PER_TICK)
 
 /****************************************************************************
  * Name: clock_timespec_compare
@@ -302,6 +389,57 @@ void clock_timespec_add(FAR const struct timespec *ts1,
 void clock_timespec_subtract(FAR const struct timespec *ts1,
                              FAR const struct timespec *ts2,
                              FAR struct timespec *ts3);
+
+/****************************************************************************
+ * Name:  clock_isleapyear
+ *
+ * Description:
+ *    Return true if the specified year is a leap year
+ *
+ ****************************************************************************/
+
+int clock_isleapyear(int year);
+
+/****************************************************************************
+ * Name:  clock_daysbeforemonth
+ *
+ * Description:
+ *    Get the number of days that occurred before the beginning of the month.
+ *
+ ****************************************************************************/
+
+int clock_daysbeforemonth(int month, bool leapyear);
+
+/****************************************************************************
+ * Name:  clock_dayoftheweek
+ *
+ * Description:
+ *    Get the day of the week
+ *
+ * Input Parameters:
+ *   mday  - The day of the month 1 - 31
+ *   month - The month of the year 1 - 12
+ *   year  - the year including the 1900
+ *
+ * Returned Value:
+ *   Zero based day of the week 0-6, 0 = Sunday, 1 = Monday... 6 = Saturday
+ *
+ ****************************************************************************/
+
+int clock_dayoftheweek(int mday, int month, int year);
+
+/****************************************************************************
+ * Name:  clock_calendar2utc
+ *
+ * Description:
+ *    Calendar/UTC conversion based on algorithms from p. 604
+ *    of Seidelman, P. K. 1992.  Explanatory Supplement to
+ *    the Astronomical Almanac.  University Science Books,
+ *    Mill Valley.
+ *
+ ****************************************************************************/
+
+time_t clock_calendar2utc(int year, int month, int day);
 
 /****************************************************************************
  * Name:  clock_synchronize

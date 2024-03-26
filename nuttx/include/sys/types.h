@@ -60,6 +60,12 @@
 #  endif
 #endif
 
+/* Values for seeking */
+
+#define SEEK_SET    0  /* From the start of the file */
+#define SEEK_CUR    1  /* From the current file offset */
+#define SEEK_END    2  /* From the end of the file */
+
 #ifndef CONFIG_SMP_NCPUS
 #  define CONFIG_SMP_NCPUS 1
 #endif
@@ -77,7 +83,8 @@
 #define SCHED_PRIORITY_MIN       1
 #define SCHED_PRIORITY_IDLE      0
 
-#if defined(CONFIG_FS_LARGEFILE) && defined(CONFIG_HAVE_LONG_LONG)
+#if defined(CONFIG_FS_LARGEFILE)
+#  define __USE_FILE_OFFSET64    1
 #  define fsblkcnt64_t           fsblkcnt_t
 #  define fsfilcnt64_t           fsfilcnt_t
 #  define blkcnt64_t             blkcnt_t
@@ -187,7 +194,7 @@ typedef int wint_t;
 
 typedef int wctype_t;
 
-#if defined(CONFIG_FS_LARGEFILE) && defined(CONFIG_HAVE_LONG_LONG)
+#if defined(CONFIG_FS_LARGEFILE)
 /* Large file versions */
 
 typedef uint64_t     fsblkcnt_t;
@@ -235,9 +242,13 @@ typedef uint16_t     sa_family_t;
 
 #ifdef CONFIG_SYSTEM_TIME64
 typedef uint64_t     clock_t;
+typedef int64_t      time_t;         /* Holds time in seconds */
 #else
 typedef uint32_t     clock_t;
+typedef uint32_t     time_t;         /* Holds time in seconds */
 #endif
+typedef int          clockid_t;      /* Identifies one time base source */
+typedef FAR void    *timer_t;        /* Represents one POSIX timer */
 
 /* The type useconds_t shall be an unsigned integer type capable of storing
  * values at least in the range [0, 1000000]. The type suseconds_t shall be
@@ -288,6 +299,11 @@ typedef uint24_t u_int24_t;
 typedef uint64_t u_int64_t;
 #endif
 
+struct fsid_s
+{
+  int val[2];
+};
+
 /* Task entry point */
 
 typedef CODE int (*main_t)(int argc, FAR char *argv[]);
@@ -300,10 +316,29 @@ enum
   OK = 0,
 };
 
-#endif /* __ASSEMBLY__ */
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+/* This entry point must be supplied by the application */
+
+#ifdef CONFIG_INIT_ENTRYPOINT
+int CONFIG_INIT_ENTRYPOINT(int argc, FAR char *argv[]);
+#endif
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __INCLUDE_SYS_TYPES_H */

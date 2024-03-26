@@ -35,9 +35,9 @@
  ****************************************************************************/
 
 #ifdef CONFIG_LIBC_PASSWD_LINESIZE
-# define NSS_BUFLEN_PASSWD CONFIG_LIBC_PASSWD_LINESIZE
+#  define NSS_BUFLEN_PASSWD CONFIG_LIBC_PASSWD_LINESIZE
 #else
-# define NSS_BUFLEN_PASSWD 256
+#  define NSS_BUFLEN_PASSWD 256
 #endif
 
 /****************************************************************************
@@ -49,6 +49,7 @@ struct passwd
   FAR char *pw_name;
   uid_t     pw_uid;
   gid_t     pw_gid;
+  FAR char *pw_gecos;
   FAR char *pw_dir;
   FAR char *pw_shell;
 };
@@ -66,6 +67,12 @@ extern "C"
 #define EXTERN extern
 #endif
 
+void setpwent(void);
+void endpwent(void);
+FAR struct passwd *getpwent(void);
+int getpwent_r(FAR struct passwd *pwd,
+               FAR char *buf, size_t buflen,
+               FAR struct passwd **result);
 FAR struct passwd *getpwnam(FAR const char *name);
 FAR struct passwd *getpwuid(uid_t uid);
 int getpwnam_r(FAR const char *name, FAR struct passwd *pwd, FAR char *buf,

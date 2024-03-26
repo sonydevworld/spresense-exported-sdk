@@ -265,6 +265,14 @@ enum wpa_alg_e
   WPA_ALG_BIP_CMAC_256
 };
 
+enum wpa_ver_e
+{
+  WPA_VER_NONE = 0,
+  WPA_VER_1,
+  WPA_VER_2,
+  WPA_VER_3
+};
+
 /* This structure provides the wireless configuration to
  * wpa_driver_wext_associate().
  */
@@ -289,11 +297,22 @@ struct wpa_wconfig_s
   FAR const char *passphrase;    /* E.g., "mySSIDpassphrase" */
 };
 
+/* COEX *********************************************************************/
+
+enum wapi_pta_prio_e
+{
+  WAPI_PTA_PRIORITY_COEX_MAXIMIZED = IW_PTA_PRIORITY_COEX_MAXIMIZED,
+  WAPI_PTA_PRIORITY_COEX_HIGH      = IW_PTA_PRIORITY_COEX_HIGH,
+  WAPI_PTA_PRIORITY_BALANCED       = IW_PTA_PRIORITY_BALANCED,
+  WAPI_PTA_PRIORITY_WLAN_HIGHD     = IW_PTA_PRIORITY_WLAN_HIGH,
+  WAPI_PTA_PRIORITY_WLAN_MAXIMIZED = IW_PTA_PRIORITY_WLAN_MAXIMIZED
+};
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
- #ifdef __cplusplus
+#ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
 {
@@ -313,6 +332,10 @@ EXTERN FAR const char *g_wapi_essid_flags[];
 
 EXTERN FAR const char *g_wapi_alg_flags[];
 
+/* Passphrase WPA Version flag names. */
+
+EXTERN FAR const char *g_wapi_wpa_ver_flags[];
+
 /* Supported operation mode names. */
 
 EXTERN FAR const char *g_wapi_modes[];
@@ -324,6 +347,10 @@ EXTERN FAR const char *g_wapi_bitrate_flags[];
 /* Transmit power flag names. */
 
 EXTERN FAR const char *g_wapi_txpower_flags[];
+
+/* PTA priority flag names. */
+
+EXTERN FAR const char *g_wapi_pta_prio_flags[];
 
 /****************************************************************************
  * Public Function Prototyppes
@@ -888,6 +915,28 @@ int wpa_driver_wext_get_auth_param(int sockfd, FAR const char *ifname,
  ****************************************************************************/
 
 void wpa_driver_wext_disconnect(int sockfd, FAR const char *ifname);
+
+/****************************************************************************
+ * Name: wapi_set_pta_prio
+ *
+ * Description:
+ *   Sets the pta priority of the device.
+ *
+ ****************************************************************************/
+
+int wapi_set_pta_prio(int sock, FAR const char *ifname,
+                      enum wapi_pta_prio_e pta_prio);
+
+/****************************************************************************
+ * Name: wapi_get_pta_prio
+ *
+ * Description:
+ *   Gets the pta priority of the device.
+ *
+ ****************************************************************************/
+
+int wapi_get_pta_prio(int sock, FAR const char *ifname,
+                      enum wapi_pta_prio_e *pta_prio);
 
 #undef EXTERN
 #ifdef __cplusplus

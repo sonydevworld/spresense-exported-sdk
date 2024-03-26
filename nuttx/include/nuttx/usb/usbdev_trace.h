@@ -419,7 +419,7 @@ typedef uint16_t usbtrace_idset_t;
 
 /* Print routine to use for usbdev_trprint() output */
 
-typedef CODE int (*trprintf_t)(const char *fmt, ...) printflike(1, 2);
+typedef CODE int (*trprintf_t)(FAR const char *fmt, ...) printf_like(1, 2);
 
 /****************************************************************************
  * Public Data
@@ -427,11 +427,11 @@ typedef CODE int (*trprintf_t)(const char *fmt, ...) printflike(1, 2);
 
 #undef EXTERN
 #if defined(__cplusplus)
-# define EXTERN extern "C"
+#  define EXTERN extern "C"
 extern "C"
 {
 #else
-# define EXTERN extern
+#  define EXTERN extern
 #endif
 
 /* If CONFIG_USBDEV_TRACE_STRINGS is defined, then the USB class driver and

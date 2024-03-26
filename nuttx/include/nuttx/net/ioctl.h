@@ -47,6 +47,7 @@
 #define SIOCGIFNETMASK   _SIOC(0x0007)  /* Get network mask */
 #define SIOCSIFNETMASK   _SIOC(0x0008)  /* Set network mask */
 #define SIOCGIFMTU       _SIOC(0x0009)  /* Get MTU size */
+#define SIOCSIFMTU       _SIOC(0x0033)  /* Set MTU size */
 
 /* IPv6 interface control operations */
 
@@ -72,6 +73,7 @@
 
 #define SIOCGIFNAME      _SIOC(0x002A)  /* Get interface name string */
 #define SIOCGIFINDEX     _SIOC(0x002B)  /* Get index based name string */
+#define SIOCSIFNAME      _SIOC(0x0034)  /* Set interface name string*/
 
 /* Interface flags */
 
@@ -104,6 +106,7 @@
 /* TUN/TAP driver ***********************************************************/
 
 #define TUNSETIFF        _SIOC(0x0028)  /* Set TUN/TAP interface */
+#define TUNGETIFF        _SIOC(0x0035)  /* Get TUN/TAP interface */
 
 /* Telnet driver ************************************************************/
 
@@ -118,10 +121,22 @@
 #define SIOCDCANEXTFILTER  _SIOC(0x002F)  /* Delete hardware-level exteneded ID filter */
 #define SIOCACANSTDFILTER  _SIOC(0x0030)  /* Add hardware-level standard ID filter */
 #define SIOCDCANSTDFILTER  _SIOC(0x0031)  /* Delete hardware-level standard ID filter */
+#define SIOCCANRECOVERY    _SIOC(0x0032)  /* Recovery can, work only when bus-off state */
 
-/* Network socket control ****************************************************/
+/* Network socket control ***************************************************/
 
-#define SIOCDENYINETSOCK _SIOC(0x0030) /* Deny network socket. */
+#define SIOCDENYINETSOCK _SIOC(0x003C) /* Deny network socket. */
+#define SIOCGETCONTEXT   _SIOC(0x003D) /* Get socket context */
+#define SIOCSETCONTEXT   _SIOC(0x003E) /* Set socket context */
+
+/* Bridge calls *************************************************************/
+
+#define SIOCBRADDBR        _SIOC(0x0036)  /* Create new bridge device */
+#define SIOCBRDELBR        _SIOC(0x0037)  /* Remove bridge device */
+#define SIOCBRADDIF        _SIOC(0x0038)  /* Add interface to bridge */
+#define SIOCBRDELIF        _SIOC(0x0039)  /* Remove interface from bridge */
+#define SIOCGIFBR          _SIOC(0x003A)  /* Bridging support */
+#define SIOCSIFBR          _SIOC(0x003B)  /* Set bridging options */
 
 /****************************************************************************
  * Public Type Definitions

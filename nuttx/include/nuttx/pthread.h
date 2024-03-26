@@ -37,11 +37,7 @@
 
 /* Default pthread attribute initializer */
 
-#if CONFIG_RR_INTERVAL == 0
-#  define PTHREAD_DEFAULT_POLICY SCHED_FIFO
-#else
-#  define PTHREAD_DEFAULT_POLICY SCHED_RR
-#endif
+#define PTHREAD_DEFAULT_POLICY SCHED_NORMAL
 
 /* A lot of hassle to use the old-fashioned struct initializers.  But this
  * gives us backward compatibility with some very old compilers.
@@ -183,7 +179,7 @@ void nx_pthread_exit(FAR void *exit_value) noreturn_function;
  *
  ****************************************************************************/
 
-#ifdef CONFIG_PTHREAD_CLEANUP
+#if defined(CONFIG_PTHREAD_CLEANUP_STACKSIZE) && CONFIG_PTHREAD_CLEANUP_STACKSIZE > 0
 struct tls_info_s;
 void pthread_cleanup_popall(FAR struct tls_info_s *tls);
 #endif

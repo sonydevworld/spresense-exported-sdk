@@ -18,7 +18,7 @@
  *
  ****************************************************************************/
 
-/* Reference: "ELF for the ARM® Architecture," ARM IHI 0044D, current through
+/* Reference: "ELF for the ARM Architecture," ARM IHI 0044D, current through
  *   ABI release 2.08, October 28, 2009, ARM Limited.
  */
 
@@ -38,13 +38,6 @@
  */
 
 #define EM_ARCH                  EM_ARM
-#define ELF_CLASS                ELFCLASS32
-
-#ifdef CONFIG_ENDIAN_BIG
-#  define ELF_DATA               ELFDATA2MSB
-#else
-#  define ELF_DATA               ELFDATA2LSB
-#endif
 
 /* Table 4-2, ARM-specific e_flags */
 
@@ -211,6 +204,10 @@
 #define R_ARM_THM_TLS_DESCSEQ16  129           /* Thumb16 */
 #define R_ARM_THM_TLS_DESCSEQ32  130           /* Thumb32 */
 
+/* Processor specific values for the Phdr p_type field.  */
+
+#define PT_ARM_EXIDX             (PT_LOPROC + 1) /* ARM unwind segment.  */
+
 /* 5.2.1 Platform architecture compatibility data */
 
 #define PT_ARM_ARCHEXT_FMTMSK       0xff000000
@@ -248,6 +245,16 @@
 #define DT_ARM_PREEMPTMAP        0x70000002
 #define DT_ARM_RESERVED2         0x70000003
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+typedef struct __EIT_entry
+{
+  unsigned long fnoffset;
+  unsigned long content;
+} __EIT_entry;
+
 /* ELF register definitions */
 
 /* Holds the general purpose registers $a1 * through to $pc
@@ -256,5 +263,25 @@
  */
 
 typedef unsigned long elf_gregset_t[18];
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+extern __EIT_entry __exidx_start[];
+extern __EIT_entry __exidx_end[];
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __ARCH_ARM_INCLUDE_ELF_H */

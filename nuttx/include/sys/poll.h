@@ -28,6 +28,7 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <signal.h>
 #include <semaphore.h>
@@ -77,11 +78,6 @@
 #define POLLRDHUP    (0x10)  /* NuttX does not support shutdown(fd, SHUT_RD) */
 #define POLLNVAL     (0x20)
 
-#define POLLFD       (0x00)
-#define POLLFILE     (0x40)
-#define POLLSOCK     (0x80)
-#define POLLMASK     (0xC0)
-
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -96,6 +92,11 @@ typedef unsigned int nfds_t;
  */
 
 typedef uint32_t pollevent_t;
+
+/* The poll callback type */
+
+struct pollfd;
+typedef CODE void (*pollcb_t)(FAR struct pollfd *fds);
 
 /* This is the NuttX variant of the standard pollfd structure.  The poll()
  * interfaces receive a variable length array of such structures.
@@ -116,8 +117,8 @@ struct pollfd
 
   /* Non-standard fields used internally by NuttX. */
 
-  FAR void    *ptr;     /* The psock or file being polled */
-  FAR sem_t   *sem;     /* Pointer to semaphore used to post output event */
+  FAR void    *arg;     /* The poll callback function argument */
+  pollcb_t     cb;      /* The poll callback function */
   FAR void    *priv;    /* For use by drivers */
 };
 
@@ -143,6 +144,27 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout);
 int ppoll(FAR struct pollfd *fds, nfds_t nfds,
           FAR const struct timespec *timeout_ts,
           FAR const sigset_t *sigmask);
+
+int poll_fdsetup(int fd, FAR struct pollfd *fds, bool setup);
+void poll_default_cb(FAR struct pollfd *fds);
+void poll_notify(FAR struct pollfd **afds, int nfds, pollevent_t eventset);
+
+#if CONFIG_FORTIFY_SOURCE > 0
+fortify_function(poll) int poll(FAR struct pollfd *fds,
+                                nfds_t nfds, int timeout)
+{
+  fortify_assert(nfds <= fortify_size(fds, 0) / sizeof(struct pollfd));
+  return __real_poll(fds, nfds, timeout);
+}
+
+fortify_function(ppoll) int ppoll(FAR struct pollfd *fds, nfds_t nfds,
+                                  FAR const struct timespec *timeout_ts,
+                                  FAR const sigset_t *sigmask)
+{
+  fortify_assert(nfds <= fortify_size(fds, 0) / sizeof(struct pollfd));
+  return __real_ppoll(fds, nfds, timeout_ts, sigmask);
+}
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

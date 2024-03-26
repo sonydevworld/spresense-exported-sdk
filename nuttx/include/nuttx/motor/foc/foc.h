@@ -27,9 +27,10 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/mutex.h>
+#include <nuttx/semaphore.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 
 #include <fixedmath.h>
 
@@ -59,9 +60,10 @@ enum foc_fault_e
   FOC_FAULT_BOARD   = (1 << 3), /* Board-specific fault */
 };
 
-/* Phase current as signed 32-bit integer */
+/* Phase current and BEMF voltage as signed 32-bit integer */
 
 typedef int32_t foc_current_t;
+typedef int32_t foc_voltage_t;
 
 /* Phase duty cycle as unsigned fixed16.
  * We use range [0.0 to 1.0] so this gives us a 16-bit resolution.
@@ -81,8 +83,12 @@ struct foc_cfg_s
 
 struct foc_state_s
 {
+  bool          pwm_off;                       /* PWM switches disabled */
   uint8_t       fault;                         /* Fault state */
   foc_current_t curr[CONFIG_MOTOR_FOC_PHASES]; /* Phase current feedback */
+#ifdef CONFIG_MOTOR_FOC_BEMF_SENSE
+  foc_voltage_t volt[CONFIG_MOTOR_FOC_PHASES]; /* BEMF voltage feedback */
+#endif
 };
 
 /* Input data to the FOC device */
@@ -117,7 +123,7 @@ struct foc_dev_s
   uint8_t                    ocount;     /* The number of times the device
                                           * has been opened
                                           */
-  sem_t                      closesem;   /* Locks out new opens while close
+  mutex_t                    closelock;  /* Locks out new opens while close
                                           * is in progress
                                           */
   sem_t                      statesem;   /* Notifier semaphore */

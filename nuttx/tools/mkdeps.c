@@ -44,9 +44,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MAX_BUFFER  (8192)
-#define MAX_EXPAND  (2048)
-#define MAX_SHQUOTE (3072)
+#define MAX_BUFFER  (16384)
+#define MAX_EXPAND  (16384)
+#define MAX_SHQUOTE (16384)
 
 /* MAX_PATH might be defined in stdlib.h */
 
@@ -111,7 +111,9 @@ static char g_expand[MAX_EXPAND];
 static char g_dequoted[MAX_PATH];
 static char g_posixpath[MAX_PATH];
 #endif
+#ifndef CONFIG_WINDOWS_NATIVE
 static char g_shquote[MAX_SHQUOTE];
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -210,7 +212,7 @@ static void append(char **base, const char *str)
     {
       alloclen = strlen(oldbase) + strlen(str) +
         sizeof((char) ' ') + sizeof((char) '\0');
-      newbase = (char *)malloc(alloclen);
+      newbase = malloc(alloclen);
       if (!newbase)
         {
           fprintf(stderr, "ERROR: Failed to allocate %d bytes\n", alloclen);
@@ -295,7 +297,7 @@ static void show_usage(const char *progname, const char *msg, int exitcode)
  *    https://netbsd.gw.com/cgi-bin/man-cgi?shquote++NetBSD-current
  *    However, this implementation doesn't try to elide extraneous quotes.
  ****************************************************************************/
-
+#ifndef CONFIG_WINDOWS_NATIVE
 static const char *do_shquote(const char *argument)
 {
   const char *src;
@@ -347,6 +349,7 @@ static const char *do_shquote(const char *argument)
   *dest = '\0';
   return g_shquote;
 }
+#endif
 
 static void parse_args(int argc, char **argv)
 {
@@ -443,12 +446,13 @@ static void parse_args(int argc, char **argv)
            * do_dependency() uses them as bare filenames as well.
            * (In addition to passing them to system().)
            */
-
+#ifndef CONFIG_WINDOWS_NATIVE
           if (group == 1)
             {
                arg = do_shquote(arg);
             }
 
+#endif
           append(&args, arg);
         }
     }

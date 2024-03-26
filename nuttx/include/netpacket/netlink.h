@@ -165,6 +165,11 @@
 #define RTA_OIF               4    /* Argument:  Output interface index */
 #define RTA_GATEWAY           5    /* Argument:  Gateway address of the route */
 #define RTA_GENMASK           6    /* Argument:  Network address mask of sub-net */
+#define RTA_PRIORITY          7    /* Argument:  Route priority */
+#define RTA_TABLE             8    /* Argument:  Route table */
+#define RTA_PREFSRC           9    /* Argument:  Preferred source address */
+#define RTA_METRICS           10   /* Argument:  Route metric */
+#define RTA_MAX               10   /* MAX type, same as last argument */
 
 /* NETLINK_ROUTE protocol message types *************************************/
 
@@ -274,9 +279,10 @@
 #define RTM_NEWNEIGHTBL      64
 #define RTM_GETNEIGHTBL      66
 #define RTM_SETNEIGHTBL      67
+#define RTM_NEWNDUSEROPT     68
 
 #define RTM_BASE             16
-#define RTM_MAX              67
+#define RTM_MAX              68
 
 /* Definitions for struct ifinfomsg *****************************************/
 
@@ -288,6 +294,22 @@
 /* Values for rta_type */
 
 #define IFLA_IFNAME          1
+#define IFLA_ADDRESS         2
+#define IFLA_MTU             3
+#define IFLA_WIRELESS        4
+#define IFLA_STATS           5
+#define IFLA_OPERSTATE       6
+#define IFLA_LINKMODE        7
+#define IFLA_BROADCAST       8
+#define IFLA_LINK            9
+#define IFLA_QDISC           10
+#define IFLA_COST            11
+#define IFLA_PRIORITY        12
+#define IFLA_MASTER          13
+#define IFLA_PROTINFO        14
+#define IFLA_TXQLEN          15
+#define IFLA_MAP             16
+#define IFLA_WEIGHT          17
 
 /* Definitions for struct rtmsg *********************************************/
 
@@ -388,6 +410,34 @@
 #define RTNLGRP_NSID          28
 #define RTNLGRP_MAX           29
 
+#define FRA_UNSPEC            0
+#define FRA_FWMARK            1  /* Mark */
+#define FRA_TABLE             2  /* Extended table id */
+#define FRA_FWMASK            3  /* Mask for netfilter mark */
+
+/**
+ * nla_type (16 bits)
+ * +---+---+-------------------------------+
+ * | N | O | Attribute Type                |
+ * +---+---+-------------------------------+
+ * N := Carries nested attributes
+ * O := Payload stored in network byte order
+ *
+ * Note: The N and O flag are mutually exclusive.
+ */
+
+#define NLA_F_NET_BYTEORDER (1 << 14)
+#define NLA_F_NESTED        (1 << 15)
+#define NLA_TYPE_MASK       ~(NLA_F_NESTED | NLA_F_NET_BYTEORDER)
+
+#define NLA_ALIGNTO    4
+#define NLA_ALIGN(len) (((len) + NLA_ALIGNTO - 1) & ~(NLA_ALIGNTO - 1))
+#define NLA_HDRLEN     (NLA_ALIGN(sizeof(struct nlattr)))
+
+/* rtm_flags */
+
+#define RTM_F_CLONED  0x200  /* This route is cloned */
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -418,6 +468,22 @@ struct nlmsghdr
   uint32_t nlmsg_seq;     /* Sequence number */
   uint32_t nlmsg_pid;     /* Sending process port ID */
                           /* Data follows */
+};
+
+struct nlmsgerr
+{
+  int   error;
+  struct nlmsghdr msg;
+  /**
+   * Followed by the message contents unless NETLINK_CAP_ACK was set
+   * or the ACK indicates success (error == 0)
+   * message length is aligned with NLMSG_ALIGN()
+   */
+
+  /**
+   * Followed by TLVs defined in enum nlmsgerr_attrs
+   * if NETLINK_EXT_ACK was set
+   */
 };
 
 /* NETLINK_ROUTE Message Structures *****************************************/
@@ -484,6 +550,145 @@ struct rtmsg
   uint8_t  rtm_scope;     /* See RT_SCOPE_* definitions */
   uint8_t  rtm_type;      /* See RTN_* definitions */
   uint32_t rtm_flags;
+};
+
+/**
+ *  <------- NLA_HDRLEN ------> <-- NLA_ALIGN(payload)-->
+ * +---------------------+- - -+- - - - - - - - - -+- - -+
+ * |        Header       | Pad |     Payload       | Pad |
+ * |   (struct nlattr)   | ing |                   | ing |
+ * +---------------------+- - -+- - - - - - - - - -+- - -+
+ *  <-------------- nlattr->nla_len -------------->
+ */
+
+struct nlattr
+{
+  uint16_t nla_len;
+  uint16_t nla_type;
+};
+
+/* Generic 32 bitflags attribute content sent to the kernel.
+ *
+ * The value is a bitmap that defines the values being set
+ * The selector is a bitmask that defines which value is legit
+ *
+ * Examples:
+ *  value = 0x0, and selector = 0x1
+ *  implies we are selecting bit 1 and we want to set its value to 0.
+ *
+ *  value = 0x2, and selector = 0x2
+ *  implies we are selecting bit 2 and we want to set its value to 1.
+ *
+ */
+
+struct nla_bitfield32
+{
+  uint32_t value;
+  uint32_t selector;
+};
+
+/****************************************************************************
+ *              Neighbor Discovery userland options
+ */
+
+struct nduseroptmsg
+{
+  unsigned char   nduseropt_family;
+  unsigned char   nduseropt_pad1;
+  unsigned short  nduseropt_opts_len;     /* Total length of options */
+  int             nduseropt_ifindex;
+  uint8_t         nduseropt_icmp_type;
+  uint8_t         nduseropt_icmp_code;
+  unsigned short  nduseropt_pad2;
+  unsigned int    nduseropt_pad3;
+
+  /* Followed by one or more ND options */
+};
+
+enum
+{
+  NDUSEROPT_UNSPEC,
+  NDUSEROPT_SRCADDR,
+  __NDUSEROPT_MAX
+};
+
+/* This struct should be in sync with struct rtnl_link_stats64 */
+
+struct rtnl_link_stats
+{
+  uint32_t rx_packets;       /* total packets received  */
+  uint32_t tx_packets;       /* total packets transmitted  */
+  uint32_t rx_bytes;         /* total bytes received   */
+  uint32_t tx_bytes;         /* total bytes transmitted  */
+  uint32_t rx_errors;        /* bad packets received    */
+  uint32_t tx_errors;        /* packet transmit problems  */
+  uint32_t rx_dropped;       /* no space in linux buffers  */
+  uint32_t tx_dropped;       /* no space available in linux  */
+  uint32_t multicast;        /* multicast packets received  */
+  uint32_t collisions;
+
+  /* detailed rx_errors: */
+
+  uint32_t rx_length_errors;
+  uint32_t rx_over_errors;   /* receiver ring buff overflow  */
+  uint32_t rx_crc_errors;    /* recved pkt with crc error  */
+  uint32_t rx_frame_errors;  /* recv'd frame alignment error */
+  uint32_t rx_fifo_errors;   /* recv'r fifo overrun    */
+  uint32_t rx_missed_errors; /* receiver missed packet  */
+
+  /* detailed tx_errors */
+
+  uint32_t tx_aborted_errors;
+  uint32_t tx_carrier_errors;
+  uint32_t tx_fifo_errors;
+  uint32_t tx_heartbeat_errors;
+  uint32_t tx_window_errors;
+
+  /* for cslip etc */
+
+  uint32_t rx_compressed;
+  uint32_t tx_compressed;
+
+  uint32_t rx_nohandler;     /* dropped, no handler found  */
+};
+
+/* The main device statistics structure */
+
+struct rtnl_link_stats64
+{
+  uint64_t rx_packets;       /* total packets received       */
+  uint64_t tx_packets;       /* total packets transmitted    */
+  uint64_t rx_bytes;         /* total bytes received         */
+  uint64_t tx_bytes;         /* total bytes transmitted      */
+  uint64_t rx_errors;        /* bad packets received         */
+  uint64_t tx_errors;        /* packet transmit problems     */
+  uint64_t rx_dropped;       /* no space in linux buffers    */
+  uint64_t tx_dropped;       /* no space available in linux  */
+  uint64_t multicast;        /* multicast packets received   */
+  uint64_t collisions;
+
+  /* detailed rx_errors: */
+
+  uint64_t rx_length_errors;
+  uint64_t rx_over_errors;   /* receiver ring buff overflow  */
+  uint64_t rx_crc_errors;    /* recved pkt with crc error    */
+  uint64_t rx_frame_errors;  /* recv'd frame alignment error */
+  uint64_t rx_fifo_errors;   /* recv'r fifo overrun          */
+  uint64_t rx_missed_errors; /* receiver missed packet       */
+
+  /* detailed tx_errors */
+
+  uint64_t tx_aborted_errors;
+  uint64_t tx_carrier_errors;
+  uint64_t tx_fifo_errors;
+  uint64_t tx_heartbeat_errors;
+  uint64_t tx_window_errors;
+
+  /* for cslip etc */
+
+  uint64_t rx_compressed;
+  uint64_t tx_compressed;
+  uint64_t rx_nohandler;     /* dropped, no handler found    */
 };
 
 /****************************************************************************

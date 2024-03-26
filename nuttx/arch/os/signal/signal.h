@@ -29,10 +29,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <queue.h>
 #include <sched.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/queue.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -147,7 +147,7 @@ struct task_group_s;
 
 /* sig_initializee.c */
 
-void weak_function nxsig_initialize(void);
+void               nxsig_initialize(void);
 
 /* sig_action.c */
 
@@ -162,10 +162,6 @@ _sa_handler_t      nxsig_default(FAR struct tcb_s *tcb, int signo,
                                  bool defaction);
 int                nxsig_default_initialize(FAR struct tcb_s *tcb);
 #endif
-
-/* sig_pending.c */
-
-sigset_t           nxsig_pendingset(FAR struct tcb_s *stcb);
 
 /* sig_dispatch.c */
 

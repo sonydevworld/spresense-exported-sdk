@@ -52,21 +52,17 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdint.h>
 #include <nuttx/config.h>
+
+#include <stdint.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+
 #include <nuttx/net/ethernet.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#ifndef MAX
-#  define MAX(a,b) ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef MIN
-#  define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif
 
 /* Using the following definitions, the following socket() arguments should
  * provide a valid socket in all configurations:
@@ -252,6 +248,10 @@
  * packet size of all enabled link layer protocols.
  */
 
+#ifndef CONFIG_NET_LOOPBACK_PKTSIZE
+#  define CONFIG_NET_LOOPBACK_PKTSIZE 0
+#endif
+
 #if CONFIG_NET_LOOPBACK_PKTSIZE < MAX_NETDEV_PKTSIZE
 #  define NET_LO_PKTSIZE        MAX_NETDEV_PKTSIZE
 #else
@@ -259,7 +259,7 @@
 #endif
 
 #ifndef CONFIG_NET_SEND_BUFSIZE
-#define CONFIG_NET_SEND_BUFSIZE 0
+#  define CONFIG_NET_SEND_BUFSIZE 0
 #endif
 
 /* Layer 3/4 Configuration Options ******************************************/
@@ -292,16 +292,6 @@
 #endif
 
 /* UDP configuration options */
-
-/* The maximum amount of concurrent UDP connection, Default: 10 */
-
-#ifndef CONFIG_NET_UDP_CONNS
-#  ifdef CONFIG_NET_UDP
-#    define CONFIG_NET_UDP_CONNS 10
-#  else
-#    define CONFIG_NET_UDP_CONNS  0
-#  endif
-#endif
 
 /* The UDP maximum packet size. This should not be set to more than
  * NETDEV_PKTSIZE(d) - NET_LL_HDRLEN(dev) - __UDP_HDRLEN - IPv*_HDRLEN.
@@ -421,21 +411,6 @@
 
 /* TCP configuration options */
 
-/* The maximum number of simultaneously open TCP connections.
- *
- * Since the TCP connections are statically allocated, turning this
- * configuration knob down results in less RAM used. Each TCP
- * connection requires approximately 30 bytes of memory.
- */
-
-#ifndef CONFIG_NET_TCP_CONNS
-#  ifdef CONFIG_NET_TCP
-#   define CONFIG_NET_TCP_CONNS 10
-#  else
-#   define CONFIG_NET_TCP_CONNS  0
-#  endif
-#endif
-
 /* The maximum number of simultaneously listening TCP ports.
  *
  * Each listening TCP port requires 2 bytes of memory.
@@ -443,15 +418,6 @@
 
 #ifndef CONFIG_NET_MAX_LISTENPORTS
 #  define CONFIG_NET_MAX_LISTENPORTS 20
-#endif
-
-/* Define the maximum number of concurrently active UDP and TCP
- * ports.  This number must be greater than the number of open
- * sockets in order to support multi-threaded read/write operations.
- */
-
-#ifndef CONFIG_NET_NACTIVESOCKETS
-#  define CONFIG_NET_NACTIVESOCKETS (CONFIG_NET_TCP_CONNS + CONFIG_NET_UDP_CONNS)
 #endif
 
 /* The initial retransmission timeout counted in timer pulses.
@@ -471,7 +437,11 @@
  * This should not be changed.
  */
 
-#define TCP_MAXRTX  8
+#ifdef CONFIG_NET_TCP_MAXRTX
+#  define TCP_MAXRTX CONFIG_NET_TCP_MAXRTX
+#else
+#  define TCP_MAXRTX 8
+#endif
 
 /* The maximum number of times a SYN segment should be retransmitted
  * before a connection request should be deemed to have been
@@ -480,7 +450,11 @@
  * This should not need to be changed.
  */
 
-#define TCP_MAXSYNRTX 5
+#ifdef CONFIG_NET_TCP_MAXSYNRTX
+#  define TCP_MAXSYNRTX CONFIG_NET_TCP_MAXSYNRTX
+#else
+#  define TCP_MAXSYNRTX 5
+#endif
 
 /* The TCP maximum segment size. This should not be set to more than
  * NETDEV_PKTSIZE(dev) - NET_LL_HDRLEN(dev) - IPvN_HDRLEN - __TCP_HDRLEN.
@@ -650,18 +624,6 @@
  */
 
 #  define CONFIG_NET_ARP_MAXAGE 120
-#endif
-
-/* Usrsock configuration options */
-
-/* The maximum amount of concurrent usrsock connections, Default: 6 */
-
-#ifndef CONFIG_NET_USRSOCK_CONNS
-#  ifdef CONFIG_NET_USRSOCK
-#    define CONFIG_NET_USRSOCK_CONNS 6
-#  else
-#    define CONFIG_NET_USRSOCK_CONNS 0
-#  endif
 #endif
 
 /****************************************************************************

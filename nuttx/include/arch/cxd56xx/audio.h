@@ -37,13 +37,25 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "arch/chip/cxd56_audio_lower.h"
+
 /****************************************************************************
  * Pre-processor Prototypes
  ****************************************************************************/
+
+/* NuttX based Audio Driver Vendor Specific ioctl commands */
+
+#define CXD56AUD_SET_SYSVOLUME  (0x01)
+#define CXD56AUD_SET_AUDIOPATH  (0x02)
+#define CXD56AUD_SET_I2SMODE    (0x03)
+#define CXD56AUD_GET_SYSPARAM   (0x04)
+#define CXD56AUD_SET_SAMPLERATE (0x05)
+#define CXD56AUD_SET_BWCH       (0x06)
 
 /* Mic channel max. */
 
@@ -57,10 +69,6 @@
 /* DEQ band number. */
 
 #define CXD56_AUDIO_DEQ_BAND_NUM     6
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
 
 /* cxd56_audio common return code. */
 
@@ -161,6 +169,29 @@
 #define CXD56_AUDIO_ECODE_REG_AC_CLKMODE   (CXD56_AUDIO_ECODE_REG_AC | 0x07)
 #define CXD56_AUDIO_ECODE_REG_AC_SEL_INV   (CXD56_AUDIO_ECODE_REG_AC | 0x08)
 #define CXD56_AUDIO_ECODE_REG_AC_CSTE_VOL  (CXD56_AUDIO_ECODE_REG_AC | 0x09)
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* NuttX based Audio Driver Vendor Specific ioctl command arguments */
+
+struct cxd56_audio_ioctl_s
+{
+  unsigned int  cmd;
+  union
+    {
+      unsigned long arg;
+      unsigned short argh[2];
+    };
+};
+
+struct beep_ctl_s
+{
+  bool en;
+  uint32_t freq;
+  uint32_t vol;
+};
 
 /* Error code of config */
 
@@ -500,6 +531,14 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/* NuttX based Audio Driver Initialzation functions */
+
+int cxd56_audsystem_initialize(FAR cxd56_audio_lower_t *low);
+struct audio_lowerhalf_s *cxd56_aud_miclower(void);
+struct audio_lowerhalf_s *cxd56_aud_spk0out(void);
+struct audio_lowerhalf_s *cxd56_aud_spk1out(void);
+struct audio_lowerhalf_s *cxd56_aud_i2sin(void);
 
 /* Power on Audio driver
  *
